@@ -1,0 +1,853 @@
+{% extends "base.html" %}
+
+{% block title %}Casella Email Amministratore - ArmiMarket Italia{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Header Sezione -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-800 gap-4">
+        <div>
+            <div class="flex items-center space-x-2 text-amber-500 font-bold text-xs uppercase tracking-wider mb-1">
+                <i class="fa-solid fa-envelope-open-text"></i>
+                <span>Gestione Posta Elettronica & Notifiche</span>
+            </div>
+            <h1 class="text-2xl font-black text-white flex items-center gap-2">
+                Casella Postale del Sito
+                <span class="text-xs bg-amber-500/20 text-amber-400 font-mono font-bold px-2 py-0.5 rounded border border-amber-500/30">Admin Only</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">
+                Consulta in tempo reale tutte le email generate dal portale (link crittografici di recupero password, richieste contatto, notifiche di moderazione).
+            </p>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <button onclick="caricaEmail(1)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition-all flex items-center space-x-1.5 shadow">
+                <i class="fa-solid fa-arrows-rotate" id="refreshIcon"></i>
+                <span>Aggiorna</span>
+            </button>
+            <button onclick="apriModalTest()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 text-xs font-black px-3.5 py-2 rounded-lg transition-all flex items-center space-x-1.5 shadow-lg shadow-amber-600/20">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>Invia Email di Test</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert Non-Admin se non loggato -->
+    <div id="unauthAlert" class="hidden my-8 p-6 bg-rose-950/70 border border-rose-800 text-rose-200 rounded-2xl text-center space-y-3 max-w-xl mx-auto shadow-2xl">
+        <div class="w-12 h-12 rounded-full bg-rose-900/60 text-rose-400 flex items-center justify-center mx-auto text-xl">
+            <i class="fa-solid fa-lock"></i>
+        </div>
+        <h3 class="text-base font-bold text-white">Accesso Riservato all'Amministratore</h3>
+        <p class="text-xs text-rose-300 leading-relaxed">
+            La casella postale del sito è protetta. Effettua l'accesso con le credenziali del tuo account amministratore (<code class="bg-rose-900/50 px-1 py-0.5 rounded text-white">Admin</code>) per visualizzare e gestire i messaggi.
+        </p>
+        <a href="/login?redirect=/admin/posta" class="inline-block bg-white hover:bg-slate-200 text-slate-950 font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow">
+            Accedi come Amministratore
+        </a>
+    </div>
+
+    <!-- Webmail App Grid (Visibile solo se admin) -->
+    <div id="webmailContainer" class="hidden mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Sidebar Cartelle & Filtri (3 col) -->
+        <div class="lg:col-span-3 space-y-4">
+            
+            <!-- Box Account Mittente -->
+            <div class="p-4 bg-slate-950 border border-slate-800 rounded-2xl shadow-xl space-y-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-white font-black text-base shadow-md">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <div class="text-xs font-bold text-white truncate">Admin &bull; ArmiMarket</div>
+                        <div class="text-[11px] text-slate-400">Posta Uscita & Recuperi</div>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                    <span class="text-slate-400">Stato Server SMTP:</span>
+                    <span id="smtpBadge" class="font-bold text-amber-400 flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse"></span>
+                        Locale / DB
+                    </span>
+                </div>
+            </div>
+
+            <!-- Cartelle / Categorie -->
+            <div class="p-2 bg-slate-950 border border-slate-800 rounded-2xl shadow-xl space-y-1">
+                <button onclick="selezionaCartella('')" id="tabAll" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-slate-800/90 transition-all text-left">
+                    <div class="flex items-center space-x-2.5">
+                        <i class="fa-solid fa-inbox text-slate-400"></i>
+                        <span>Tutti i Messaggi</span>
+                    </div>
+                    <span id="badgeTotal" class="text-[10px] bg-slate-700 text-slate-200 px-2 py-0.5 rounded-full font-mono">0</span>
+                </button>
+
+                <button onclick="selezionaCartella('recupero_password')" id="tabRecupero" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all text-left">
+                    <div class="flex items-center space-x-2.5">
+                        <i class="fa-solid fa-key text-amber-400"></i>
+                        <span>Recupero Password</span>
+                    </div>
+                    <span id="badgeRecupero" class="text-[10px] bg-amber-950 text-amber-400 border border-amber-800/60 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+                </button>
+
+                <button onclick="selezionaCartella('richiesta_contatto')" id="tabContatti" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all text-left">
+                    <div class="flex items-center space-x-2.5">
+                        <i class="fa-solid fa-comments text-emerald-400"></i>
+                        <span>Richieste Contatto</span>
+                    </div>
+                    <span id="badgeContatti" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800/60 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+                </button>
+
+                <button onclick="selezionaCartella('altre')" id="tabAltre" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all text-left">
+                    <div class="flex items-center space-x-2.5">
+                        <i class="fa-solid fa-circle-nodes text-blue-400"></i>
+                        <span>Sistema & Test</span>
+                    </div>
+                    <span id="badgeAltre" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-mono">0</span>
+                </button>
+
+                <button onclick="selezionaCartella('segnalazioni')" id="tabSegnalazioni" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all text-left border-t border-slate-800/80 pt-2">
+                    <div class="flex items-center space-x-2.5">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
+                        <span class="text-rose-300 font-semibold">Segnalazioni Annunci</span>
+                    </div>
+                    <span id="badgeSegnalazioni" class="text-[10px] bg-rose-950 text-rose-400 border border-rose-800/60 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+                </button>
+            </div>
+
+            <!-- Ricerca per Email o Oggetto -->
+            <div class="p-3 bg-slate-950 border border-slate-800 rounded-2xl shadow-xl">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
+                    <input type="text" id="inputSearchEmail" onkeyup="cercaDebounced(event)" placeholder="Cerca email, destinatario..." class="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors">
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Elenco Messaggi (4 col) -->
+        <div class="lg:col-span-4 bg-slate-950 border border-slate-800 rounded-2xl shadow-xl flex flex-col h-[700px] overflow-hidden">
+            <div class="p-3.5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/40">
+                <span class="text-xs font-bold text-slate-300" id="currentFolderTitle">Tutti i messaggi</span>
+                <span class="text-[11px] text-slate-500 font-mono" id="msgCounterText">0 elementi</span>
+            </div>
+
+            <div id="emailList" class="flex-grow overflow-y-auto divide-y divide-slate-800/60 custom-scrollbar">
+                <div class="p-8 text-center text-slate-500 text-xs">
+                    <i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-amber-500"></i>
+                    <p>Caricamento messaggi in corso...</p>
+                </div>
+            </div>
+
+            <!-- Paginazione Compatta -->
+            <div class="p-3 border-t border-slate-800 flex items-center justify-between bg-slate-900/50 text-xs">
+                <button id="btnPrevPage" onclick="cambiaPagina(-1)" disabled class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-300 rounded font-semibold transition-all">
+                    <i class="fa-solid fa-chevron-left text-[10px]"></i> Prec
+                </button>
+                <span id="pageIndicator" class="text-[11px] text-slate-400 font-mono">Pag. 1</span>
+                <button id="btnNextPage" onclick="cambiaPagina(1)" disabled class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-300 rounded font-semibold transition-all">
+                    Succ <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Lettore Email / Anteprima Rendering (5 col) -->
+        <div class="lg:col-span-5 bg-slate-950 border border-slate-800 rounded-2xl shadow-xl flex flex-col h-[700px] overflow-hidden">
+            
+            <div id="emptyReaderState" class="m-auto text-center p-8 space-y-3">
+                <div class="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-2xl text-slate-600 mx-auto">
+                    <i class="fa-regular fa-envelope-open"></i>
+                </div>
+                <h4 class="text-sm font-bold text-slate-300">Nessun messaggio selezionato</h4>
+                <p class="text-xs text-slate-500 max-w-xs">
+                    Seleziona un'email dall'elenco a sinistra per visualizzare i dettagli di recapito, il testo formattato e l'anteprima grafica.
+                </p>
+            </div>
+
+            <div id="activeReader" class="hidden flex flex-col h-full">
+                <!-- Header Email -->
+                <div class="p-4 border-b border-slate-800 bg-slate-900/60 space-y-3">
+                    <div class="flex items-start justify-between gap-2">
+                        <h3 id="readOggetto" class="text-sm font-black text-white leading-snug"></h3>
+                        <div class="flex items-center space-x-1.5 shrink-0">
+                            <button onclick="eliminaEmailCorrente()" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors" title="Elimina email">
+                                <i class="fa-regular fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                        <div>
+                            <span class="text-slate-500">Da:</span>
+                            <span id="readMittente" class="text-slate-200 font-mono ml-1 font-semibold"></span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500">A:</span>
+                            <span id="readDestinatario" class="text-amber-400 font-mono ml-1 font-bold"></span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500">Data/Ora:</span>
+                            <span id="readData" class="text-slate-300 ml-1"></span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="text-slate-500 mr-1">Stato:</span>
+                            <span id="readStatoBadge"></span>
+                        </div>
+                    </div>
+
+                    <!-- Box Azione Rapida (Link Recupero Password) -->
+                    <div id="boxLinkAzione" class="hidden p-2.5 bg-amber-950/60 border border-amber-800/80 rounded-xl flex items-center justify-between gap-2">
+                        <div class="truncate text-xs">
+                            <span class="text-amber-400 font-bold flex items-center gap-1">
+                                <i class="fa-solid fa-link text-[10px]"></i> Link di Reset Password:
+                            </span>
+                            <a id="linkAzioneHref" href="#" target="_blank" class="text-slate-200 hover:underline font-mono text-[11px] truncate block"></a>
+                        </div>
+                        <button onclick="copiaLinkAzione()" class="shrink-0 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[10px] px-2.5 py-1 rounded transition-colors shadow">
+                            Copia Link
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Schede Visualizzazione (HTML o Testo Piano) -->
+                <div class="px-4 pt-2 border-b border-slate-800 flex items-center space-x-3 text-xs">
+                    <button onclick="mostraTabCorpo('html')" id="tabHtmlBtn" class="pb-2 border-b-2 border-amber-500 text-white font-bold">Anteprima Grafica (HTML)</button>
+                    <button onclick="mostraTabCorpo('text')" id="tabTextBtn" class="pb-2 border-b-2 border-transparent text-slate-400 hover:text-white">Testo Diretto</button>
+                </div>
+
+                <!-- Corpo Email -->
+                <div class="flex-grow p-4 overflow-y-auto bg-slate-900/30">
+                    <div id="readCorpoHtml" class="bg-slate-950 rounded-xl p-3 border border-slate-800">
+                        <iframe id="htmlIframe" class="w-full h-[300px] rounded-lg border-0 bg-slate-950" sandbox="allow-same-origin"></iframe>
+                    </div>
+                    <pre id="readCorpoTesto" class="hidden whitespace-pre-wrap font-mono text-xs text-slate-300 p-4 bg-slate-950 border border-slate-800 rounded-xl leading-relaxed"></pre>
+                </div>
+
+                <!-- Box Risposta Diretta dall'Amministratore -->
+                <div id="replySection" class="p-3.5 border-t border-slate-800 bg-slate-900/80 space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold text-amber-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-reply"></i> Rispondi al Mittente come Admin
+                        </span>
+                        <span class="text-[10px] text-slate-400 font-mono">Mittente anonimo: Admin ArmiMarket</span>
+                    </div>
+                    <textarea id="replyMessageText" rows="2" placeholder="Scrivi qui la tua risposta per l'utente..." class="w-full bg-slate-950 border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500 resize-none"></textarea>
+                    <div class="flex items-center justify-between">
+                        <span id="replyStatus" class="text-[11px] text-slate-400"></span>
+                        <button onclick="inviaRispostaAdmin()" id="btnSendReply" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg shadow flex items-center gap-1">
+                            <i class="fa-regular fa-paper-plane"></i> Invia Risposta
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dettaglio Segnalazione Annuncio (Visibile quando si seleziona una segnalazione) -->
+            <div id="segnalazioneReader" class="hidden flex flex-col h-full overflow-y-auto p-6 space-y-5">
+                <div class="flex items-start justify-between border-b border-slate-800 pb-4">
+                    <div>
+                        <span class="text-xs bg-rose-950 text-rose-400 border border-rose-800/80 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                            Segnalazione Utente
+                        </span>
+                        <h3 id="segTitolo" class="text-base font-extrabold text-white mt-1"></h3>
+                        <p id="segPrezzo" class="text-sm font-black text-amber-400 mt-0.5"></p>
+                    </div>
+                    <div id="segStatusBadge"></div>
+                </div>
+
+                <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2 text-xs">
+                    <div><span class="text-slate-400">Motivo Segnalato:</span> <strong id="segMotivo" class="text-rose-400 ml-1"></strong></div>
+                    <div><span class="text-slate-400">Segnalatore:</span> <span id="segEmail" class="text-slate-200 ml-1 font-mono"></span></div>
+                    <div><span class="text-slate-400">Data Ricezione:</span> <span id="segData" class="text-slate-300 ml-1"></span></div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-xs font-bold text-slate-300">Dettagli / Motivazione della Segnalazione:</label>
+                    <div id="segDettagli" class="p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 whitespace-pre-wrap leading-relaxed"></div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                    <a id="segLinkScheda" href="#" target="_blank" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors">
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[11px]"></i>
+                        <span>Vedi Scheda Annuncio</span>
+                    </a>
+
+                    <div class="flex items-center space-x-2">
+                        <button onclick="risolviSegnalazioneCorrente('archiviata')" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl transition-colors">
+                            Archivia
+                        </button>
+                        <button onclick="eliminaAnnuncioSegnalatoCorrente()" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-rose-900/30 flex items-center gap-1.5 transition-colors">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span>Rimuovi Annuncio dal Sito</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Modal Invio Email di Test -->
+<div id="modalTestEmail" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <h3 class="text-sm font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-paper-plane text-amber-500"></i>
+                Invia Email di Test
+            </h3>
+            <button onclick="chiudiModalTest()" class="text-slate-400 hover:text-white text-base">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <p class="text-xs text-slate-400">
+            Invia un messaggio per verificare la connessione al server SMTP e la visualizzazione nella casella postale.
+        </p>
+        <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Email Destinatario *</label>
+            <input type="email" id="testEmailDest" placeholder="es. tua.email@dominio.it" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+        </div>
+        <div id="testEmailFeedback" class="hidden text-xs p-3 rounded-lg"></div>
+        <div class="flex justify-end space-x-2 pt-2">
+            <button onclick="chiudiModalTest()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all">
+                Annulla
+            </button>
+            <button onclick="eseguiInvioTest()" id="btnInviaTest" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-xl transition-all shadow-lg shadow-amber-500/20">
+                Invia Adesso
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let token = localStorage.getItem("armimarket_token");
+    let currentUser = null;
+    try {
+        currentUser = JSON.parse(localStorage.getItem("armimarket_user") || "null");
+    } catch(e){}
+
+    let currentPagina = 1;
+    let currentTipologia = "";
+    let currentSearch = "";
+    let debounceTimer = null;
+    let emailCorrenteId = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        if (!token || !currentUser || currentUser.ruolo !== "admin") {
+            document.getElementById("unauthAlert").classList.remove("hidden");
+            return;
+        }
+
+        document.getElementById("webmailContainer").classList.remove("hidden");
+        caricaEmail(1);
+    });
+
+    async function caricaEmail(pagina = 1) {
+        currentPagina = pagina;
+        const icon = document.getElementById("refreshIcon");
+        if (icon) icon.classList.add("fa-spin");
+
+        const listDiv = document.getElementById("emailList");
+        let url = `/api/v1/admin/email?pagina=${pagina}&elementi_per_pagina=20`;
+        if (currentTipologia) url += `&tipologia=${encodeURIComponent(currentTipologia)}`;
+        if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
+
+        try {
+            const resp = await fetch(url, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+
+            if (resp.status === 401 || resp.status === 403) {
+                document.getElementById("webmailContainer").classList.add("hidden");
+                document.getElementById("unauthAlert").classList.remove("hidden");
+                return;
+            }
+
+            const data = await resp.json();
+            renderStatistiche(data);
+            renderElencoEmail(data.emails);
+
+            const maxPagine = Math.ceil(data.totale / data.elementi_per_pagina) || 1;
+            document.getElementById("pageIndicator").innerText = `Pag. ${data.pagina} di ${maxPagine}`;
+            document.getElementById("btnPrevPage").disabled = (data.pagina <= 1);
+            document.getElementById("btnNextPage").disabled = (data.pagina >= maxPagine);
+            document.getElementById("msgCounterText").innerText = `${data.totale} messaggi`;
+
+        } catch (err) {
+            console.error("Errore caricamento email:", err);
+            listDiv.innerHTML = `<div class="p-6 text-center text-rose-400 text-xs">Errore nel caricamento della casella postale.</div>`;
+        } finally {
+            if (icon) icon.classList.remove("fa-spin");
+        }
+    }
+
+    function renderStatistiche(data) {
+        document.getElementById("badgeTotal").innerText = data.totale;
+        document.getElementById("badgeRecupero").innerText = data.conteggio_recupero;
+        document.getElementById("badgeContatti").innerText = data.conteggio_contatti;
+        document.getElementById("badgeAltre").innerText = data.conteggio_altre;
+
+        // Recupera conteggio segnalazioni non risolte
+        fetch("/api/v1/admin/segnalazioni?solo_aperte=true", {
+            headers: { "Authorization": `Bearer ${token}` }
+        }).then(r => r.json()).then(segList => {
+            const badge = document.getElementById("badgeSegnalazioni");
+            if (badge && Array.isArray(segList)) {
+                badge.innerText = segList.length;
+            }
+        }).catch(() => {});
+    }
+
+
+    function renderElencoEmail(emails) {
+        const listDiv = document.getElementById("emailList");
+        if (!emails || emails.length === 0) {
+            listDiv.innerHTML = `
+                <div class="p-8 text-center text-slate-500 text-xs space-y-2">
+                    <i class="fa-regular fa-folder-open text-2xl"></i>
+                    <p>Nessun messaggio presente in questa cartella.</p>
+                </div>
+            `;
+            return;
+        }
+
+        listDiv.innerHTML = emails.map(e => {
+            const isSelected = (e.id === emailCorrenteId);
+            const activeClass = isSelected ? "bg-amber-950/40 border-l-4 border-amber-500" : "hover:bg-slate-900/70";
+            
+            let typeBadge = `<span class="text-[9px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-mono">Sistema</span>`;
+            if (e.tipologia === "recupero_password") {
+                typeBadge = `<span class="text-[9px] bg-amber-950 text-amber-400 border border-amber-800/80 px-1.5 py-0.5 rounded font-bold">Recupero Password</span>`;
+            } else if (e.tipologia === "richiesta_contatto") {
+                typeBadge = `<span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-800/80 px-1.5 py-0.5 rounded font-bold">Richiesta Contatto</span>`;
+            } else if (e.tipologia === "test") {
+                typeBadge = `<span class="text-[9px] bg-blue-950 text-blue-400 border border-blue-800/80 px-1.5 py-0.5 rounded font-bold">Test</span>`;
+            }
+
+            const statusIcon = e.inviata
+                ? `<span class="text-[10px] text-emerald-400 font-bold" title="Inviata tramite SMTP"><i class="fa-solid fa-check"></i> Inviata</span>`
+                : `<span class="text-[10px] text-amber-400 font-bold" title="Registrata in locale (SMTP disattivato)"><i class="fa-solid fa-inbox"></i> Locale</span>`;
+
+            const d = new Date(e.data_invio);
+            const timeStr = d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+
+            return `
+                <div onclick="apriDettaglioEmail(${e.id})" class="p-3 cursor-pointer transition-all ${activeClass}">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold text-white truncate max-w-[170px]">${escapeHtml(e.destinatario)}</span>
+                        <span class="text-[10px] text-slate-500 font-mono">${timeStr}</span>
+                    </div>
+                    <div class="text-xs text-slate-300 font-medium truncate mb-1.5">
+                        ${escapeHtml(e.oggetto)}
+                    </div>
+                    <div class="flex items-center justify-between">
+                        ${typeBadge}
+                        ${statusIcon}
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    async function apriDettaglioEmail(id) {
+        emailCorrenteId = id;
+        try {
+            const resp = await fetch(`/api/v1/admin/email/${id}`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (!resp.ok) return;
+
+            const email = await resp.json();
+
+            document.getElementById("emptyReaderState").classList.add("hidden");
+            document.getElementById("activeReader").classList.remove("hidden");
+
+            document.getElementById("readOggetto").innerText = email.oggetto;
+            document.getElementById("readMittente").innerText = email.mittente;
+            document.getElementById("readDestinatario").innerText = email.destinatario;
+            
+            const d = new Date(email.data_invio);
+            document.getElementById("readData").innerText = d.toLocaleString("it-IT");
+
+            const badgeDiv = document.getElementById("readStatoBadge");
+            if (email.inviata) {
+                badgeDiv.innerHTML = `<span class="text-emerald-400 font-bold bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800 text-[10px]"><i class="fa-solid fa-circle-check"></i> Inviata via SMTP</span>`;
+            } else {
+                badgeDiv.innerHTML = `<span class="text-amber-400 font-bold bg-amber-950 px-2 py-0.5 rounded border border-amber-800 text-[10px]"><i class="fa-solid fa-database"></i> Registrata in locale</span>`;
+            }
+
+            const boxLink = document.getElementById("boxLinkAzione");
+            const linkHref = document.getElementById("linkAzioneHref");
+            if (email.link_azione) {
+                boxLink.classList.remove("hidden");
+                linkHref.href = email.link_azione;
+                linkHref.innerText = email.link_azione;
+            } else {
+                boxLink.classList.add("hidden");
+            }
+
+            const iframe = document.getElementById("htmlIframe");
+            iframe.srcdoc = email.corpo_html;
+
+            document.getElementById("readCorpoTesto").innerText = email.corpo_testo;
+            caricaEmail(currentPagina);
+
+        } catch (e) {
+            console.error("Errore lettura email:", e);
+        }
+    }
+
+    function mostraTabCorpo(tipo) {
+        const tabHtmlBtn = document.getElementById("tabHtmlBtn");
+        const tabTextBtn = document.getElementById("tabTextBtn");
+        const corpoHtml = document.getElementById("readCorpoHtml");
+        const corpoText = document.getElementById("readCorpoTesto");
+
+        if (tipo === "html") {
+            tabHtmlBtn.className = "pb-2 border-b-2 border-amber-500 text-white font-bold";
+            tabTextBtn.className = "pb-2 border-b-2 border-transparent text-slate-400 hover:text-white";
+            corpoHtml.classList.remove("hidden");
+            corpoText.classList.add("hidden");
+        } else {
+            tabTextBtn.className = "pb-2 border-b-2 border-amber-500 text-white font-bold";
+            tabHtmlBtn.className = "pb-2 border-b-2 border-transparent text-slate-400 hover:text-white";
+            corpoText.classList.remove("hidden");
+            corpoHtml.classList.add("hidden");
+        }
+    }
+
+    async function inviaRispostaAdmin() {
+        if (!emailCorrenteId) return;
+        const msgInput = document.getElementById("replyMessageText");
+        const statusSpan = document.getElementById("replyStatus");
+        const btn = document.getElementById("btnSendReply");
+        const text = msgInput.value.trim();
+
+        if (!text) {
+            alert("Inserisci il testo della risposta.");
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Invio...`;
+        statusSpan.innerText = "";
+
+        try {
+            const resp = await fetch(`/api/v1/admin/email/${emailCorrenteId}/rispondi`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ messaggio: text })
+            });
+            const data = await resp.json();
+
+            if (resp.ok) {
+                statusSpan.className = "text-[11px] text-emerald-400 font-bold";
+                statusSpan.innerHTML = `<i class="fa-solid fa-check mr-1"></i> Risposta inviata a ${data.destinatario}!`;
+                msgInput.value = "";
+                setTimeout(() => { statusSpan.innerText = ""; }, 4000);
+            } else {
+                statusSpan.className = "text-[11px] text-rose-400 font-bold";
+                statusSpan.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${data.detail || "Errore invio"}`;
+            }
+        } catch(e) {
+            statusSpan.className = "text-[11px] text-rose-400 font-bold";
+            statusSpan.innerText = "Impossibile contattare il server.";
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-regular fa-paper-plane"></i> Invia Risposta`;
+        }
+    }
+
+    let listaSegnalazioni = [];
+    let segnalazioneCorrente = null;
+
+    async function caricaSegnalazioni() {
+        const listDiv = document.getElementById("emailList");
+        listDiv.innerHTML = `<div class="p-8 text-center text-slate-500 text-xs"><i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-rose-500"></i><p>Caricamento segnalazioni...</p></div>`;
+
+        try {
+            const resp = await fetch("/api/v1/admin/segnalazioni?solo_aperte=false", {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (!resp.ok) return;
+
+            listaSegnalazioni = await resp.json();
+            const aperte = listaSegnalazioni.filter(s => !s.risolta);
+            document.getElementById("badgeSegnalazioni").innerText = aperte.length;
+            document.getElementById("msgCounterText").innerText = `${listaSegnalazioni.length} segnalazioni`;
+
+            if (listaSegnalazioni.length === 0) {
+                listDiv.innerHTML = `
+                    <div class="p-8 text-center text-slate-500 text-xs space-y-2">
+                        <i class="fa-regular fa-circle-check text-2xl text-emerald-500"></i>
+                        <p>Nessun annuncio segnalato dagli utenti.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listDiv.innerHTML = listaSegnalazioni.map(s => {
+                const isSelected = (segnalazioneCorrente && segnalazioneCorrente.id === s.id);
+                const activeClass = isSelected ? "bg-rose-950/50 border-l-4 border-rose-500" : "hover:bg-slate-900/70";
+                const d = new Date(s.data_creazione);
+                const timeStr = d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+
+                const badgeStato = s.risolta
+                    ? `<span class="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono">Risolta (${escapeHtml(s.azione_intrapresa || '')})</span>`
+                    : `<span class="text-[9px] bg-rose-950 text-rose-400 border border-rose-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Aperta</span>`;
+
+                return `
+                    <div onclick="apriDettaglioSegnalazione(${s.id})" class="p-3 cursor-pointer transition-all ${activeClass}">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-xs font-bold text-rose-300 truncate max-w-[180px]">⚠️ Annuncio #${s.annuncio_id}</span>
+                            <span class="text-[10px] text-slate-500 font-mono">${timeStr}</span>
+                        </div>
+                        <div class="text-xs text-white font-medium truncate mb-1">
+                            ${escapeHtml(s.annuncio_titolo || 'Annuncio')}
+                        </div>
+                        <div class="text-[11px] text-slate-400 truncate mb-1.5">
+                            Motivo: <strong class="text-amber-400">${escapeHtml(s.motivo)}</strong>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            ${badgeStato}
+                            <span class="text-[10px] text-slate-500 truncate max-w-[120px]">${escapeHtml(s.email_segnalatore || 'Anonimo')}</span>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+
+        } catch(e) {
+            console.error("Errore segnalazioni:", e);
+            listDiv.innerHTML = `<div class="p-6 text-center text-rose-400 text-xs">Errore nel caricamento delle segnalazioni.</div>`;
+        }
+    }
+
+    function apriDettaglioSegnalazione(id) {
+        segnalazioneCorrente = listaSegnalazioni.find(s => s.id === id);
+        if (!segnalazioneCorrente) return;
+
+        document.getElementById("emptyReaderState").classList.add("hidden");
+        document.getElementById("activeReader").classList.add("hidden");
+        document.getElementById("segnalazioneReader").classList.remove("hidden");
+
+        const s = segnalazioneCorrente;
+        document.getElementById("segTitolo").innerText = `Annuncio #${s.annuncio_id}: ${s.annuncio_titolo || 'Non disponibile'}`;
+        document.getElementById("segPrezzo").innerText = s.annuncio_prezzo ? `Prezzo: € ${s.annuncio_prezzo.toFixed(2)}` : "";
+        document.getElementById("segMotivo").innerText = s.motivo;
+        document.getElementById("segEmail").innerText = s.email_segnalatore || "Anonimo";
+        document.getElementById("segData").innerText = new Date(s.data_creazione).toLocaleString("it-IT");
+        document.getElementById("segDettagli").innerText = s.dettagli;
+        document.getElementById("segLinkScheda").href = `/scheda/${s.annuncio_id}`;
+
+        const badgeDiv = document.getElementById("segStatusBadge");
+        if (s.risolta) {
+            badgeDiv.innerHTML = `<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs px-2.5 py-1 rounded-full font-bold">Risolta (${s.azione_intrapresa})</span>`;
+        } else {
+            badgeDiv.innerHTML = `<span class="bg-rose-950 text-rose-400 border border-rose-800 text-xs px-2.5 py-1 rounded-full font-bold">In attesa di verifica</span>`;
+        }
+
+        caricaSegnalazioni();
+    }
+
+    async function eliminaAnnuncioSegnalatoCorrente() {
+        if (!segnalazioneCorrente) return;
+        const confirmMsg = `ATTENZIONE: Confermi di voler rimuovere DEFINITIVAMENTE l'annuncio #${segnalazioneCorrente.annuncio_id} dal portale ArmiMarket Italia?\n\nL'annuncio non sarà più visibile agli utenti e verrà cancellato.`;
+        if (!confirm(confirmMsg)) return;
+
+        try {
+            const resp = await fetch(`/api/v1/admin/segnalazioni/${segnalazioneCorrente.id}/elimina-annuncio`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            const data = await resp.json();
+            if (resp.ok) {
+                alert(`SUCCESS: ${data.message}`);
+                await caricaSegnalazioni();
+                if (segnalazioneCorrente) apriDettaglioSegnalazione(segnalazioneCorrente.id);
+            } else {
+                alert(`ERRORE: ${data.detail || "Impossibile rimuovere l'annuncio."}`);
+            }
+        } catch(e) {
+            alert("Errore di connessione con il server.");
+        }
+    }
+
+    async function risolviSegnalazioneCorrente(azione) {
+        if (!segnalazioneCorrente) return;
+        try {
+            const resp = await fetch(`/api/v1/admin/segnalazioni/${segnalazioneCorrente.id}/risolvi`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ azione: azione })
+            });
+            if (resp.ok) {
+                await caricaSegnalazioni();
+                if (segnalazioneCorrente) apriDettaglioSegnalazione(segnalazioneCorrente.id);
+            }
+        } catch(e) {
+            console.error("Errore risoluzione:", e);
+        }
+    }
+
+    function selezionaCartella(tipologia) {
+        currentTipologia = tipologia;
+        ["tabAll", "tabRecupero", "tabContatti", "tabAltre", "tabSegnalazioni"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.className = "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all text-left";
+        });
+
+        document.getElementById("activeReader").classList.add("hidden");
+        document.getElementById("segnalazioneReader").classList.add("hidden");
+        document.getElementById("emptyReaderState").classList.remove("hidden");
+
+        let targetId = "tabAll";
+        let title = "Tutti i messaggi";
+        if (tipologia === "recupero_password") {
+            targetId = "tabRecupero";
+            title = "Recupero Password";
+        } else if (tipologia === "richiesta_contatto") {
+            targetId = "tabContatti";
+            title = "Richieste Contatto Annunci";
+        } else if (tipologia === "altre") {
+            targetId = "tabAltre";
+            title = "Notifiche di Sistema & Test";
+        } else if (tipologia === "segnalazioni") {
+            targetId = "tabSegnalazioni";
+            title = "Segnalazioni Annunci per Non Conformità / Truffe";
+        }
+
+        const activeEl = document.getElementById(targetId);
+        if (activeEl) activeEl.className = "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-slate-800/90 transition-all text-left";
+        document.getElementById("currentFolderTitle").innerText = title;
+
+        if (tipologia === "segnalazioni") {
+            caricaSegnalazioni();
+        } else {
+            caricaEmail(1);
+        }
+    }
+
+    function cercaDebounced(e) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            currentSearch = document.getElementById("inputSearchEmail").value;
+            if (currentTipologia === "segnalazioni") {
+                caricaSegnalazioni();
+            } else {
+                caricaEmail(1);
+            }
+        }, 350);
+    }
+
+    function cambiaPagina(delta) {
+        caricaEmail(currentPagina + delta);
+    }
+
+    async function eliminaEmailCorrente() {
+        if (!emailCorrenteId) return;
+        if (!confirm("Sei sicuro di voler eliminare questa email dalla casella postale?")) return;
+
+        try {
+            const resp = await fetch(`/api/v1/admin/email/${emailCorrenteId}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (resp.ok) {
+                document.getElementById("activeReader").classList.add("hidden");
+                document.getElementById("emptyReaderState").classList.remove("hidden");
+                emailCorrenteId = null;
+                caricaEmail(currentPagina);
+            }
+        } catch (e) {
+            console.error("Errore cancellazione:", e);
+        }
+    }
+
+    function copiaLinkAzione() {
+        const link = document.getElementById("linkAzioneHref").href;
+        navigator.clipboard.writeText(link).then(() => {
+            alert("Link di recupero password copiato negli appunti!");
+        });
+    }
+
+    function apriModalTest() {
+        document.getElementById("modalTestEmail").classList.remove("hidden");
+        document.getElementById("modalTestEmail").classList.add("flex");
+        document.getElementById("testEmailFeedback").classList.add("hidden");
+    }
+
+    function chiudiModalTest() {
+        document.getElementById("modalTestEmail").classList.add("hidden");
+        document.getElementById("modalTestEmail").classList.remove("flex");
+    }
+
+    async function eseguiInvioTest() {
+        const dest = document.getElementById("testEmailDest").value;
+        const feedback = document.getElementById("testEmailFeedback");
+        const btn = document.getElementById("btnInviaTest");
+
+        if (!dest || !dest.includes("@")) {
+            alert("Inserisci un indirizzo email valido.");
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerText = "Invio in corso...";
+
+        try {
+            const resp = await fetch("/api/v1/admin/email/test", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ destinatario: dest })
+            });
+            const data = await resp.json();
+
+            feedback.classList.remove("hidden");
+            if (resp.ok) {
+                feedback.className = "text-xs p-3 rounded-lg bg-emerald-950 border border-emerald-700 text-emerald-200";
+                feedback.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> ${data.message}`;
+                setTimeout(() => {
+                    chiudiModalTest();
+                    caricaEmail(1);
+                }, 1800);
+            } else {
+                feedback.className = "text-xs p-3 rounded-lg bg-rose-950 border border-rose-700 text-rose-200";
+                feedback.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Errore: ${data.detail || "Impossibile inviare"}`;
+            }
+        } catch (e) {
+            feedback.classList.remove("hidden");
+            feedback.className = "text-xs p-3 rounded-lg bg-rose-950 border border-rose-700 text-rose-200";
+            feedback.innerText = "Errore durante l invio della richiesta.";
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Invia Adesso";
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return "";
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+</script>
+{% endblock %}

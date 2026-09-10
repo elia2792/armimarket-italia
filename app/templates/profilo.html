@@ -1,0 +1,619 @@
+{% extends "base.html" %}
+
+{% block title %}Area Personale - I Miei Annunci & Preferiti - ArmiMarket Italia{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Intestazione Profilo -->
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 mb-8 shadow-xl relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 opacity-5 text-amber-500 pointer-events-none">
+            <i class="fa-solid fa-id-card text-[220px]"></i>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+            <div class="flex items-start sm:items-center space-x-4">
+                <!-- Avatar cliccabile con upload foto profilo -->
+                <div class="relative flex-shrink-0 cursor-pointer group" onclick="document.getElementById('avatarInput').click()" title="Clicca per cambiare foto profilo">
+                    <div id="userAvatar"
+                         class="w-20 h-20 rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-lg flex-shrink-0 overflow-hidden"
+                         style="background:linear-gradient(135deg,#2e3a18 0%,#4a5c2a 100%);border:2px solid #4a5c2a;">
+                        <i class="fa-solid fa-user" style="color:#c8a96e"></i>
+                    </div>
+                    <!-- Overlay fotocamera -->
+                    <div class="absolute inset-0 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                         style="background:rgba(0,0,0,.55);">
+                        <i class="fa-solid fa-camera text-xl" style="color:#c8a96e;"></i>
+                    </div>
+                    <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center shadow-lg"
+                         style="background:#4a5c2a;border:1.5px solid #6b7d3e;">
+                        <i class="fa-solid fa-camera text-[9px] text-stone-200"></i>
+                    </div>
+                    <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="uploadAvatar(this)">
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h1 id="userFullName" class="text-xl sm:text-2xl font-extrabold text-white">Caricamento profilo...</h1>
+                        <span id="userRoleBadge" class="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full border bg-slate-800 text-slate-300 border-slate-700">
+                            Utente
+                        </span>
+                    </div>
+                    <div id="userNicknameBadgeRow" class="flex items-center gap-2 mt-1">
+                        <span class="text-xs text-amber-400 font-semibold bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-md flex items-center gap-1.5">
+                            <i class="fa-solid fa-user-astronaut text-amber-400"></i> Nickname pubblico: <strong id="userNicknameText" class="text-white">Non impostato</strong>
+                        </span>
+                        <button id="btnEditNickname" onclick="toggleEditNickname()" class="text-[11px] text-slate-400 hover:text-amber-400 underline decoration-dotted transition-colors">
+                            Modifica
+                        </button>
+                    </div>
+
+                    <!-- Box Modifica Rapida Nickname -->
+                    <div id="editNicknameBox" class="hidden mt-2 p-3 bg-slate-900 border border-amber-500/30 rounded-xl max-w-md">
+                        <label class="block text-[11px] font-bold text-amber-400 mb-1">
+                            Scegli il tuo Nickname pubblico (pseudonimo visibile negli annunci):
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="inputNewNickname" maxlength="50" placeholder="es. CacciatoreEsperto..." class="flex-1 bg-slate-950 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-amber-500">
+                            <button onclick="saveNickname()" id="btnSaveNickname" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs transition-colors">
+                                Salva
+                            </button>
+                            <button onclick="toggleEditNickname()" class="text-slate-400 hover:text-slate-200 text-xs px-2 py-1.5">
+                                Annulla
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-1">
+                            Lasciando vuoto e salvando, verrà ripristinato il tuo nome reale negli annunci.
+                        </p>
+                    </div>
+
+                    <p id="userEmail" class="text-xs text-slate-400 font-mono mt-1.5">---</p>
+                    <div class="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-400">
+                        <span id="userLocation"><i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> Italia</span>
+                        <span id="userPhone" class="hidden"><i class="fa-solid fa-phone text-slate-500 mr-1"></i> <span></span></span>
+                        <span id="userWhatsApp" class="hidden"><a href="#" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"><i class="fa-brands fa-whatsapp text-emerald-400"></i> WhatsApp</a></span>
+                        <span id="userWebsite" class="hidden"><i class="fa-solid fa-globe text-emerald-400 mr-1"></i> <a href="#" target="_blank" class="hover:underline text-emerald-400"></a></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Azioni Rapide Profilo -->
+            <div class="flex items-center space-x-3">
+                <a id="adminPostaLinkProfile" href="/admin/posta" class="hidden bg-amber-950/90 hover:bg-amber-900 border border-amber-500/70 text-amber-300 font-bold px-3.5 py-2 rounded-xl text-xs shadow-lg transition-all flex items-center space-x-1.5">
+                    <i class="fa-solid fa-envelope-open-text"></i>
+                    <span>Casella Email Sito</span>
+                </a>
+                <a href="/nuovo-annuncio" class="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs shadow-lg transition-all flex items-center space-x-1.5">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Nuovo Annuncio</span>
+                </a>
+                <button onclick="logout()" class="bg-slate-900 hover:bg-rose-950/60 hover:text-rose-400 text-slate-300 border border-slate-800 px-3 py-2 rounded-xl text-xs transition-all flex items-center space-x-1">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <span>Esci</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Alert Notifica Azioni -->
+    <div id="profiloAlert" class="hidden mb-6 p-4 rounded-xl text-xs font-semibold border"></div>
+
+    <!-- Tabs: I Miei Annunci / Preferiti -->
+    <div class="flex items-center space-x-3 border-b border-slate-800 mb-6 pb-2">
+        <button id="tabMyAdsBtn" onclick="switchTab('my-ads')" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 bg-amber-500/20 text-amber-400 border border-amber-500/40">
+            <i class="fa-solid fa-bullhorn"></i>
+            <span>I Miei Annunci</span>
+            <span id="myAdsCount" class="bg-amber-500/30 text-amber-300 text-[10px] px-2 py-0.5 rounded-full font-mono ml-1">0</span>
+        </button>
+        <button id="tabFavoritesBtn" onclick="switchTab('favorites')" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white border border-transparent transition-all flex items-center space-x-2">
+            <i class="fa-solid fa-heart text-rose-500"></i>
+            <span>Articoli Preferiti</span>
+            <span id="favoritesCount" class="bg-slate-800 text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-mono ml-1">0</span>
+        </button>
+    </div>
+
+    <!-- Tab 1: I Miei Annunci (Gestione, Venduto, Cancella) -->
+    <div id="tabMyAds" class="space-y-4">
+        <div class="flex items-center justify-between">
+            <p class="text-xs text-slate-400">
+                Gestisci le tue inserzioni. Quando un articolo è stato ceduto, puoi <strong>marcarlo come VENDUTO</strong> o <strong>eliminarlo definitivamente</strong> per non accumulare dati obsoleti.
+            </p>
+        </div>
+
+        <div id="myAdsContainer" class="space-y-4">
+            <div class="p-8 text-center text-slate-500 bg-slate-950 border border-slate-800 rounded-xl">
+                <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-amber-500"></i>
+                <p class="text-xs">Caricamento annunci in corso...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Articoli Preferiti -->
+    <div id="tabFavorites" class="hidden space-y-4">
+        <p class="text-xs text-slate-400">
+            Gli annunci salvati che desideri monitorare. Puoi visualizzarne la scheda o rimuoverli dalla lista in qualsiasi momento.
+        </p>
+
+        <div id="favoritesContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="col-span-full p-8 text-center text-slate-500 bg-slate-950 border border-slate-800 rounded-xl">
+                <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-amber-500"></i>
+                <p class="text-xs">Caricamento preferiti in corso...</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let token = localStorage.getItem("armimarket_token");
+let currentUser = null;
+let currentTab = 'my-ads';
+
+document.addEventListener("DOMContentLoaded", async () => {
+    if (!token) {
+        window.location.href = "/login?redirect=/profilo";
+        return;
+    }
+
+    try {
+        const resp = await fetch("/api/v1/auth/me", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!resp.ok) {
+            logout();
+            return;
+        }
+        currentUser = await resp.json();
+        renderUserProfile(currentUser);
+
+        // Carica dati
+        await loadMyAds();
+        await loadFavorites();
+    } catch (e) {
+        console.error("Errore profilo:", e);
+    }
+});
+
+function renderUserProfile(u) {
+    const isArmeria = u.ruolo === 'armeria';
+    const isAdmin = u.ruolo === 'admin';
+    
+    const fullName = isAdmin ? 'Admin' : (isArmeria ? (u.ragione_sociale || u.nome) : `${u.nome} ${u.cognome || ''}`.trim());
+    document.getElementById("userFullName").textContent = fullName;
+    
+    // Per l'admin non mostriamo l'email personale ma un alias di sistema protetto
+    document.getElementById("userEmail").textContent = isAdmin ? "admin@armimarket.it (Canale Riservato)" : u.email;
+
+    // Avatar: foto profilo o icona default con stile militare
+    const avatarEl = document.getElementById("userAvatar");
+    if (avatarEl) {
+        if (u.foto_profilo) {
+            avatarEl.innerHTML = `<img src="${u.foto_profilo}" class="w-full h-full object-cover" alt="Foto profilo">`;
+            avatarEl.style.background = 'none';
+        } else {
+            const icon = isAdmin ? 'fa-user-gear' : (isArmeria ? 'fa-store' : 'fa-user-shield');
+            avatarEl.innerHTML = `<i class="fa-solid ${icon}" style="color:#c8a96e"></i>`;
+        }
+    }
+
+    // Nickname pubblico
+    const nickRow = document.getElementById("userNicknameBadgeRow");
+    const nickText = document.getElementById("userNicknameText");
+    const inputNick = document.getElementById("inputNewNickname");
+    if (isAdmin) {
+        if (nickRow) nickRow.classList.add("hidden");
+    } else {
+        if (nickRow) nickRow.classList.remove("hidden");
+        if (nickText) nickText.textContent = u.nickname || "Non impostato (viene mostrato il tuo nome reale)";
+        if (inputNick) inputNick.value = u.nickname || "";
+    }
+
+    const roleBadge = document.getElementById("userRoleBadge");
+    if (isAdmin) {
+        roleBadge.className = "text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full border bg-amber-950/80 text-amber-400 border-amber-600";
+        roleBadge.textContent = "Amministratore di Sistema";
+        const adminBtn = document.getElementById("adminPostaLinkProfile");
+        if (adminBtn) adminBtn.classList.remove("hidden");
+        // Nascondi posizione e recapiti per l'admin a tutela della privacy
+        document.getElementById("userLocation").innerHTML = `<i class="fa-solid fa-shield-halved text-amber-500 mr-1"></i> Area Riservata di Pubblica Sicurezza`;
+        return;
+    } else if (isArmeria) {
+        roleBadge.className = "text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full border bg-emerald-950/80 text-emerald-400 border-emerald-600";
+        roleBadge.textContent = "Armeria Autorizzata TULPS";
+    } else {
+        roleBadge.className = "text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full border bg-blue-950/80 text-blue-400 border-blue-600";
+        roleBadge.textContent = "Privato con Titolo";
+    }
+
+    if (u.indirizzo) {
+        document.getElementById("userLocation").innerHTML = `<i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> ${u.indirizzo}`;
+    }
+    if (u.telefono) {
+        const ph = document.getElementById("userPhone");
+        ph.classList.remove("hidden");
+        ph.querySelector("span").textContent = u.telefono;
+
+        const wa = document.getElementById("userWhatsApp");
+
+        wa.classList.remove("hidden");
+        let clean = u.telefono.replace(/\s+/g, '').replace(/[-.()]/g, '');
+        if (!clean.startsWith('+') && !clean.startsWith('00')) {
+            clean = '39' + clean;
+        } else {
+            clean = clean.replace('+', '');
+        }
+        wa.querySelector("a").href = `https://wa.me/${clean}?text=${encodeURIComponent("Salve, la contatto tramite il suo profilo su ArmiMarket Italia.")}`;
+    }
+    if (u.sito_web) {
+        const sw = document.getElementById("userWebsite");
+        sw.classList.remove("hidden");
+        const a = sw.querySelector("a");
+        a.href = u.sito_web;
+        a.textContent = u.sito_web.replace(/^https?:\/\//, '');
+    }
+}
+
+function toggleEditNickname() {
+    const box = document.getElementById("editNicknameBox");
+    if (box) {
+        box.classList.toggle("hidden");
+        if (!box.classList.contains("hidden")) {
+            document.getElementById("inputNewNickname").focus();
+        }
+    }
+}
+
+async function saveNickname() {
+    const btn = document.getElementById("btnSaveNickname");
+    const input = document.getElementById("inputNewNickname");
+    const val = input.value.trim();
+
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvataggio...`;
+
+    try {
+        const resp = await fetch("/api/v1/auth/me", {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                nickname: val || ""
+            })
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) {
+            alert(data.detail || "Errore durante l'aggiornamento del nickname.");
+            btn.disabled = false;
+            btn.innerHTML = "Salva";
+            return;
+        }
+
+        currentUser = data;
+        // Aggiorna cache utente locale per la navbar
+        localStorage.setItem("armimarket_user", JSON.stringify(data));
+        renderUserProfile(currentUser);
+        toggleEditNickname();
+        showAlert("Nickname pubblico aggiornato con successo!", "success");
+    } catch (e) {
+        console.error("Errore salvataggio nickname:", e);
+        alert("Errore di connessione durante l'aggiornamento del nickname.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = "Salva";
+    }
+}
+
+async function uploadAvatar(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+
+    // Anteprima immediata
+    const avatarEl = document.getElementById("userAvatar");
+    const reader = new FileReader();
+    reader.onload = e => {
+        if (avatarEl) {
+            avatarEl.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover" alt="Anteprima">`;
+            avatarEl.style.background = 'none';
+        }
+    };
+    reader.readAsDataURL(file);
+
+    // Upload al server
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+        const resp = await fetch("/api/v1/auth/me/foto", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` },
+            body: formData
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+            showAlert(data.detail || "Errore durante il caricamento della foto.", "danger");
+            return;
+        }
+        currentUser = data;
+        localStorage.setItem("armimarket_user", JSON.stringify(data));
+        renderUserProfile(currentUser);
+        showAlert("Foto profilo aggiornata con successo!", "success");
+    } catch(e) {
+        showAlert("Errore di connessione durante il caricamento.", "danger");
+    }
+    // Reset input per consentire ricaricamento stesso file
+    input.value = "";
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    const tabMyAds = document.getElementById("tabMyAds");
+    const tabFavorites = document.getElementById("tabFavorites");
+    const btnMyAds = document.getElementById("tabMyAdsBtn");
+    const btnFavs = document.getElementById("tabFavoritesBtn");
+
+    if (tab === 'my-ads') {
+        tabMyAds.classList.remove("hidden");
+        tabFavorites.classList.add("hidden");
+        btnMyAds.className = "tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 bg-amber-500/20 text-amber-400 border border-amber-500/40";
+        btnFavs.className = "tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white border border-transparent transition-all flex items-center space-x-2";
+    } else {
+        tabMyAds.classList.add("hidden");
+        tabFavorites.classList.remove("hidden");
+        btnFavs.className = "tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 bg-amber-500/20 text-amber-400 border border-amber-500/40";
+        btnMyAds.className = "tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white border border-transparent transition-all flex items-center space-x-2";
+    }
+}
+
+async function loadMyAds() {
+    const container = document.getElementById("myAdsContainer");
+    try {
+        const resp = await fetch("/api/v1/annunci/utente/miei", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!resp.ok) throw new Error("Errore nel recupero annunci");
+
+        const ads = await resp.json();
+        document.getElementById("myAdsCount").textContent = ads.length;
+
+        if (ads.length === 0) {
+            container.innerHTML = `
+                <div class="p-12 text-center text-slate-400 bg-slate-950 border border-slate-800 rounded-2xl">
+                    <i class="fa-solid fa-box-open text-4xl text-slate-600 mb-3"></i>
+                    <h3 class="text-sm font-bold text-white mb-1">Non hai ancora pubblicato annunci</h3>
+                    <p class="text-xs text-slate-400 mb-4">Inserisci il tuo primo annuncio di armi, ottiche o munizioni conformi.</p>
+                    <a href="/nuovo-annuncio" class="inline-flex items-center space-x-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs shadow-lg">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Inserisci Nuovo Annuncio</span>
+                    </a>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = ads.map(a => {
+            const isSold = a.stato === 'venduto';
+            const isInMod = a.stato === 'in_moderazione';
+            const imgUrl = (a.galleria_immagini && a.galleria_immagini.length > 0) ? a.galleria_immagini[0] : null;
+
+            let statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-emerald-950/70 border-emerald-600 text-emerald-300">Pubblicato</span>`;
+            if (isSold) {
+                statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-rose-950/70 border-rose-600 text-rose-300"><i class="fa-solid fa-check-double mr-1"></i> Venduto</span>`;
+            } else if (isInMod) {
+                statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-amber-950/70 border-amber-600 text-amber-300"><i class="fa-solid fa-clock mr-1"></i> In Moderazione</span>`;
+            }
+
+            return `
+                <div class="bg-slate-950 border ${isSold ? 'border-rose-900/40 bg-rose-950/5' : 'border-slate-800'} rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:border-slate-700">
+                    <div class="flex items-center space-x-4 w-full sm:w-auto">
+                        <div class="w-20 h-20 rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-800">
+                            ${imgUrl ? `<img src="${imgUrl}" alt="${a.titolo}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-gun text-2xl text-slate-700"></i>`}
+                        </div>
+                        <div class="space-y-1 flex-grow">
+                            <div class="flex items-center space-x-2">
+                                ${statusBadge}
+                                <span class="text-[11px] font-mono text-slate-400">${a.marca} &bull; Cal. ${a.calibro}</span>
+                            </div>
+                            <h3 class="text-sm font-bold text-white line-clamp-1">
+                                <a href="/scheda/${a.id}" class="hover:text-amber-400 hover:underline">${a.titolo}</a>
+                            </h3>
+                            <div class="flex items-center space-x-3 text-xs">
+                                <span class="font-extrabold text-amber-400 text-sm">€ ${a.prezzo.toLocaleString('it-IT', {minimumFractionDigits: 2})}</span>
+                                <span class="text-slate-500">&bull;</span>
+                                <span class="text-slate-400"><i class="fa-regular fa-eye mr-1"></i> ${a.visualizzazioni} vis.</span>
+                                <span class="text-slate-500">&bull;</span>
+                                <span class="text-slate-400"><i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> ${a.comune ? a.comune.nome : 'Italia'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottoni di Gestione: Segna come Venduto & Rimuovi Annuncio -->
+                    <div class="flex items-center space-x-2 w-full sm:w-auto justify-end pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
+                        ${!isSold ? `
+                            <button onclick="markAsSold(${a.id})" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-600/40 transition-all flex items-center space-x-1.5" title="Contrassegna come venduto">
+                                <i class="fa-solid fa-tag text-[10px]"></i>
+                                <span>Segna Venduto</span>
+                            </button>
+                        ` : `
+                            <button onclick="markAsPublished(${a.id})" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-all flex items-center space-x-1.5" title="Ripristina come disponibile">
+                                <i class="fa-solid fa-rotate-left text-[10px]"></i>
+                                <span>Ripristina</span>
+                            </button>
+                        `}
+                        <a href="/scheda/${a.id}" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-all flex items-center space-x-1">
+                            <i class="fa-solid fa-eye text-[11px]"></i>
+                            <span>Vedi</span>
+                        </a>
+                        <button onclick="deleteAd(${a.id}, '${a.titolo.replace(/'/g, "\\'")}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/40 hover:bg-rose-900 text-rose-300 border border-rose-700/60 transition-all flex items-center space-x-1.5" title="Elimina annuncio venduto o non più disponibile">
+                            <i class="fa-solid fa-trash-can text-[11px]"></i>
+                            <span>Elimina</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join("");
+
+    } catch (e) {
+        container.innerHTML = `<div class="p-6 text-center text-rose-400 bg-rose-950/20 border border-rose-800 rounded-xl text-xs">Errore nel caricamento annunci. Riprova più tardi.</div>`;
+    }
+}
+
+async function markAsSold(adId) {
+    if (!confirm("Vuoi contrassegnare questo articolo come VENDUTO?")) return;
+    try {
+        const resp = await fetch(`/api/v1/annunci/${adId}/stato?nuovo_stato=venduto`, {
+            method: 'PATCH',
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (resp.ok) {
+            showAlert("Articolo contrassegnato come VENDUTO!", "success");
+            await loadMyAds();
+        } else {
+            const err = await resp.json();
+            showAlert(err.detail || "Errore durante l'aggiornamento.", "danger");
+        }
+    } catch(e) {
+        showAlert("Errore di connessione.", "danger");
+    }
+}
+
+async function markAsPublished(adId) {
+    try {
+        const resp = await fetch(`/api/v1/annunci/${adId}/stato?nuovo_stato=pubblicato`, {
+            method: 'PATCH',
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (resp.ok) {
+            showAlert("Articolo ripristinato come DISPONIBILE!", "success");
+            await loadMyAds();
+        } else {
+            const err = await resp.json();
+            showAlert(err.detail || "Errore durante l'aggiornamento.", "danger");
+        }
+    } catch(e) {
+        showAlert("Errore di connessione.", "danger");
+    }
+}
+
+async function deleteAd(adId, adTitle) {
+    const ok = confirm(`Confermi di voler rimuovere definitivamente l'annuncio "${adTitle}"?\n\nQuesta operazione eviterà l'accumulo di dati per l'articolo venduto.`);
+    if (!ok) return;
+
+    try {
+        const resp = await fetch(`/api/v1/annunci/${adId}`, {
+            method: 'DELETE',
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (resp.ok) {
+            showAlert("Annuncio rimosso con successo dal database!", "success");
+            await loadMyAds();
+        } else {
+            const err = await resp.json();
+            showAlert(err.detail || "Errore durante l'eliminazione dell'annuncio.", "danger");
+        }
+    } catch(e) {
+        showAlert("Errore di rete durante la cancellazione.", "danger");
+    }
+}
+
+async function loadFavorites() {
+    const container = document.getElementById("favoritesContainer");
+    try {
+        const resp = await fetch("/api/v1/preferiti", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!resp.ok) throw new Error("Errore nel recupero preferiti");
+
+        const favs = await resp.json();
+        document.getElementById("favoritesCount").textContent = favs.length;
+
+        if (favs.length === 0) {
+            container.innerHTML = `
+                <div class="col-span-full p-12 text-center text-slate-400 bg-slate-950 border border-slate-800 rounded-2xl">
+                    <i class="fa-regular fa-heart text-4xl text-slate-600 mb-3"></i>
+                    <h3 class="text-sm font-bold text-white mb-1">Nessun articolo tra i preferiti</h3>
+                    <p class="text-xs text-slate-400 mb-4">Esplora la bacheca e clicca sull'icona a cuore per salvare le armi che ti interessano.</p>
+                    <a href="/" class="inline-flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition-all">
+                        <i class="fa-solid fa-list"></i>
+                        <span>Vai alla Bacheca</span>
+                    </a>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = favs.map(a => {
+            const imgUrl = (a.galleria_immagini && a.galleria_immagini.length > 0) ? a.galleria_immagini[0] : null;
+            return `
+                <div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-lg flex flex-col justify-between group hover:border-slate-700 transition-all">
+                    <div class="relative h-44 bg-black overflow-hidden flex items-center justify-center">
+                        ${imgUrl ? `<img src="${imgUrl}" alt="${a.titolo}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">` : `<i class="fa-solid fa-gun text-4xl text-slate-700"></i>`}
+                        
+                        <!-- Bottone Rimuovi dai Preferiti -->
+                        <button onclick="removeFavorite(${a.id})" class="absolute top-2 right-2 w-8 h-8 rounded-full bg-slate-900/90 text-rose-500 hover:bg-rose-600 hover:text-white flex items-center justify-center text-xs shadow transition-all" title="Rimuovi dai preferiti">
+                            <i class="fa-solid fa-heart"></i>
+                        </button>
+
+                        <div class="absolute bottom-2 right-2 bg-slate-900/90 text-amber-400 font-extrabold text-xs px-2 py-0.5 rounded shadow border border-slate-700">
+                            € ${a.prezzo.toLocaleString('it-IT', {minimumFractionDigits: 2})}
+                        </div>
+                    </div>
+
+                    <div class="p-4 flex flex-col flex-grow justify-between space-y-3">
+                        <div>
+                            <span class="text-[10px] uppercase font-mono text-slate-400">${a.marca} &bull; Cal. ${a.calibro}</span>
+                            <h3 class="text-sm font-bold text-white line-clamp-2 mt-0.5">
+                                <a href="/scheda/${a.id}" class="hover:text-amber-400 hover:underline">${a.titolo}</a>
+                            </h3>
+                            <p class="text-slate-400 text-xs mt-1 line-clamp-2">${a.descrizione}</p>
+                        </div>
+
+                        <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                            <span><i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> ${a.comune ? a.comune.nome : 'Italia'}</span>
+                            <a href="/scheda/${a.id}" class="text-amber-400 hover:underline font-semibold flex items-center space-x-1">
+                                <span>Dettagli</span>
+                                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join("");
+
+    } catch (e) {
+        container.innerHTML = `<div class="col-span-full p-6 text-center text-rose-400 bg-rose-950/20 border border-rose-800 rounded-xl text-xs">Errore nel caricamento preferiti.</div>`;
+    }
+}
+
+async function removeFavorite(adId) {
+    try {
+        const resp = await fetch(`/api/v1/preferiti/${adId}`, {
+            method: 'DELETE',
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (resp.ok) {
+            showAlert("Articolo rimosso dai preferiti.", "success");
+            await loadFavorites();
+        }
+    } catch(e) {
+        showAlert("Errore durante la rimozione dai preferiti.", "danger");
+    }
+}
+
+function showAlert(msg, type) {
+    const box = document.getElementById("profiloAlert");
+    box.classList.remove("hidden");
+    if (type === "success") {
+        box.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-emerald-950/70 border-emerald-600 text-emerald-200 flex items-center space-x-2";
+        box.innerHTML = `<i class="fa-solid fa-circle-check text-base"></i> <span>${msg}</span>`;
+    } else {
+        box.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-rose-950/70 border-rose-600 text-rose-200 flex items-center space-x-2";
+        box.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i> <span>${msg}</span>`;
+    }
+    setTimeout(() => { box.classList.add("hidden"); }, 4000);
+}
+</script>
+{% endblock %}

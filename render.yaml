@@ -1,0 +1,31 @@
+# render.yaml — Configurazione deploy automatico su Render.com
+# Documentazione: https://render.com/docs/render-yaml-reference
+
+services:
+  - type: web
+    name: armimarket-italia
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # Piano gratuito (si mette in pausa dopo 15 min di inattività)
+    plan: free
+    region: frankfurt   # Più vicino all'Italia
+
+    # Variabili d'ambiente (le sensitive le imposti dalla dashboard Render)
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        value: "sqlite+aiosqlite:///./armimarket_prod.db"
+      - key: UPLOAD_DIR
+        value: "./app/static/uploads"
+      # Queste le imposti MANUALMENTE nella dashboard Render (sezione Environment):
+      - key: SECRET_KEY
+        generateValue: true        # Render genera una chiave casuale automaticamente
+      - key: FIRST_SUPERUSER_EMAIL
+        sync: false                # Da impostare manualmente
+      - key: FIRST_SUPERUSER_PASSWORD
+        sync: false                # Da impostare manualmente
+      - key: BASE_URL
+        sync: false                # Es: https://armimarket-italia.onrender.com

@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+
+{% block title %}Registrazione Utente - ArmiMarket Italia{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+
+    <!-- Card Intestazione -->
+    <div class="text-center mb-8">
+        <div class="w-14 h-14 bg-amber-600 rounded-2xl mx-auto flex items-center justify-center text-white text-2xl shadow-xl shadow-amber-600/30 mb-3">
+            <i class="fa-solid fa-id-card"></i>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black text-white">Crea il tuo Account su ArmiMarket</h1>
+        <p class="text-slate-400 text-xs sm:text-sm mt-1 max-w-lg mx-auto">
+            Registrati come <strong>Privato</strong> regolarmente munito di titolo di polizia o come <strong>Armeria autorizzata</strong> (T.U.L.P.S.) per pubblicare annunci e gestire i contatti.
+        </p>
+    </div>
+
+    <!-- Feedback Banner -->
+    <div id="regAlert" class="hidden mb-6 p-4 rounded-xl text-xs font-semibold border"></div>
+
+    <!-- Form Registrazione -->
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+
+        <!-- Scelta Ruolo -->
+        <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Tipologia di Account *</label>
+            <div class="grid grid-cols-2 gap-4">
+                <label class="cursor-pointer border-2 border-slate-700 hover:border-amber-500 rounded-xl p-4 flex flex-col items-center text-center transition-all bg-slate-900 select-none has-[:checked]:border-amber-500 has-[:checked]:bg-amber-950/20">
+                    <input type="radio" name="ruoloRadio" value="privato" checked class="hidden" onchange="toggleRuoloFields()">
+                    <i class="fa-solid fa-user-shield text-2xl text-amber-400 mb-2"></i>
+                    <span class="font-bold text-white text-sm">Privato con Titolo</span>
+                    <span class="text-[11px] text-slate-400 mt-1">Cittadino con Porto d'Armi / Nulla Osta</span>
+                </label>
+
+                <label class="cursor-pointer border-2 border-slate-700 hover:border-amber-500 rounded-xl p-4 flex flex-col items-center text-center transition-all bg-slate-900 select-none has-[:checked]:border-amber-500 has-[:checked]:bg-amber-950/20">
+                    <input type="radio" name="ruoloRadio" value="armeria" class="hidden" onchange="toggleRuoloFields()">
+                    <i class="fa-solid fa-store text-2xl text-emerald-400 mb-2"></i>
+                    <span class="font-bold text-white text-sm">Armeria Certificata</span>
+                    <span class="text-[11px] text-slate-400 mt-1">Impresa con licenza T.U.L.P.S. Questura</span>
+                </label>
+            </div>
+        </div>
+
+        <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4">
+            
+            <!-- Nickname Pubblico (Pseudonimo per tutelare la privacy negli annunci) -->
+            <div>
+                <label class="block text-xs font-semibold text-amber-400 mb-1 flex items-center justify-between">
+                    <span><i class="fa-solid fa-user-astronaut mr-1"></i> Nickname Pubblico (Pseudonimo) <span class="text-slate-400 font-normal">(Consigliato)</span></span>
+                    <span class="text-[10px] text-slate-400 font-normal">Visibile al posto del tuo vero nome negli annunci</span>
+                </label>
+                <input type="text" id="regNickname" maxlength="50" placeholder="es. CacciatoreEsperto, Cecchino92..." class="w-full bg-slate-900 border border-amber-500/40 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-400">
+                <p class="text-[11px] text-slate-400 mt-1">
+                    <i class="fa-solid fa-shield-halved text-amber-500 mr-1"></i> Se inserito, gli altri utenti vedranno solo questo nickname. Nome e cognome reali rimarranno riservati e utilizzati solo per fini legali e verifica T.U.L.P.S.
+                </p>
+            </div>
+
+            <!-- Campi Comuni Persona/Referente -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" id="lblNome">Nome *</label>
+                    <input type="text" id="regNome" required placeholder="es. Mario" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" id="lblCognome">Cognome *</label>
+                    <input type="text" id="regCognome" required placeholder="es. Rossi" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+                </div>
+            </div>
+
+            <!-- Campi Specifici Armeria (nascosti di default) -->
+            <div id="armeriaFields" class="hidden space-y-4 pt-2 border-t border-slate-800">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Ragione Sociale Armeria *</label>
+                        <input type="text" id="regRagioneSociale" placeholder="es. Armeria Centrale Srl" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Partita IVA *</label>
+                        <input type="text" id="regPartitaIva" placeholder="es. 01234567890" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 font-mono">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Riferimento Licenza T.U.L.P.S. Questura *</label>
+                    <input type="text" id="regLicenzaTulps" placeholder="es. Cat. 13/A Questura di Milano - Licenza n. 12345/PS" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-emerald-400 mb-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-globe"></i> Sito Internet / E-Commerce Ufficiale (per integrazione motore di ricerca)
+                    </label>
+                    <input type="url" id="regSitoWeb" placeholder="https://www.tuaarmeria.it" class="w-full bg-slate-900 border border-emerald-600/50 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-400 font-mono">
+                    <p class="text-[11px] text-emerald-400/80 mt-1">
+                        <i class="fa-solid fa-circle-nodes mr-1"></i> Inserendo il link del tuo e-commerce, il motore di ricerca bacheca potrà scansionare automaticamente il catalogo armi e reindirizzare i clienti direttamente sulle tue schede prodotto.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Campi Specifici Privato -->
+            <div id="privatoFields" class="pt-2 border-t border-slate-800">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Codice Fiscale <span class="text-slate-500 font-normal">(Opzionale)</span></label>
+                    <input type="text" id="regCodiceFiscale" maxlength="16" placeholder="es. RSSMRA80A01H501Z (facoltativo)" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs uppercase focus:outline-none focus:border-amber-500 font-mono">
+                </div>
+            </div>
+
+            <!-- Contatti & Sicurezza -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Indirizzo Email *</label>
+                    <input type="email" id="regEmail" required placeholder="tuonome@email.it" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Telefono / Cellulare <span class="text-slate-500 font-normal">(Opzionale)</span></label>
+                    <input type="tel" id="regTelefono" placeholder="+39 340 1234567" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+                </div>
+            </div>
+
+            <!-- Posizione Geografica & Verifica sulla Mappa -->
+            <div class="pt-4 border-t border-slate-800 space-y-3">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-map-location-dot"></i> Posizione Geografica sul Territorio *
+                        </h3>
+                        <p class="text-[11px] text-slate-400 mt-0.5">
+                            Indica il Comune e verifica la posizione sulla mappa per comparire nella ricerca geolocalizzata.
+                        </p>
+                    </div>
+                    <span id="geoPrivacyBadge" class="text-[10px] bg-slate-900 border border-slate-700 text-slate-300 px-2.5 py-1 rounded-full">
+                        Tutela Privacy Baricentro
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-semibold text-slate-300" id="lblComune">Comune di Riferimento *</label>
+                            <span class="text-[10px] text-slate-400">Digita per filtrare tra 7.904 comuni</span>
+                        </div>
+                        <div class="relative">
+                            <input type="text" id="comuneSearchInput" placeholder="Cerca comune o CAP (es. Roma, 25121...)" oninput="filterComuni(this.value)" class="w-full mb-1.5 bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500">
+                            <select id="regComune" required onchange="onComuneSelected()" size="5" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-amber-500 max-h-36 overflow-y-auto">
+                                <option value="">-- Caricamento comuni in corso... --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="indirizzoFieldWrapper">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1" id="lblIndirizzo">Indirizzo o Sede (Opzionale per privati) *</label>
+                        <input type="text" id="regIndirizzo" placeholder="es. Via Roma 15" onblur="geocodeAddress()" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+
+                <!-- Coordinate lat/lon nascoste ma modificabili via marker -->
+                <input type="hidden" id="regLat">
+                <input type="hidden" id="regLon">
+
+                <!-- Mappa Interattiva di Verifica Posizione -->
+                <div class="rounded-xl border border-slate-800 overflow-hidden bg-slate-900 shadow-inner">
+                    <div class="p-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-xs">
+                        <span class="text-slate-300 font-semibold flex items-center gap-1.5">
+                            <i class="fa-solid fa-crosshairs text-amber-500"></i> Verifica della Posizione sulla Mappa
+                        </span>
+                        <span id="regCoordsLabel" class="font-mono text-[11px] text-amber-400">
+                            Seleziona un comune
+                        </span>
+                    </div>
+                    <div id="regMap" class="w-full h-56 z-0"></div>
+                    <div class="p-2 bg-slate-950/80 text-[10px] text-slate-400 flex items-center justify-between">
+                        <span><i class="fa-solid fa-info-circle mr-1"></i> Trascina il pin o clicca sulla mappa per affinare la posizione.</span>
+                        <span id="pinTypeLabel" class="text-amber-400 font-semibold">Marker: Privato</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-800">
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Password (minimo 8 caratteri) *</label>
+                <input type="password" id="regPassword" required minlength="8" placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+            </div>
+
+            <!-- Dichiarazione TULPS -->
+            <div class="pt-3 border-t border-slate-800">
+                <label class="flex items-start space-x-2.5 cursor-pointer">
+                    <input type="checkbox" id="regTulpsCheck" required class="mt-0.5 rounded border-slate-700 text-amber-500 focus:ring-amber-400 h-4 w-4">
+                    <span class="text-[11px] text-slate-400 leading-tight select-none">
+                        Dichiaro sotto la mia responsabilità penale di essere legittimamente autorizzato alla detenzione o al commercio di armi e munizioni ai sensi del T.U.L.P.S. (R.D. 773/1931 e s.m.i.) e di accettare le norme della bacheca.
+                    </span>
+                </label>
+            </div>
+
+            <button type="submit" id="btnSubmitReg" class="w-full mt-4 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black py-3 px-4 rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-user-plus"></i>
+                <span>Completa Registrazione</span>
+            </button>
+        </form>
+
+        <div class="text-center pt-2 text-xs text-slate-400">
+            Hai già un account registrato? <a href="/login" class="text-amber-400 font-bold hover:underline">Accedi qui</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let regMap = null;
+let regMarker = null;
+let comuniList = [];
+
+const armeriaPinIcon = L.divIcon({
+    className: 'custom-pin-armeria',
+    html: `<div style="background-color: #d97706; color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.4); font-size: 14px;"><i class="fa-solid fa-store"></i></div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 34],
+    popupAnchor: [0, -34]
+});
+
+const privatoPinIcon = L.divIcon({
+    className: 'custom-pin-privato',
+    html: `<div style="background-color: #2563eb; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.4); font-size: 13px;"><i class="fa-solid fa-user-check"></i></div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32]
+});
+
+document.addEventListener("DOMContentLoaded", async () => {
+    // 1. Inizializzazione Mappa di Registrazione
+    regMap = L.map('regMap', {
+        center: [42.5, 12.5],
+        zoom: 5,
+        zoomControl: true
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(regMap);
+
+    // Click sulla mappa per posizionare / spostare il marker
+    regMap.on('click', function(e) {
+        updateMarkerPosition(e.latlng.lat, e.latlng.lng, true);
+    });
+
+    // 2. Caricamento anagrafica Comuni
+    loadComuni();
+});
+
+let searchDebounceTimer = null;
+
+async function loadComuni(searchQuery = "") {
+    try {
+        const url = searchQuery 
+            ? `/api/v1/geo/comuni?q=${encodeURIComponent(searchQuery)}&limit=100`
+            : `/api/v1/geo/comuni?limit=150`;
+        const res = await fetch(url);
+        if (res.ok) {
+            comuniList = await res.json();
+            renderComuniOptions(comuniList);
+        }
+    } catch (e) {
+        console.error("Errore caricamento comuni:", e);
+    }
+}
+
+function renderComuniOptions(list) {
+    const selectEl = document.getElementById("regComune");
+    if (!list || list.length === 0) {
+        selectEl.innerHTML = `<option value="" disabled>Nessun comune trovato</option>`;
+        return;
+    }
+    selectEl.innerHTML = list.map(c => 
+        `<option value="${c.id}" data-lat="${c.latitudine}" data-lon="${c.longitudine}">${c.nome} (${c.sigla_provincia || ''}) - ${c.cap} - ${c.nome_regione || ''}</option>`
+    ).join("");
+}
+
+function filterComuni(query) {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+        loadComuni(query.trim());
+    }, 250);
+}
+
+function onComuneSelected() {
+    const selectEl = document.getElementById("regComune");
+    const opt = selectEl.options[selectEl.selectedIndex];
+    if (!opt || !opt.value) return;
+
+    const lat = parseFloat(opt.getAttribute("data-lat"));
+    const lon = parseFloat(opt.getAttribute("data-lon"));
+    if (!isNaN(lat) && !isNaN(lon)) {
+        updateMarkerPosition(lat, lon, true);
+        regMap.setView([lat, lon], 12);
+    }
+}
+
+function updateMarkerPosition(lat, lon, animate) {
+    const isArmeria = document.querySelector('input[name="ruoloRadio"]:checked').value === 'armeria';
+    const icon = isArmeria ? armeriaPinIcon : privatoPinIcon;
+
+    document.getElementById("regLat").value = lat.toFixed(6);
+    document.getElementById("regLon").value = lon.toFixed(6);
+    document.getElementById("regCoordsLabel").textContent = `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
+
+    if (!regMarker) {
+        regMarker = L.marker([lat, lon], { icon: icon, draggable: true }).addTo(regMap);
+        regMarker.on('dragend', function(e) {
+            const pos = e.target.getLatLng();
+            updateMarkerPosition(pos.lat, pos.lng, false);
+        });
+    } else {
+        regMarker.setIcon(icon);
+        regMarker.setLatLng([lat, lon]);
+    }
+
+    const popupText = isArmeria 
+        ? `<strong>Sede Armeria</strong><br>Posizione esatta dell'armeria sulla mappa.`
+        : `<strong>Residenza Privato</strong><br>Coordinate per la ricerca territoriale protetta.`;
+    regMarker.bindPopup(popupText);
+}
+
+function toggleRuoloFields() {
+    const isArmeria = document.querySelector('input[name="ruoloRadio"]:checked').value === 'armeria';
+    const armeriaFields = document.getElementById('armeriaFields');
+    const privatoFields = document.getElementById('privatoFields');
+    const privacyBadge = document.getElementById('geoPrivacyBadge');
+    const pinTypeLabel = document.getElementById('pinTypeLabel');
+    const lblIndirizzo = document.getElementById('lblIndirizzo');
+    
+    if (isArmeria) {
+        armeriaFields.classList.remove('hidden');
+        privatoFields.classList.add('hidden');
+        document.getElementById('lblNome').textContent = "Nome Referente / Titolare *";
+        document.getElementById('lblCognome').textContent = "Cognome Referente *";
+        document.getElementById('regRagioneSociale').required = true;
+        document.getElementById('regPartitaIva').required = true;
+        document.getElementById('regLicenzaTulps').required = true;
+        document.getElementById('regCodiceFiscale').required = false;
+        
+        lblIndirizzo.textContent = "Indirizzo della Sede del Negozio *";
+        document.getElementById('regIndirizzo').required = true;
+        privacyBadge.textContent = "Sede Negozio Pubblica";
+        privacyBadge.className = "text-[10px] bg-emerald-950/80 border border-emerald-600 text-emerald-300 px-2.5 py-1 rounded-full font-semibold";
+        pinTypeLabel.textContent = "Marker: Armeria Negozio";
+        pinTypeLabel.className = "text-emerald-400 font-semibold";
+    } else {
+        armeriaFields.classList.add('hidden');
+        privatoFields.classList.remove('hidden');
+        document.getElementById('lblNome').textContent = "Nome *";
+        document.getElementById('lblCognome').textContent = "Cognome *";
+        document.getElementById('regRagioneSociale').required = false;
+        document.getElementById('regPartitaIva').required = false;
+        document.getElementById('regLicenzaTulps').required = false;
+        document.getElementById('regCodiceFiscale').required = false;
+
+        lblIndirizzo.textContent = "Indirizzo o Frazione (Opzionale per privati)";
+        document.getElementById('regIndirizzo').required = false;
+        privacyBadge.textContent = "Tutela Privacy Baricentro";
+        privacyBadge.className = "text-[10px] bg-slate-900 border border-slate-700 text-slate-300 px-2.5 py-1 rounded-full";
+        pinTypeLabel.textContent = "Marker: Privato";
+        pinTypeLabel.className = "text-amber-400 font-semibold";
+    }
+
+    if (regMarker) {
+        const curPos = regMarker.getLatLng();
+        updateMarkerPosition(curPos.lat, curPos.lng, false);
+    }
+}
+
+async function handleRegister(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitReg');
+    const alertBox = document.getElementById('regAlert');
+    const isArmeria = document.querySelector('input[name="ruoloRadio"]:checked').value === 'armeria';
+    const comuneSelect = document.getElementById('regComune');
+
+    if (!comuneSelect.value) {
+        alert("Seleziona il tuo comune di residenza/sede per localizzare l'account sulla mappa.");
+        comuneSelect.focus();
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Creazione account in corso...`;
+
+    const telVal = document.getElementById('regTelefono').value.trim();
+    const nickVal = document.getElementById('regNickname').value.trim();
+    const payload = {
+        email: document.getElementById('regEmail').value.trim(),
+        password: document.getElementById('regPassword').value,
+        nickname: nickVal || null,
+        nome: document.getElementById('regNome').value.trim(),
+        cognome: document.getElementById('regCognome').value.trim(),
+        telefono: telVal || null,
+        ruolo: isArmeria ? "armeria" : "privato",
+        comune_id: parseInt(comuneSelect.value),
+        indirizzo: document.getElementById('regIndirizzo').value.trim() || null,
+        latitudine: document.getElementById('regLat').value || null,
+        longitudine: document.getElementById('regLon').value || null
+    };
+
+    if (isArmeria) {
+        payload.ragione_sociale = document.getElementById('regRagioneSociale').value.trim();
+        payload.partita_iva = document.getElementById('regPartitaIva').value.trim();
+        payload.licenza_tulps = document.getElementById('regLicenzaTulps').value.trim();
+        payload.sito_web = document.getElementById('regSitoWeb').value.trim() || null;
+    } else {
+        const cfVal = document.getElementById('regCodiceFiscale').value.trim().toUpperCase();
+        payload.codice_fiscale = cfVal || null;
+    }
+
+    try {
+        const resp = await fetch('/api/v1/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+
+        alertBox.classList.remove('hidden');
+        if (resp.ok) {
+            alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-emerald-950/70 border-emerald-600 text-emerald-200 flex items-center space-x-2";
+            alertBox.innerHTML = `<i class="fa-solid fa-check-circle text-base"></i> <span>Registrazione completata con localizzazione verificata! Verrai reindirizzato al login...</span>`;
+            setTimeout(() => {
+                window.location.href = "/login?registered=1";
+            }, 1500);
+        } else {
+            alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-rose-950/70 border-rose-600 text-rose-200 flex items-center space-x-2";
+            alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i> <span>${data.detail || 'Errore durante la registrazione.'}</span>`;
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-user-plus mr-1"></i> Completa Registrazione`;
+        }
+    } catch (err) {
+        alertBox.classList.remove('hidden');
+        alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-rose-950/70 border-rose-600 text-rose-200 flex items-center space-x-2";
+        alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i> <span>Impossibile contattare il server. Riprova tra poco.</span>`;
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-user-plus mr-1"></i> Completa Registrazione`;
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Accesso Utente - ArmiMarket Italia{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-4 sm:px-6 py-12">
+
+    <div class="text-center mb-8">
+        <div class="w-14 h-14 bg-amber-600 rounded-2xl mx-auto flex items-center justify-center text-white text-2xl shadow-xl shadow-amber-600/30 mb-3">
+            <i class="fa-solid fa-right-to-bracket"></i>
+        </div>
+        <h1 class="text-2xl font-black text-white">Accedi ad ArmiMarket</h1>
+        <p class="text-slate-400 text-xs mt-1">
+            Gestisci i tuoi annunci o inserisci una nuova arma in bacheca.
+        </p>
+    </div>
+
+    <!-- Feedback Banner -->
+    <div id="loginAlert" class="hidden mb-6 p-4 rounded-xl text-xs font-semibold border"></div>
+
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-4">
+        <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Email</label>
+                <input type="email" id="loginEmail" required placeholder="tuonome@email.it" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <label class="block text-xs font-semibold text-slate-300">Password</label>
+                    <a href="/recupera-password" class="text-[11px] text-amber-400 hover:text-amber-300 hover:underline">Hai dimenticato la password?</a>
+                </div>
+                <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+            </div>
+
+            <button type="submit" id="btnSubmitLogin" class="w-full mt-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black py-2.5 px-4 rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                <span>Accedi</span>
+            </button>
+        </form>
+
+        <div class="text-center pt-3 border-t border-slate-800 text-xs text-slate-400">
+            Non hai ancora un account? <a href="/registrati" class="text-amber-400 font-bold hover:underline">Registrati ora</a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("registered")) {
+        const alertBox = document.getElementById("loginAlert");
+        alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-emerald-950/70 border-emerald-600 text-emerald-200 flex items-center space-x-2";
+        alertBox.innerHTML = `<i class="fa-solid fa-check-circle text-base"></i> <span>Registrazione completata! Inserisci le tue credenziali per accedere.</span>`;
+        alertBox.classList.remove("hidden");
+    }
+});
+
+async function handleLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById("btnSubmitLogin");
+    const alertBox = document.getElementById("loginAlert");
+
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Accesso in corso...`;
+
+    const payload = {
+        email: document.getElementById("loginEmail").value.trim(),
+        password: document.getElementById("loginPassword").value
+    };
+
+    try {
+        const resp = await fetch("/api/v1/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+
+        alertBox.classList.remove("hidden");
+        if (resp.ok) {
+            // Salva token in localStorage
+            localStorage.setItem("armimarket_token", data.access_token);
+            localStorage.setItem("armimarket_user", JSON.stringify(data.user));
+
+            alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-emerald-950/70 border-emerald-600 text-emerald-200 flex items-center space-x-2";
+            alertBox.innerHTML = `<i class="fa-solid fa-check-circle text-base"></i> <span>Accesso eseguito! Reindirizzamento in corso...</span>`;
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectUrl = urlParams.get('redirect') || '/profilo';
+
+            setTimeout(() => {
+                window.location.href = redirectUrl;
+            }, 1000);
+        } else {
+            alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-rose-950/70 border-rose-600 text-rose-200 flex items-center space-x-2";
+            alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i> <span>${data.detail || 'Email o password errati.'}</span>`;
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> Accedi`;
+        }
+    } catch (err) {
+        alertBox.classList.remove("hidden");
+        alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-rose-950/70 border-rose-600 text-rose-200 flex items-center space-x-2";
+        alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i> <span>Errore di connessione col server.</span>`;
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> Accedi`;
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  # Database PostgreSQL con estensione geospaziale PostGIS
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: armimarket_postgis
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: armimarket_db
+      POSTGRES_USER: armimarket
+      POSTGRES_PASSWORD: armimarket123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U armimarket -d armimarket_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Applicazione Web FastAPI
+  web:
+    build: .
+    container_name: armimarket_api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://armimarket:armimarket123@db:5432/armimarket_db
+      SECRET_KEY: super-secret-key-change-in-production-tulps-compliance-2026
+      ENVIRONMENT: production
+      DEBUG: "False"
+    volumes:
+      - ./uploads:/app/uploads
+    command: >
+      sh -c "python scripts/seed_geo.py &&
+             python scripts/import_mock_shop.py &&
+             uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2"
+
+volumes:
+  postgis_data:

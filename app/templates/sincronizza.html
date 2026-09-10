@@ -1,0 +1,349 @@
+{% extends "base.html" %}
+
+{% block title %}Sincronizzazione & Scraper Armerie - ArmiMarket Italia{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <div class="flex items-center space-x-3 mb-2">
+            <div class="w-10 h-10 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-xl shadow-lg shadow-emerald-600/30">
+                <i class="fa-solid fa-spider"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-white">Scraper & Ingestion Annunci Reali Armerie Italiane</h1>
+                <p class="text-slate-400 text-sm">Estrae annunci reali, foto originali in alta risoluzione e descrizioni autentiche con link diretto di rimando all'armeria originale.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Banner (JS controlled) -->
+    <div id="alertBox" class="hidden mb-6 p-4 rounded-xl text-sm font-medium border"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Form Column -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- SEZIONE PRINCIPALE: SCRAPER DIRETTO DA SITO WEB ARMERIA -->
+            <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border-2 border-emerald-500/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-emerald-500 text-slate-950 text-[10px] font-black px-3 py-1 rounded-bl-lg uppercase tracking-wider">
+                    Scraper Reale Online
+                </div>
+                <div class="flex items-center space-x-2 text-emerald-400 font-bold mb-2 text-lg">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <h2>Scraper Automatico da Link Armeria Online</h2>
+                </div>
+                <p class="text-xs text-slate-300 mb-4 leading-relaxed">
+                    Inserisci l'URL di una <strong>scheda prodotto o categoria</strong> di un'armeria reale italiana (es. <em>Armeria Colosseo, Armeria Regina, ecc.</em>). 
+                    Lo scraper estrae automaticamente <strong>foto originale, titolo, descrizione, calibro, prezzo</strong> e crea l'annuncio con il <strong>link di rimando al sito dell'armeria</strong>.
+                </p>
+
+                <form id="scrapeForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Armeria Partner di Riferimento</label>
+                        <select id="armeriaSelectScrape" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500">
+                            <!-- Popolato dinamicamente -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">URL Pagina o Categoria Armeria</label>
+                        <input type="url" id="scrapeUrl" required placeholder="https://www.armeriacolosseo.it/prodotto/benelli-argo-special-30-06-791/" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500 placeholder-slate-500 font-mono text-xs">
+                        <span class="text-[11px] text-slate-400 mt-1 block">Supporta qualsiasi sito basato su WooCommerce, PrestaShop, Shopify o microdati Schema.org / OpenGraph.</span>
+                    </div>
+
+                    <button type="submit" id="btnScrape" class="w-full mt-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-spider"></i>
+                        <span>Avvia Scraper & Carica Annunci Reali</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- OPZIONE: SCRAPE TUTTA LA DIRECTORY ARMERIE ITALIANE -->
+            <div class="bg-slate-900/80 border border-slate-700/80 rounded-2xl p-6 shadow-xl">
+                <div class="flex items-center space-x-2 text-amber-400 font-semibold mb-2 text-base">
+                    <i class="fa-solid fa-network-wired"></i>
+                    <h2>Scansione Massiva Directory Armerie Italiane</h2>
+                </div>
+                <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+                    Esegue una scansione automatica dei cataloghi online delle principali armerie autorizzate italiane censite (Milano, Brescia, Treviso, ecc.), 
+                    estraendo armi in stock con foto originali e link di acquisto.
+                </p>
+                <button type="button" id="btnScrapeAll" class="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-bold py-2.5 px-4 rounded-xl shadow-lg transition-all flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>Raschialo Stock di Tutte le Armerie della Directory</span>
+                </button>
+            </div>
+
+            <!-- SEZIONE FEED STANDARD: FILE O URL -->
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <div class="flex items-center space-x-2 text-slate-300 font-semibold mb-3 text-sm">
+                    <i class="fa-solid fa-code"></i>
+                    <h2>Altre Opzioni: Ingestione via Feed XML / REST API</h2>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- File Upload -->
+                    <form id="fileSyncForm" class="space-y-3">
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Carica File XML/JSON</label>
+                        <input type="file" id="fileUpload" accept=".xml,.json,.rss" required class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white text-xs file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-amber-400">
+                        <button type="submit" id="btnSyncFile" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2 px-3 rounded-lg text-xs transition-colors">
+                            Importa da File
+                        </button>
+                    </form>
+
+                    <!-- Mock Demo -->
+                    <div class="flex flex-col justify-between p-3 bg-slate-950/60 border border-slate-800 rounded-xl">
+                        <div>
+                            <span class="text-xs font-semibold text-slate-300 block mb-1">Demo Catalogo Rapido</span>
+                            <span class="text-[11px] text-slate-400">Carica 3 annunci test (Beretta, Benelli, CZ) per verificare l'interfaccia.</span>
+                        </div>
+                        <button type="button" id="btnDemoSync" class="mt-2 w-full bg-slate-800 hover:bg-slate-700 text-amber-400 font-semibold py-2 px-3 rounded-lg text-xs transition-colors">
+                            Carica Demo Test
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Side: Live Results & Instructions -->
+        <div class="space-y-6">
+
+            <!-- Garanzie & Trasparenza Scraper -->
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
+                <h3 class="text-emerald-400 font-bold text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-link"></i>
+                    <span>Trasparenza & Rimando Diretto</span>
+                </h3>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Come richiesto, ogni scheda estratta dallo scraper:
+                </p>
+                <ul class="space-y-2 text-xs text-slate-400 list-disc list-inside">
+                    <li><strong class="text-white">Foto Originali:</strong> Vengono salvate le immagini autentiche ad alta risoluzione del server dell'armeria.</li>
+                    <li><strong class="text-white">Descrizione Fedele:</strong> Il testo tecnico e lo stato d'uso originale del commerciante.</li>
+                    <li><strong class="text-white">Pulsante Diretto al Sito:</strong> In ogni scheda annuncio è presente il bottone ben visibile <em>"Vai al sito dell'Armeria"</em>.</li>
+                    <li><strong class="text-white">Conformità T.U.L.P.S.:</strong> Nessun checkout diretto: l'acquirente contatta l'armeria o ritira di persona esibendo il titolo di P.S.</li>
+                </ul>
+            </div>
+
+            <!-- Stats Box (dinamico) -->
+            <div id="statsBox" class="hidden bg-slate-950 border border-emerald-800/60 rounded-2xl p-5 shadow-lg">
+                <h3 class="text-emerald-400 font-bold text-sm mb-3 flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Esito Ultima Scansione</span>
+                </h3>
+                <div class="space-y-2 text-xs">
+                    <div class="flex justify-between py-1 border-b border-slate-800">
+                        <span class="text-slate-400">Armeria / Origine:</span>
+                        <span id="statArmeria" class="font-semibold text-white"></span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800">
+                        <span class="text-slate-400">Comune / Territorio:</span>
+                        <span id="statComune" class="font-semibold text-white"></span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800">
+                        <span class="text-slate-400">Pagine Esplorate:</span>
+                        <span id="statAnalizzati" class="font-semibold text-white"></span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800">
+                        <span class="text-slate-400">Nuovi Annunci Reali:</span>
+                        <span id="statInseriti" class="font-bold text-emerald-400"></span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800">
+                        <span class="text-slate-400">Gia Censiti:</span>
+                        <span id="statAggiornati" class="font-semibold text-slate-300"></span>
+                    </div>
+                    <div class="flex justify-between py-1">
+                        <span class="text-slate-400">Scartati (Non armi / Vietati):</span>
+                        <span id="statScartati" class="font-semibold text-rose-400"></span>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800">
+                    <a href="/" class="block text-center text-xs font-bold text-amber-400 hover:text-amber-300">
+                        Visualizza Nuovi Annunci in Bacheca &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <!-- Esempi di URL Reali Supportati -->
+            <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 text-xs text-slate-400 space-y-2">
+                <span class="font-bold text-slate-200 block text-sm mb-1">Esempi di URL reali da testare:</span>
+                <p class="font-mono text-[11px] text-slate-300 bg-slate-950 p-2 rounded break-all cursor-pointer hover:text-amber-400" onclick="document.getElementById('scrapeUrl').value=this.innerText">
+                    https://www.armeriacolosseo.it/prodotto/benelli-argo-special-30-06-791/
+                </p>
+                <p class="font-mono text-[11px] text-slate-300 bg-slate-950 p-2 rounded break-all cursor-pointer hover:text-amber-400" onclick="document.getElementById('scrapeUrl').value=this.innerText">
+                    https://www.armeriacolosseo.it/categoria-prodotto/armi/
+                </p>
+                <p class="font-mono text-[11px] text-slate-300 bg-slate-950 p-2 rounded break-all cursor-pointer hover:text-amber-400" onclick="document.getElementById('scrapeUrl').value=this.innerText">
+                    https://armeriaregina.it/gb/semi-auto-rifle/13725-colt-m4-carbine-cal-223-rem.html
+                </p>
+                <span class="text-[10px] text-slate-400 block pt-1">Fai clic su un URL per incollarlo direttamente nel campo dello scraper.</span>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+    const armeriaSelectScrape = document.getElementById("armeriaSelectScrape");
+    const alertBox = document.getElementById("alertBox");
+    const statsBox = document.getElementById("statsBox");
+
+    function showAlert(msg, isSuccess = true) {
+        alertBox.className = isSuccess
+            ? "mb-6 p-4 rounded-xl text-sm font-medium border bg-emerald-950/80 border-emerald-600 text-emerald-200 flex items-center space-x-2"
+            : "mb-6 p-4 rounded-xl text-sm font-medium border bg-rose-950/80 border-rose-600 text-rose-200 flex items-center space-x-2";
+        alertBox.innerHTML = `<i class="fa-solid ${isSuccess ? 'fa-check-circle' : 'fa-triangle-exclamation'} text-lg"></i> <span>${msg}</span>`;
+        alertBox.classList.remove("hidden");
+    }
+
+    function renderStats(data) {
+        document.getElementById("statArmeria").textContent = data.armeria_nome || "Armeria Partner";
+        document.getElementById("statComune").textContent = data.comune_nome || "Sede";
+        document.getElementById("statAnalizzati").textContent = data.articoli_analizzati;
+        document.getElementById("statInseriti").textContent = data.inseriti;
+        document.getElementById("statAggiornati").textContent = data.aggiornati;
+        document.getElementById("statScartati").textContent = data.scartati;
+        statsBox.classList.remove("hidden");
+    }
+
+    // Caricamento elenco armerie verificate
+    try {
+        const res = await fetch("/api/v1/ingestion/armerie");
+        if (res.ok) {
+            const armerie = await res.json();
+            const options = armerie.map(a => `<option value="${a.id}">${a.ragione_sociale} (Licenza: ${a.licenza_tulps || 'TULPS'})</option>`).join("");
+            armeriaSelectScrape.innerHTML = options;
+        }
+    } catch (err) {
+        console.error("Errore recupero armerie:", err);
+    }
+
+    // Scraper URL Singolo / Categoria
+    document.getElementById("scrapeForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("btnScrape");
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Raschietto in azione... estrazione foto e dettagli...</span>`;
+
+        const payload = {
+            url: document.getElementById("scrapeUrl").value,
+            armeria_id: parseInt(armeriaSelectScrape.value) || null,
+        };
+
+        try {
+            const res = await fetch("/api/v1/ingestion/scrape-url", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showAlert(data.message, true);
+                renderStats(data);
+            } else {
+                showAlert(data.detail || "Errore durante lo scraping dell'URL.", false);
+            }
+        } catch (err) {
+            showAlert("Errore di connessione col server di backend.", false);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-spider"></i> <span>Avvia Scraper & Carica Annunci Reali</span>`;
+        }
+    });
+
+    // Scraper Massivo Directory
+    document.getElementById("btnScrapeAll").addEventListener("click", async () => {
+        const btn = document.getElementById("btnScrapeAll");
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Scansione directory armerie online in corso (può richiedere qualche secondo)...</span>`;
+
+        try {
+            const res = await fetch("/api/v1/ingestion/scrape-all-directory", {
+                method: "POST",
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showAlert(data.message, true);
+                renderStats(data);
+            } else {
+                showAlert(data.detail || "Errore nella scansione della directory.", false);
+            }
+        } catch (err) {
+            showAlert("Errore di comunicazione col server.", false);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-robot"></i> <span>Raschialo Stock di Tutte le Armerie della Directory</span>`;
+        }
+    });
+
+    // File Sync Form
+    document.getElementById("fileSyncForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("btnSyncFile");
+        const fileInput = document.getElementById("fileUpload");
+        if (!fileInput.files.length) return;
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Ingestione...`;
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+        if (armeriaSelectScrape.value) {
+            formData.append("armeria_id", armeriaSelectScrape.value);
+        }
+
+        try {
+            const res = await fetch("/api/v1/ingestion/sync-file", {
+                method: "POST",
+                body: formData
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showAlert(data.message, true);
+                renderStats(data);
+            } else {
+                showAlert(data.detail || "Errore nel caricamento del file.", false);
+            }
+        } catch (err) {
+            showAlert("Errore durante il caricamento del file.", false);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `Importa da File`;
+        }
+    });
+
+    // Demo Sync
+    document.getElementById("btnDemoSync").addEventListener("click", async () => {
+        const dummyXml = `<?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel>
+                <item>
+                    <title>Beretta 92X Performance 9x21 IMI</title>
+                    <description>Pistola semiautomatica da tiro dinamico IPSC Production, fusto in acciaio Vertex, scatto Match.</description>
+                    <price>1480.00 EUR</price>
+                    <brand>Pietro Beretta</brand>
+                    <caliber>9x21</caliber>
+                    <category>Armi Corte</category>
+                </item>
+            </channel>
+        </rss>`;
+        const blob = new Blob([dummyXml], { type: "text/xml" });
+        const formData = new FormData();
+        formData.append("file", blob, "demo_catalog.xml");
+        if (armeriaSelectScrape.value) {
+            formData.append("armeria_id", armeriaSelectScrape.value);
+        }
+
+        const res = await fetch("/api/v1/ingestion/sync-file", { method: "POST", body: formData });
+        const data = await res.json();
+        if (res.ok) {
+            showAlert("Demo importata! " + data.message, true);
+            renderStats(data);
+        }
+    });
+});
+</script>
+{% endblock %}

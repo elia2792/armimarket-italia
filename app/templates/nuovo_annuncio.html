@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+
+{% block title %}Pubblica Nuovo Annuncio - ArmiMarket Italia{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+
+    <!-- Header Scheda -->
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle text-amber-500"></i>
+                <span>Pubblica Annuncio di Cessione Arma</span>
+            </h1>
+            <p class="text-slate-400 text-xs sm:text-sm mt-1">
+                Compila i dettagli tecnici dell'arma. La matricola rimane riservata e protetta da furti/clonazioni ai sensi del regolamento T.U.L.P.S.
+            </p>
+        </div>
+        <div id="loggedUserBadge" class="hidden text-right">
+            <span id="badgeUserRuolo" class="inline-block text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider"></span>
+            <span id="badgeUserEmail" class="block text-xs text-slate-300 font-semibold font-mono"></span>
+        </div>
+    </div>
+
+    <!-- Feedback Banner -->
+    <div id="annuncioAlert" class="hidden mb-6 p-4 rounded-xl text-xs font-semibold border"></div>
+
+    <!-- Login Warning se non autenticato -->
+    <div id="authRequiredBox" class="bg-amber-950/40 border-2 border-amber-600/70 rounded-2xl p-6 mb-6 text-center">
+        <i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i>
+        <h3 class="text-base font-bold text-white mb-1">Accesso Richiesto</h3>
+        <p class="text-xs text-amber-200/90 max-w-md mx-auto mb-4 leading-relaxed">
+            Per conformità di Pubblica Sicurezza, solo gli utenti registrati (privati con titolo o armerie verificate) possono inserire annunci.
+        </p>
+        <div class="flex justify-center space-x-3">
+            <a href="/login" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs py-2 px-4 rounded-lg shadow transition-colors">
+                Accedi al tuo Account
+            </a>
+            <a href="/registrati" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs py-2 px-4 rounded-lg border border-slate-700 transition-colors">
+                Registrati Subito
+            </a>
+        </div>
+    </div>
+
+    <!-- Form Inserimento Annuncio -->
+    <div id="annuncioFormCard" class="opacity-50 pointer-events-none bg-slate-950 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+
+        <form id="createAdForm" onsubmit="handleCreateAnnuncio(event)" class="space-y-5">
+            
+            <!-- 1. Dati Principali Arma -->
+            <div>
+                <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <i class="fa-solid fa-gun"></i> 1. Specifiche dell'Arma
+                </h3>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Titolo dell'Annuncio *</label>
+                        <input type="text" id="adTitolo" required minlength="5" placeholder="es. Beretta 98FS Inox Calibro 9x21 - Come Nuova" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500 font-semibold">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Marca *</label>
+                            <input type="text" id="adMarca" required placeholder="es. Beretta, Glock, Colt, Benelli..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Modello *</label>
+                            <input type="text" id="adModello" required placeholder="es. 98FS, 17 Gen 5, Argo..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Calibro *</label>
+                            <input type="text" id="adCalibro" required placeholder="es. 9x21, 9x19, .308 Win, 12/76..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500 font-mono">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Tipologia Arma *</label>
+                            <select id="adTipologia" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500">
+                                <option value="arma_corta">Arma Corta (Pistola/Revolver)</option>
+                                <option value="arma_lunga_rigata">Arma Lunga Rigata (Carabina)</option>
+                                <option value="canna_liscia">Fucile a Canna Liscia</option>
+                                <option value="aria_compressa_libera">Aria Compressa (< 7.5 Joule)</option>
+                                <option value="aria_compressa_piena">Aria Compressa Piena Potenza (> 7.5 Joule)</option>
+                                <option value="accessorio_ottica">Accessorio / Ottica</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Classificazione *</label>
+                            <select id="adClassificazione" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500">
+                                <option value="comune">Arma Comune da Sparo</option>
+                                <option value="sportiva">Arma Sportiva (Catalogo Banco Prova)</option>
+                                <option value="caccia">Arma da Caccia</option>
+                                <option value="non_applicabile">Non Applicabile (Aria compressa/accessorio)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Stato / Condizione *</label>
+                            <select id="adCondizione" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500">
+                                <option value="nuovo">Nuovo di Fabbrica</option>
+                                <option value="usato_ottimo">Usato - Condizioni Ottime</option>
+                                <option value="usato_buono">Usato - Buone Condizioni</option>
+                                <option value="da_collezione">Pezzo da Collezione / Epoca</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Matricola Riservata -->
+                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                        <label class="block text-xs font-semibold text-amber-300 mb-1 flex items-center gap-1.5">
+                            <i class="fa-solid fa-lock"></i> Numero di Matricola Arma (Opzionale e Riservato)
+                        </label>
+                        <input type="text" id="adMatricola" placeholder="es. BER123456Z" class="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500 font-mono">
+                        <p class="text-[11px] text-slate-400 mt-1">
+                            A tutela della tua sicurezza e contro clonazioni/furti, la matricola <strong>NON sarà MAI mostrata in chiaro al pubblico</strong>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Prezzo, Posizione e Foto -->
+            <div class="pt-4 border-t border-slate-800">
+                <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <i class="fa-solid fa-euro-sign"></i> 2. Prezzo, Ubicazione & Fotografie
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Prezzo Richiesto (€) *</label>
+                        <input type="number" step="0.50" id="adPrezzo" required min="0" placeholder="es. 750" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500 font-bold text-amber-400 text-sm">
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-semibold text-slate-300">Comune di Ubicazione dell'Arma *</label>
+                            <span class="text-[10px] text-slate-400">Filtra tra 7.904 comuni</span>
+                        </div>
+                        <input type="text" id="adComuneSearch" placeholder="Cerca comune o CAP (es. Brescia, Roma...)" oninput="filterAdComuni(this.value)" class="w-full mb-1 bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500">
+                        <select id="adComune" required size="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-amber-500 max-h-28 overflow-y-auto">
+                            <!-- Popolato dinamicamente da API Comuni -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Foto URL o Caricamento Immagini -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">URL Fotografie dell'Arma (una per riga o separate da virgola)</label>
+                    <textarea id="adImmagini" rows="2" placeholder="https://esempio.it/foto1.jpg, https://esempio.it/foto2.jpg" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500 font-mono"></textarea>
+                    <p class="text-[11px] text-slate-400">
+                        Inserisci i link alle foto ad alta risoluzione. Se sei un'armeria, puoi indicare anche il link diretto della scheda prodotto sul tuo e-commerce qui sotto.
+                    </p>
+                </div>
+
+                <div class="mt-3">
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Link Diretto al Sito dell'Armeria (Opzionale)</label>
+                    <input type="url" id="adLinkEsterno" placeholder="https://tua-armeria.it/prodotti/arma-123" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 font-mono">
+                </div>
+            </div>
+
+            <!-- 3. Descrizione Dettagliata -->
+            <div class="pt-4 border-t border-slate-800">
+                <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <i class="fa-regular fa-file-lines"></i> 3. Descrizione Tecnica e Condizioni
+                </h3>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Descrizione dell'Arma (minimo 20 caratteri) *</label>
+                    <textarea id="adDescrizione" rows="4" required minlength="20" placeholder="Descrivi lo stato della canna, brunitura, scatto, dotazione originale (valigetta, caricatori di scorta, colpi sparati stimati)..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500 leading-relaxed"></textarea>
+                </div>
+            </div>
+
+            <!-- 4. Contatti -->
+            <div class="pt-4 border-t border-slate-800">
+                <h3 class="text-sm font-bold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <i class="fa-regular fa-address-card"></i> 4. Contatti Visibili
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Email di Contatto *</label>
+                        <input type="email" id="adEmail" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Numero di Telefono (Opzionale)</label>
+                        <input type="tel" id="adTelefono" placeholder="+39 340 1234567" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+
+                <label class="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer pt-1">
+                    <input type="checkbox" id="adMostraTelefono" class="rounded border-slate-700 text-amber-500 focus:ring-amber-400">
+                    <span>Mostra pubblicamente il numero di telefono e abilita il pulsante di <strong>contatto diretto WhatsApp</strong> nella scheda dell'annuncio</span>
+                </label>
+            </div>
+
+            <!-- Conferma TULPS & Disclaimer -->
+            <div class="pt-4 border-t border-slate-800 space-y-2">
+                <label class="flex items-start space-x-2.5 cursor-pointer">
+                    <input type="checkbox" id="adTulpsCheck" required class="mt-0.5 rounded border-slate-700 text-amber-500 focus:ring-amber-400 h-4 w-4">
+                    <span class="text-[11px] text-slate-400 leading-tight select-none">
+                        Dichiaro che l'arma è di lecita provenienza e regolarmente denunciata. Sono a conoscenza che la cessione deve avvenire esclusivamente di persona previa verifica del titolo valido (Art. 35 T.U.L.P.S.) e con obbligo di denuncia entro 72 ore (Art. 38 T.U.L.P.S.).
+                    </span>
+                </label>
+                <label class="flex items-start space-x-2.5 cursor-pointer">
+                    <input type="checkbox" id="adDisclaimerCheck" required class="mt-0.5 rounded border-slate-700 text-amber-500 focus:ring-amber-400 h-4 w-4">
+                    <span class="text-[11px] text-slate-400 leading-tight select-none">
+                        Prendo atto che questo portale è esclusivamente una <strong>bacheca motore di ricerca</strong> indipendente priva di qualsiasi legame, affiliazione o responsabilità circa le trattative e le armi pubblicate da armerie o privati.
+                    </span>
+                </label>
+            </div>
+
+            <button type="submit" id="btnSubmitAd" class="w-full mt-4 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black py-3 px-4 rounded-xl shadow-lg shadow-amber-600/20 transition-all flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>Pubblica Annuncio</span>
+            </button>
+        </form>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentUser = null;
+const token = localStorage.getItem("armimarket_token");
+
+let adComuniDebounce = null;
+let adComuniList = [];
+
+async function loadAdComuni(query = "") {
+    try {
+        const url = query 
+            ? `/api/v1/geo/comuni?q=${encodeURIComponent(query)}&limit=100` 
+            : `/api/v1/geo/comuni?limit=100`;
+        const resComuni = await fetch(url);
+        if (resComuni.ok) {
+            adComuniList = await resComuni.json();
+            const selectComune = document.getElementById("adComune");
+            if (adComuniList.length === 0) {
+                selectComune.innerHTML = `<option value="" disabled>Nessun comune trovato</option>`;
+            } else {
+                selectComune.innerHTML = adComuniList.map(c => 
+                    `<option value="${c.id}">${c.nome} (${c.sigla_provincia || ''}) - ${c.cap} - ${c.nome_regione || ''}</option>`
+                ).join("");
+            }
+        }
+    } catch (e) {
+        console.error("Errore recupero comuni:", e);
+    }
+}
+
+function filterAdComuni(val) {
+    clearTimeout(adComuniDebounce);
+    adComuniDebounce = setTimeout(() => {
+        loadAdComuni(val.trim());
+    }, 250);
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+    // 1. Caricamento anagrafica comuni
+    loadAdComuni();
+
+    // 2. Controllo Autenticazione Utente
+    if (token) {
+        try {
+            const resp = await fetch("/api/v1/auth/me", {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (resp.ok) {
+                currentUser = await resp.json();
+                setupAuthenticatedUI(currentUser);
+            } else {
+                localStorage.removeItem("armimarket_token");
+                localStorage.removeItem("armimarket_user");
+            }
+        } catch (e) {
+            console.error("Errore verifica token:", e);
+        }
+    }
+});
+
+function setupAuthenticatedUI(user) {
+    document.getElementById("authRequiredBox").classList.add("hidden");
+    const formCard = document.getElementById("annuncioFormCard");
+    formCard.classList.remove("opacity-50", "pointer-events-none");
+
+    const badgeBox = document.getElementById("loggedUserBadge");
+    const badgeRuolo = document.getElementById("badgeUserRuolo");
+    const badgeEmail = document.getElementById("badgeUserEmail");
+
+    badgeBox.classList.remove("hidden");
+    badgeEmail.textContent = user.email;
+
+    if (user.ruolo === "armeria") {
+        badgeRuolo.className = "inline-block text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-emerald-600 text-white";
+        badgeRuolo.textContent = `Armeria: ${user.ragione_sociale || user.nome}`;
+    } else {
+        badgeRuolo.className = "inline-block text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-blue-600 text-white";
+        badgeRuolo.textContent = `Privato: ${user.nome} ${user.cognome || ''}`;
+    }
+
+    // Pre-popola contatti
+    document.getElementById("adEmail").value = user.email;
+    if (user.telefono) {
+        document.getElementById("adTelefono").value = user.telefono;
+    }
+}
+
+async function handleCreateAnnuncio(e) {
+    e.preventDefault();
+    if (!token) {
+        alert("Devi effettuare l'accesso per pubblicare un annuncio.");
+        window.location.href = "/login";
+        return;
+    }
+
+    const btn = document.getElementById("btnSubmitAd");
+    const alertBox = document.getElementById("annuncioAlert");
+
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvataggio e verifica conformità T.U.L.P.S....`;
+
+    const rawImgs = document.getElementById("adImmagini").value;
+    const immagini = rawImgs ? rawImgs.split(/[\n,]+/).map(s => s.trim()).filter(Boolean) : [];
+
+    const payload = {
+        titolo: document.getElementById("adTitolo").value.trim(),
+        descrizione: document.getElementById("adDescrizione").value.trim(),
+        prezzo: parseFloat(document.getElementById("adPrezzo").value) || 0,
+        tipologia_inserzionista: currentUser.ruolo === "armeria" ? "armeria" : "privato",
+        tipologia_arma: document.getElementById("adTipologia").value,
+        marca: document.getElementById("adMarca").value.trim(),
+        modello: document.getElementById("adModello").value.trim(),
+        calibro: document.getElementById("adCalibro").value.trim(),
+        classificazione: document.getElementById("adClassificazione").value,
+        condizione: document.getElementById("adCondizione").value,
+        matricola_riservata: document.getElementById("adMatricola").value.trim() || null,
+        comune_id: parseInt(document.getElementById("adComune").value) || 1,
+        galleria_immagini: immagini,
+        email_contatto: document.getElementById("adEmail").value.trim(),
+        telefono_contatto: document.getElementById("adTelefono").value.trim() || null,
+        mostra_telefono_pubblico: document.getElementById("adMostraTelefono").checked
+    };
+
+    try {
+        const resp = await fetch("/api/v1/annunci", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+
+        alertBox.classList.remove("hidden");
+        if (resp.ok) {
+            const isArmeria = (currentUser.ruolo === "armeria");
+            alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-emerald-950/80 border-emerald-600 text-emerald-200 flex items-center space-x-2";
+            alertBox.innerHTML = `<i class="fa-solid fa-check-circle text-base"></i> <span>${isArmeria ? 'Annuncio certificato pubblicato immediatamente con successo!' : 'Annuncio inviato alla moderazione e visibile in bacheca!'}</span>`;
+
+            setTimeout(() => {
+                window.location.href = `/scheda/${data.id}`;
+            }, 1200);
+        } else {
+            alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-rose-950/80 border-rose-600 text-rose-200 flex items-center space-x-2";
+            alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i> <span>${data.detail || 'Errore durante la pubblicazione dell\'annuncio.'}</span>`;
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Pubblica Annuncio`;
+        }
+    } catch (err) {
+        alertBox.classList.remove("hidden");
+        alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-rose-950/80 border-rose-600 text-rose-200 flex items-center space-x-2";
+        alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i> <span>Impossibile contattare il server.</span>`;
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Pubblica Annuncio`;
+    }
+}
+</script>
+{% endblock %}
