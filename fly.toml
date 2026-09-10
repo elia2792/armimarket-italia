@@ -1,0 +1,48 @@
+# fly.toml — Configurazione deploy Fly.io per ArmiMarket Italia
+# Generato automaticamente — modifica app_name prima del deploy
+
+app = "armimarket-italia"
+primary_region = "ams"        # Amsterdam — più vicino all'Italia
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Volume persistente per il database SQLite e gli upload
+[mounts]
+  source = "armimarket_data"
+  destination = "/data"
+
+[env]
+  ENVIRONMENT       = "production"
+  DEBUG             = "False"
+  DATABASE_URL      = "sqlite+aiosqlite:////data/armimarket_prod.db"
+  UPLOAD_DIR        = "/data/uploads"
+
+[[services]]
+  internal_port = 8000
+  protocol      = "tcp"
+
+  [[services.ports]]
+    handlers = ["http"]
+    port     = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port     = 443
+
+  [services.concurrency]
+    type       = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.http_checks]]
+    interval      = 30000
+    timeout       = 5000
+    grace_period  = "10s"
+    method        = "GET"
+    path          = "/health"
+
+[vm]
+  memory   = "256mb"
+  cpu_kind = "shared"
+  cpus     = 1
