@@ -146,6 +146,11 @@ async def hourly_catalog_scraper_task():
 async def lifespan(app: FastAPI):
     """Lifecycle manager: inizializzazione schema tabelle, admin, poligoni e task orario scraping."""
     async with engine.begin() as conn:
+        if not is_sqlite:
+            try:
+                await conn.execute(__import__("sqlalchemy").text("CREATE EXTENSION IF NOT EXISTS postgis;"))
+            except Exception:
+                pass
         await conn.run_sync(Base.metadata.create_all)
         # Micro-migrazione per SQLite (Postgres crea già le colonne da Base.metadata.create_all)
         if is_sqlite:
