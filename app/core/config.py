@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # Database
     # Supporta PostgreSQL+PostGIS o SQLite in fallback/test
     DATABASE_URL: str = Field(
-        default="postgresql+asyncpg://armimarket:armimarket123@localhost:5432/armimarket_db",
+        default="sqlite+aiosqlite:///./armimarket_prod.db",
         description="Async database connection string"
     )
 
