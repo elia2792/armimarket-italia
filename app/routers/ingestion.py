@@ -1,13 +1,14 @@
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.network import safe_http_get, validate_url_safe
 from app.models.geo import Comune
 from app.models.user import RuoloUtente, User
-from app.services.ingestion.base_adapter import BaseGunshopAdapter
+from app.routers.auth import get_current_admin, get_current_moderator
 from app.services.ingestion.mock_adapter import MockWooCommerceShopAdapter
 from app.services.ingestion.woocommerce_adapter import WooCommerceLiveAdapter
 from app.services.ingestion.xml_adapter import XmlFeedAdapter
@@ -36,8 +37,14 @@ class SyncResponse(BaseModel):
 
 
 @router.get("/armerie")
-async def list_armerie(db: AsyncSession = Depends(get_db)):
-    """Elenco delle armerie partner disponibili a cui associare le importazioni di stock."""
+async def list_armerie(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_moderator)
+):
+    """
+    Elenco delle armerie partner disponibili a cui associare le importazioni di stock.
+    Riservato a moderatori e amministratori della piattaforma.
+    """
     stmt = select(User).where(User.ruolo == RuoloUtente.ARMERIA).order_by(User.nome.asc())
     res = await db.execute(stmt)
     armerie = res.scalars().all()
@@ -57,12 +64,23 @@ async def list_armerie(db: AsyncSession = Depends(get_db)):
 @router.post("/sync-url", response_model=SyncResponse)
 async def sync_remote_feed(
     req: SyncUrlRequest,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin)
 ):
     """
     Sincronizza lo stock di un'armeria interrogando un feed remoto via URL (WooCommerce REST API, XML RSS o JSON).
     Normalizza automaticamente marchi, calibri, categorie e crea annunci certificati 'pubblicato'.
+    Riservato agli amministratori. Con protezione anti-SSRF rigorosa.
     """
+    # 0. Validazione SSRF preventiva sull'URL
+    try:
+        req.feed_url = validate_url_safe(req.feed_url)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"URL non consentito o non sicuro: {str(e)}"
+        )
+
     # 1. Recupero utente armeria
     stmt = select(User).where(User.ruolo == RuoloUtente.ARMERIA)
     if req.armeria_id:
@@ -80,9 +98,13 @@ async def sync_remote_feed(
     comune_id = req.comune_id or 1
     stmt_comune = select(Comune).where(Comune.id == comune_id)
     comune = (await db.execute(stmt_comune)).scalar_one_or_none()
+    if not comune:
+        stmt_comune = select(Comune).order_by(Comune.id.asc()).limit(1)
+        comune = (await db.execute(stmt_comune)).scalar_one_or_none()
+        comune_id = comune.id if comune else 1
     comune_nome = comune.nome if comune else "Gardone Val Trompia"
 
-    # 3. Selezione ed esecuzione adapter
+    # 3. Selezione ed esecuzione adapter con protezione SSRF
     try:
         if req.feed_type.lower() == "woocommerce":
             adapter = WooCommerceLiveAdapter()
@@ -97,13 +119,16 @@ async def sync_remote_feed(
             xml_text = await adapter.fetch_remote_xml(req.feed_url)
             raw_items = adapter.fetch_feed(xml_text)
         else:
-            # Fallback JSON generico
-            import httpx
-            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-                r = await client.get(req.feed_url)
-                r.raise_for_status()
-                adapter = MockWooCommerceShopAdapter()
-                raw_items = adapter.fetch_feed(r.json())
+            # Fallback JSON generico con safe_http_get
+            resp = await safe_http_get(req.feed_url, timeout=30.0)
+            resp.raise_for_status()
+            adapter = MockWooCommerceShopAdapter()
+            raw_items = adapter.fetch_feed(resp.json())
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Richiesta di rete bloccata per sicurezza (SSRF): {str(e)}"
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -147,10 +172,12 @@ async def sync_uploaded_file(
     file: UploadFile = File(...),
     armeria_id: Optional[int] = Form(None),
     comune_id: Optional[int] = Form(1),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin)
 ):
     """
     Sincronizza il catalogo caricando direttamente un file export (XML o JSON).
+    Riservato agli amministratori.
     """
     stmt = select(User).where(User.ruolo == RuoloUtente.ARMERIA)
     if armeria_id:
@@ -163,6 +190,10 @@ async def sync_uploaded_file(
 
     stmt_c = select(Comune).where(Comune.id == comune_id)
     c = (await db.execute(stmt_c)).scalar_one_or_none()
+    if not c:
+        stmt_c = select(Comune).order_by(Comune.id.asc()).limit(1)
+        c = (await db.execute(stmt_c)).scalar_one_or_none()
+        comune_id = c.id if c else 1
     comune_nome = c.nome if c else "Sede Armeria"
 
     content = await file.read()
@@ -192,7 +223,7 @@ async def sync_uploaded_file(
     )
 
 
-# --- NUOVI ENDPOINT SCRAPER ONLINE ARMERIE ITALIANE ---
+# --- ENDPOINT SCRAPER ONLINE ARMERIE ITALIANE ---
 
 class ScrapeUrlRequest(BaseModel):
     url: str = Field(..., description="URL della singola scheda prodotto o categoria da raschiare")
@@ -203,14 +234,25 @@ class ScrapeUrlRequest(BaseModel):
 @router.post("/scrape-url", response_model=SyncResponse)
 async def scrape_product_url(
     req: ScrapeUrlRequest,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin)
 ):
     """
     Raschial'URL fornito (singolo prodotto o pagina catalogo di un'armeria italiana reale),
     estrae titolo, descrizione originale, foto originali in alta risoluzione, prezzo e crea
     l'annuncio con il link diretto di rimando all'armeria.
+    Riservato agli amministratori. Con protezione anti-SSRF.
     """
     from app.services.scraper.product_scraper import UniversalArmeriaScraper
+
+    # 0. Validazione SSRF preventiva sull'URL
+    try:
+        req.url = validate_url_safe(req.url)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"URL non consentito o non sicuro: {str(e)}"
+        )
 
     # 1. Trova o imposta armeria
     stmt = select(User).where(User.ruolo == RuoloUtente.ARMERIA)
@@ -224,6 +266,10 @@ async def scrape_product_url(
     comune_id = req.comune_id or 1
     stmt_c = select(Comune).where(Comune.id == comune_id)
     c = (await db.execute(stmt_c)).scalar_one_or_none()
+    if not c:
+        stmt_c = select(Comune).order_by(Comune.id.asc()).limit(1)
+        c = (await db.execute(stmt_c)).scalar_one_or_none()
+        comune_id = c.id if c else 1
     comune_nome = c.nome if c else "Sede Armeria"
 
     # 2. Controlla se è una pagina di catalogo/categoria oppure singolo prodotto
@@ -254,14 +300,18 @@ async def scrape_product_url(
 
 
 @router.post("/scrape-all-directory", response_model=SyncResponse)
-async def scrape_all_directory(db: AsyncSession = Depends(get_db)):
+async def scrape_all_directory(
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin)
+):
     """
     Avvia lo scraper automatico sulle armerie online italiane censite nella directory.
     Scarica annunci reali, foto originali e link di rimando diretto.
+    Riservato agli amministratori.
     """
     from app.services.scraper.product_scraper import UniversalArmeriaScraper
     from app.services.scraper.directory import ARMERIE_TARGETS
-    from app.models.geo import Comune, Provincia
+    from app.core.security import hash_password
 
     tot_analizzati = 0
     tot_inseriti = 0
@@ -273,7 +323,6 @@ async def scrape_all_directory(db: AsyncSession = Depends(get_db)):
         stmt = select(User).where(User.email == target["email"].lower())
         armeria = (await db.execute(stmt)).scalar_one_or_none()
         if not armeria:
-            from app.core.security import hash_password
             armeria = User(
                 email=target["email"].lower(),
                 hashed_password=hash_password("Partner123!"),
@@ -292,6 +341,9 @@ async def scrape_all_directory(db: AsyncSession = Depends(get_db)):
         # Trova comune
         stmt_comune = select(Comune).where(Comune.nome.ilike(f"%{target['citta']}%"))
         comune = (await db.execute(stmt_comune)).scalars().first()
+        if not comune:
+            stmt_comune = select(Comune).order_by(Comune.id.asc()).limit(1)
+            comune = (await db.execute(stmt_comune)).scalars().first()
         comune_id = comune.id if comune else 1
 
         # Raccoglie link prodotti

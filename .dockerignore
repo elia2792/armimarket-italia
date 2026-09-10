@@ -1,0 +1,17 @@
+.env
+.env.*
+.venv
+venv
+__pycache__/
+*.py[cod]
+*$py.class
+.git
+.gitignore
+.pytest_cache
+.coverage
+htmlcov/
+*.sqlite3
+*.db
+uploads/
+app/static/uploads/avatars/*
+!app/static/uploads/avatars/.gitkeep

@@ -1,6 +1,9 @@
+import logging
 import os
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
+
+logger = logging.getLogger("app.services.watermark_service")
 
 
 class WatermarkService:
@@ -46,5 +49,6 @@ class WatermarkService:
             rgb_image.save(output, format="JPEG", quality=88, optimize=True)
             return output.getvalue()
         except Exception as e:
-            print(f"[WATERMARK ERROR] Impossibile applicare filigrana: {e}")
+            logger.warning(f"Impossibile applicare filigrana all'immagine: {e}")
             return image_bytes
+

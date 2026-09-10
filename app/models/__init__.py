@@ -15,6 +15,7 @@ from app.models.email_log import EmailLog, TipologiaEmail
 from app.models.segnalazione import SegnalazioneAnnuncio
 from app.models.poligono import PoligonoTiro, TipologiaPoligono
 from app.models.ricerca_salvata import RicercaSalvata
+from app.models.password_reset import PasswordResetToken
 
 __all__ = [
     "Base",
@@ -36,6 +37,7 @@ __all__ = [
     "PoligonoTiro",
     "TipologiaPoligono",
     "RicercaSalvata",
+    "PasswordResetToken",
 ]
 
 

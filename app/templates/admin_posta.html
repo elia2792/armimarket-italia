@@ -220,7 +220,7 @@
                 <!-- Corpo Email -->
                 <div class="flex-grow p-4 overflow-y-auto bg-slate-900/30">
                     <div id="readCorpoHtml" class="bg-slate-950 rounded-xl p-3 border border-slate-800">
-                        <iframe id="htmlIframe" class="w-full h-[300px] rounded-lg border-0 bg-slate-950" sandbox="allow-same-origin"></iframe>
+                        <iframe id="htmlIframe" class="w-full h-[300px] rounded-lg border-0 bg-slate-950" sandbox=""></iframe>
                     </div>
                     <pre id="readCorpoTesto" class="hidden whitespace-pre-wrap font-mono text-xs text-slate-300 p-4 bg-slate-950 border border-slate-800 rounded-xl leading-relaxed"></pre>
                 </div>
@@ -325,7 +325,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ request.scope.get('csp_nonce', '') }}">
     let token = localStorage.getItem("armimarket_token");
     let currentUser = null;
     try {
@@ -551,12 +551,12 @@
 
             if (resp.ok) {
                 statusSpan.className = "text-[11px] text-emerald-400 font-bold";
-                statusSpan.innerHTML = `<i class="fa-solid fa-check mr-1"></i> Risposta inviata a ${data.destinatario}!`;
+                statusSpan.innerHTML = `<i class="fa-solid fa-check mr-1"></i> Risposta inviata a ${escapeHtml(data.destinatario || "")}!`;
                 msgInput.value = "";
                 setTimeout(() => { statusSpan.innerText = ""; }, 4000);
             } else {
                 statusSpan.className = "text-[11px] text-rose-400 font-bold";
-                statusSpan.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${data.detail || "Errore invio"}`;
+                statusSpan.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${escapeHtml(data.detail || "Errore invio")}`;
             }
         } catch(e) {
             statusSpan.className = "text-[11px] text-rose-400 font-bold";
@@ -650,7 +650,7 @@
 
         const badgeDiv = document.getElementById("segStatusBadge");
         if (s.risolta) {
-            badgeDiv.innerHTML = `<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs px-2.5 py-1 rounded-full font-bold">Risolta (${s.azione_intrapresa})</span>`;
+            badgeDiv.innerHTML = `<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs px-2.5 py-1 rounded-full font-bold">Risolta (${escapeHtml(s.azione_intrapresa || '')})</span>`;
         } else {
             badgeDiv.innerHTML = `<span class="bg-rose-950 text-rose-400 border border-rose-800 text-xs px-2.5 py-1 rounded-full font-bold">In attesa di verifica</span>`;
         }
@@ -820,14 +820,14 @@
             feedback.classList.remove("hidden");
             if (resp.ok) {
                 feedback.className = "text-xs p-3 rounded-lg bg-emerald-950 border border-emerald-700 text-emerald-200";
-                feedback.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> ${data.message}`;
+                feedback.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> ${escapeHtml(data.message || "")}`;
                 setTimeout(() => {
                     chiudiModalTest();
                     caricaEmail(1);
                 }, 1800);
             } else {
                 feedback.className = "text-xs p-3 rounded-lg bg-rose-950 border border-rose-700 text-rose-200";
-                feedback.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Errore: ${data.detail || "Impossibile inviare"}`;
+                feedback.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Errore: ${escapeHtml(data.detail || "Impossibile inviare")}`;
             }
         } catch (e) {
             feedback.classList.remove("hidden");

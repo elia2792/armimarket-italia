@@ -64,6 +64,7 @@ class Comune(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     nome = Column(String(150), nullable=False, index=True)
+    codice_istat = Column(String(6), nullable=True, index=True)
     cap = Column(String(5), nullable=False, index=True)
     provincia_id = Column(Integer, ForeignKey("province.id", ondelete="CASCADE"), nullable=False)
 

@@ -213,7 +213,7 @@ class SearchService:
                 comune_id=a.comune_id,
                 galleria_immagini=a.galleria_immagini or [],
                 link_esterno=a.link_esterno,
-                email_contatto=a.email_contatto,
+                email_contatto=a.email_contatto if a.tipologia_inserzionista == TipologiaInserzionista.ARMERIA else None,
                 telefono_contatto=telefono_mostrato,
                 visualizzazioni=a.visualizzazioni,
                 data_creazione=a.data_creazione,
@@ -240,122 +240,121 @@ class SearchService:
         Genera la FeatureCollection GeoJSON per la visualizzazione sulla mappa interattiva.
         Risolve ogni annuncio con pin geolocalizzato e link diretto alla scheda.
         """
-        stmt = (
-            select(Annuncio)
-            .join(Comune, Annuncio.comune_id == Comune.id)
-            .join(Provincia, Comune.provincia_id == Provincia.id)
-            .options(
-                selectinload(Annuncio.comune).selectinload(Comune.provincia)
-            )
-            .where(Annuncio.stato == StatoAnnuncio.PUBBLICATO)
-        )
-
-        if tipologia_arma:
-            stmt = stmt.where(Annuncio.tipologia_arma == tipologia_arma)
-        if tipologia_inserzionista:
-            stmt = stmt.where(Annuncio.tipologia_inserzionista == tipologia_inserzionista)
-
-        stmt = stmt.order_by(Annuncio.id.desc()).limit(max_items)
-        res = await db.execute(stmt)
-        annunci = res.scalars().all()
-
         features: List[GeoJSONFeature] = []
-        for a in annunci:
-            if not a.comune:
-                continue
 
-            copertina = a.galleria_immagini[0] if a.galleria_immagini else None
-            sigla = a.comune.provincia.sigla_automobilistica if a.comune.provincia else ""
-
-            # Per la privacy dei privati: coordinate al centro del comune.
-            # Per le armerie: coordinate della sede commerciale.
-            geom = GeoJSONGeometry(
-                type="Point",
-                coordinates=[a.comune.longitudine, a.comune.latitudine]
-            )
-
-            props = GeoJSONProperties(
-                annuncio_id=a.id,
-                titolo=a.titolo,
-                slug=a.slug,
-                prezzo=a.prezzo,
-                marca=a.marca,
-                modello=a.modello,
-                calibro=a.calibro,
-                tipologia_arma=a.tipologia_arma.value,
-                tipologia_inserzionista=a.tipologia_inserzionista.value,
-                comune=a.comune.nome,
-                provincia=sigla,
-                immagine_copertina=copertina,
-                url_scheda=f"/scheda/{a.id}",
-                link_esterno=a.link_esterno,
-                disclaimer_sintetico=LEGAL_DISCLAIMER_FOOTER,
-            )
-
-            features.append(GeoJSONFeature(geometry=geom, properties=props))
-
-        # Se non stiamo filtrando per specifica tipologia d'arma, mostriamo anche
-        # tutti gli utenti registrati (armerie con sede e privati verificati nel proprio comune)
-        if not tipologia_arma:
-            stmt_users = (
-                select(User)
-                .join(Comune, User.comune_id == Comune.id)
+        # PRIORITÀ 1 — PRIVACY MAPPA:
+        # La mappa pubblica NON deve esporre posizione, comune, nominativo o annunci di privati.
+        # Mostra unicamente:
+        # 1. Annunci pubblicati da ARMERIE autorizzate con sede commerciale
+        # 2. Sedi di ARMERIE partner registrate
+        # 3. Poligoni di tiro / Sezioni TSN
+        if tipologia_inserzionista != TipologiaInserzionista.PRIVATO:
+            stmt = (
+                select(Annuncio)
+                .join(Comune, Annuncio.comune_id == Comune.id)
                 .join(Provincia, Comune.provincia_id == Provincia.id)
+                .options(
+                    selectinload(Annuncio.comune).selectinload(Comune.provincia)
+                )
                 .where(
-                    User.comune_id.isnot(None),
-                    User.is_active.is_(True),
-                    User.ruolo.notin_([RuoloUtente.ADMIN, RuoloUtente.MODERATORE])
+                    Annuncio.stato == StatoAnnuncio.PUBBLICATO,
+                    Annuncio.tipologia_inserzionista == TipologiaInserzionista.ARMERIA
                 )
             )
-            if tipologia_inserzionista:
-                user_role = RuoloUtente.ARMERIA if tipologia_inserzionista == TipologiaInserzionista.ARMERIA else RuoloUtente.PRIVATO
-                stmt_users = stmt_users.where(User.ruolo == user_role)
 
+            if tipologia_arma:
+                stmt = stmt.where(Annuncio.tipologia_arma == tipologia_arma)
 
-            res_users = await db.execute(stmt_users)
-            users_list = res_users.scalars().all()
+            stmt = stmt.order_by(Annuncio.id.desc()).limit(max_items)
+            res = await db.execute(stmt)
+            annunci = res.scalars().all()
 
-            # Prendi anagrafica comuni dei vari utenti
-            comune_ids = {u.comune_id for u in users_list if u.comune_id}
-            if comune_ids:
-                stmt_c = (
-                    select(Comune)
-                    .options(selectinload(Comune.provincia))
-                    .where(Comune.id.in_(comune_ids))
+            for a in annunci:
+                if not a.comune:
+                    continue
+
+                copertina = a.galleria_immagini[0] if a.galleria_immagini else None
+                sigla = a.comune.provincia.sigla_automobilistica if a.comune.provincia else ""
+
+                geom = GeoJSONGeometry(
+                    type="Point",
+                    coordinates=[a.comune.longitudine, a.comune.latitudine]
                 )
-                comuni_map = {c.id: c for c in (await db.execute(stmt_c)).scalars().all()}
 
-                for u in users_list:
-                    comune_obj = comuni_map.get(u.comune_id)
-                    if not comune_obj:
-                        continue
-                    
-                    sigla = comune_obj.provincia.sigla_automobilistica if comune_obj.provincia else ""
-                    # Se l'armeria ha coordinate puntuali, usale, altrimenti usa il baricentro del comune
-                    try:
-                        u_lat = float(u.latitudine) if u.latitudine else comune_obj.latitudine
-                        u_lon = float(u.longitudine) if u.longitudine else comune_obj.longitudine
-                    except (ValueError, TypeError):
-                        u_lat = comune_obj.latitudine
-                        u_lon = comune_obj.longitudine
+                props = GeoJSONProperties(
+                    annuncio_id=a.id,
+                    titolo=a.titolo,
+                    slug=a.slug,
+                    prezzo=a.prezzo,
+                    marca=a.marca,
+                    modello=a.modello,
+                    calibro=a.calibro,
+                    tipologia_arma=a.tipologia_arma.value,
+                    tipologia_inserzionista=a.tipologia_inserzionista.value,
+                    comune=a.comune.nome,
+                    provincia=sigla,
+                    immagine_copertina=copertina,
+                    url_scheda=f"/scheda/{a.id}",
+                    link_esterno=a.link_esterno,
+                    disclaimer_sintetico=LEGAL_DISCLAIMER_FOOTER,
+                )
 
-                    is_arm = (u.ruolo == RuoloUtente.ARMERIA)
-                    titolo_user = u.ragione_sociale if (is_arm and u.ragione_sociale) else f"{u.nome} {u.cognome or ''}".strip()
-                    desc_role = "Armeria Registrata" if is_arm else "Privato Registrato con Titolo"
+                features.append(GeoJSONFeature(geometry=geom, properties=props))
 
-                    u_geom = GeoJSONGeometry(type="Point", coordinates=[u_lon, u_lat])
-                    u_props = GeoJSONProperties(
-                        user_id=u.id,
-                        is_user_marker=True,
-                        titolo=f"{titolo_user} ({desc_role})",
-                        tipologia_inserzionista="armeria" if is_arm else "privato",
-                        comune=comune_obj.nome,
-                        provincia=sigla,
-                        indirizzo=u.indirizzo if is_arm else None,
-                        url_scheda=None,
-                        disclaimer_sintetico=LEGAL_DISCLAIMER_FOOTER,
+            # Se non filtriamo per tipo d'arma, mostriamo le sedi fisiche delle sole ARMERIE commerciali
+            if not tipologia_arma:
+                stmt_users = (
+                    select(User)
+                    .join(Comune, User.comune_id == Comune.id)
+                    .join(Provincia, Comune.provincia_id == Provincia.id)
+                    .where(
+                        User.comune_id.isnot(None),
+                        User.is_active.is_(True),
+                        User.ruolo == RuoloUtente.ARMERIA
                     )
-                    features.append(GeoJSONFeature(geometry=u_geom, properties=u_props))
+                )
+
+                res_users = await db.execute(stmt_users)
+                users_list = res_users.scalars().all()
+
+                comune_ids = {u.comune_id for u in users_list if u.comune_id}
+                if comune_ids:
+                    stmt_c = (
+                        select(Comune)
+                        .options(selectinload(Comune.provincia))
+                        .where(Comune.id.in_(comune_ids))
+                    )
+                    comuni_map = {c.id: c for c in (await db.execute(stmt_c)).scalars().all()}
+
+                    for u in users_list:
+                        comune_obj = comuni_map.get(u.comune_id)
+                        if not comune_obj:
+                            continue
+                        
+                        sigla = comune_obj.provincia.sigla_automobilistica if comune_obj.provincia else ""
+                        try:
+                            u_lat = float(u.latitudine) if u.latitudine else comune_obj.latitudine
+                            u_lon = float(u.longitudine) if u.longitudine else comune_obj.longitudine
+                        except (ValueError, TypeError):
+                            u_lat = comune_obj.latitudine
+                            u_lon = comune_obj.longitudine
+
+                        titolo_user = u.ragione_sociale if u.ragione_sociale else f"Armeria {u.nome}"
+                        desc_role = "Armeria Autorizzata"
+
+                        u_geom = GeoJSONGeometry(type="Point", coordinates=[u_lon, u_lat])
+                        u_props = GeoJSONProperties(
+                            user_id=u.id,
+                            is_user_marker=True,
+                            titolo=f"{titolo_user} ({desc_role})",
+                            tipologia_inserzionista="armeria",
+                            comune=comune_obj.nome,
+                            provincia=sigla,
+                            indirizzo=u.indirizzo,
+                            url_scheda=None,
+                            disclaimer_sintetico=LEGAL_DISCLAIMER_FOOTER,
+                        )
+                        features.append(GeoJSONFeature(geometry=u_geom, properties=u_props))
 
         # Includi poligoni di tiro e sezioni TSN censiti
         stmt_poligoni = select(PoligonoTiro).options(selectinload(PoligonoTiro.comune))

@@ -146,7 +146,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ request.scope.get('csp_nonce', '') }}">
 let token = localStorage.getItem("armimarket_token");
 let currentUser = null;
 let currentTab = 'my-ads';
@@ -228,7 +228,7 @@ function renderUserProfile(u) {
     }
 
     if (u.indirizzo) {
-        document.getElementById("userLocation").innerHTML = `<i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> ${u.indirizzo}`;
+        document.getElementById("userLocation").innerHTML = `<i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> ${escapeHtml(u.indirizzo)}`;
     }
     if (u.telefono) {
         const ph = document.getElementById("userPhone");
@@ -406,26 +406,32 @@ async function loadMyAds() {
                 statusBadge = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border bg-amber-950/70 border-amber-600 text-amber-300"><i class="fa-solid fa-clock mr-1"></i> In Moderazione</span>`;
             }
 
+            const safeTitolo = escapeHtml(a.titolo);
+            const safeMarca = escapeHtml(a.marca || "");
+            const safeCalibro = escapeHtml(a.calibro || "");
+            const safeComune = escapeHtml(a.comune ? a.comune.nome : "Italia");
+            const safeImgUrl = imgUrl ? encodeURI(imgUrl) : null;
+
             return `
                 <div class="bg-slate-950 border ${isSold ? 'border-rose-900/40 bg-rose-950/5' : 'border-slate-800'} rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:border-slate-700">
                     <div class="flex items-center space-x-4 w-full sm:w-auto">
                         <div class="w-20 h-20 rounded-xl bg-slate-900 overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-800">
-                            ${imgUrl ? `<img src="${imgUrl}" alt="${a.titolo}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-gun text-2xl text-slate-700"></i>`}
+                            ${safeImgUrl ? `<img src="${safeImgUrl}" alt="${safeTitolo}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-gun text-2xl text-slate-700"></i>`}
                         </div>
                         <div class="space-y-1 flex-grow">
                             <div class="flex items-center space-x-2">
                                 ${statusBadge}
-                                <span class="text-[11px] font-mono text-slate-400">${a.marca} &bull; Cal. ${a.calibro}</span>
+                                <span class="text-[11px] font-mono text-slate-400">${safeMarca} &bull; Cal. ${safeCalibro}</span>
                             </div>
                             <h3 class="text-sm font-bold text-white line-clamp-1">
-                                <a href="/scheda/${a.id}" class="hover:text-amber-400 hover:underline">${a.titolo}</a>
+                                <a href="/scheda/${a.id}" class="hover:text-amber-400 hover:underline">${safeTitolo}</a>
                             </h3>
                             <div class="flex items-center space-x-3 text-xs">
                                 <span class="font-extrabold text-amber-400 text-sm">€ ${a.prezzo.toLocaleString('it-IT', {minimumFractionDigits: 2})}</span>
                                 <span class="text-slate-500">&bull;</span>
                                 <span class="text-slate-400"><i class="fa-regular fa-eye mr-1"></i> ${a.visualizzazioni} vis.</span>
                                 <span class="text-slate-500">&bull;</span>
-                                <span class="text-slate-400"><i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> ${a.comune ? a.comune.nome : 'Italia'}</span>
+                                <span class="text-slate-400"><i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> ${safeComune}</span>
                             </div>
                         </div>
                     </div>
@@ -447,7 +453,7 @@ async function loadMyAds() {
                             <i class="fa-solid fa-eye text-[11px]"></i>
                             <span>Vedi</span>
                         </a>
-                        <button onclick="deleteAd(${a.id}, '${a.titolo.replace(/'/g, "\\'")}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/40 hover:bg-rose-900 text-rose-300 border border-rose-700/60 transition-all flex items-center space-x-1.5" title="Elimina annuncio venduto o non più disponibile">
+                        <button onclick="deleteAd(${a.id}, this.dataset.titolo)" data-titolo="${safeTitolo}" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/40 hover:bg-rose-900 text-rose-300 border border-rose-700/60 transition-all flex items-center space-x-1.5" title="Elimina annuncio venduto o non più disponibile">
                             <i class="fa-solid fa-trash-can text-[11px]"></i>
                             <span>Elimina</span>
                         </button>
@@ -547,10 +553,17 @@ async function loadFavorites() {
 
         container.innerHTML = favs.map(a => {
             const imgUrl = (a.galleria_immagini && a.galleria_immagini.length > 0) ? a.galleria_immagini[0] : null;
+            const safeTitolo = escapeHtml(a.titolo);
+            const safeMarca = escapeHtml(a.marca || "");
+            const safeCalibro = escapeHtml(a.calibro || "");
+            const safeDescrizione = escapeHtml(a.descrizione || "");
+            const safeComune = escapeHtml(a.comune ? a.comune.nome : "Italia");
+            const safeImgUrl = imgUrl ? encodeURI(imgUrl) : null;
+
             return `
                 <div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-lg flex flex-col justify-between group hover:border-slate-700 transition-all">
                     <div class="relative h-44 bg-black overflow-hidden flex items-center justify-center">
-                        ${imgUrl ? `<img src="${imgUrl}" alt="${a.titolo}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">` : `<i class="fa-solid fa-gun text-4xl text-slate-700"></i>`}
+                        ${safeImgUrl ? `<img src="${safeImgUrl}" alt="${safeTitolo}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">` : `<i class="fa-solid fa-gun text-4xl text-slate-700"></i>`}
                         
                         <!-- Bottone Rimuovi dai Preferiti -->
                         <button onclick="removeFavorite(${a.id})" class="absolute top-2 right-2 w-8 h-8 rounded-full bg-slate-900/90 text-rose-500 hover:bg-rose-600 hover:text-white flex items-center justify-center text-xs shadow transition-all" title="Rimuovi dai preferiti">
@@ -564,15 +577,15 @@ async function loadFavorites() {
 
                     <div class="p-4 flex flex-col flex-grow justify-between space-y-3">
                         <div>
-                            <span class="text-[10px] uppercase font-mono text-slate-400">${a.marca} &bull; Cal. ${a.calibro}</span>
+                            <span class="text-[10px] uppercase font-mono text-slate-400">${safeMarca} &bull; Cal. ${safeCalibro}</span>
                             <h3 class="text-sm font-bold text-white line-clamp-2 mt-0.5">
-                                <a href="/scheda/${a.id}" class="hover:text-amber-400 hover:underline">${a.titolo}</a>
+                                <a href="/scheda/${a.id}" class="hover:text-amber-400 hover:underline">${safeTitolo}</a>
                             </h3>
-                            <p class="text-slate-400 text-xs mt-1 line-clamp-2">${a.descrizione}</p>
+                            <p class="text-slate-400 text-xs mt-1 line-clamp-2">${safeDescrizione}</p>
                         </div>
 
                         <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-                            <span><i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> ${a.comune ? a.comune.nome : 'Italia'}</span>
+                            <span><i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> ${safeComune}</span>
                             <a href="/scheda/${a.id}" class="text-amber-400 hover:underline font-semibold flex items-center space-x-1">
                                 <span>Dettagli</span>
                                 <i class="fa-solid fa-arrow-right text-[10px]"></i>

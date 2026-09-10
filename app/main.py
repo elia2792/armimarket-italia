@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 
 from app.core.config import settings
 from app.core.database import Base, async_session_factory, engine, is_sqlite
+from app.core.geo_seed import seed_geo_if_empty
 from app.core.security import hash_password
 from app.models.poligono import PoligonoTiro, TipologiaPoligono
 from app.models.user import RuoloUtente, User
@@ -145,22 +146,27 @@ async def hourly_catalog_scraper_task():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle manager: inizializzazione schema tabelle, admin, poligoni e task orario scraping."""
-    async with engine.begin() as conn:
-        if not is_sqlite:
-            try:
-                await conn.execute(__import__("sqlalchemy").text("CREATE EXTENSION IF NOT EXISTS postgis;"))
-            except Exception:
-                pass
-        await conn.run_sync(Base.metadata.create_all)
-        # Micro-migrazione per SQLite (Postgres crea già le colonne da Base.metadata.create_all)
-        if is_sqlite:
-            for migration_sql in [
-                "ALTER TABLE utenti ADD COLUMN foto_profilo VARCHAR(512)",
-            ]:
+    is_production = settings.ENVIRONMENT.lower().strip() in ("production", "prod")
+    if not is_production:
+        async with engine.begin() as conn:
+            if not is_sqlite:
                 try:
-                    await conn.execute(__import__("sqlalchemy").text(migration_sql))
+                    await conn.execute(__import__("sqlalchemy").text("CREATE EXTENSION IF NOT EXISTS postgis;"))
                 except Exception:
-                    pass  # Colonna già esistente – ignora
+                    pass
+            await conn.run_sync(Base.metadata.create_all)
+            # Micro-migrazione per SQLite (Postgres crea già le colonne da Base.metadata.create_all)
+            if is_sqlite:
+                for migration_sql in [
+                    "ALTER TABLE utenti ADD COLUMN foto_profilo VARCHAR(512)",
+                    "ALTER TABLE comuni ADD COLUMN codice_istat VARCHAR(6)",
+                ]:
+                    try:
+                        await conn.execute(__import__("sqlalchemy").text(migration_sql))
+                    except Exception:
+                        pass  # Colonna già esistente – ignora
+    else:
+        logger.info("Ambiente di produzione rilevato: schema database gestito esclusivamente tramite migrazioni Alembic.")
 
     # Inizializza superuser amministratore e poligoni se assenti
     async with async_session_factory() as session:
@@ -179,7 +185,7 @@ async def lifespan(app: FastAPI):
             )
             session.add(admin_user)
             await session.commit()
-
+        await seed_geo_if_empty(session)
         await seed_poligoni_if_empty(session)
 
     # Avvia task periodico di scraping orario in background
@@ -211,12 +217,16 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS Middleware
+# Security Headers & Content-Security-Policy Middleware
+from app.core.security_headers import SecurityHeadersMiddleware
+app.add_middleware(SecurityHeadersMiddleware)
+
+# CORS Middleware restrittivo (con credenziali, vietato wildcard *)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -234,6 +244,12 @@ app.include_router(views_router)
 # Serve file statici (avatar, upload) da /static
 _STATIC_DIR = Path(__file__).resolve().parent / "static"
 _STATIC_DIR.mkdir(parents=True, exist_ok=True)
+
+if settings.AVATAR_UPLOAD_DIR:
+    _persistent_avatar_dir = Path(settings.AVATAR_UPLOAD_DIR).resolve()
+    _persistent_avatar_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/static/uploads/avatars", StaticFiles(directory=str(_persistent_avatar_dir)), name="avatars_persistent")
+
 app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
 

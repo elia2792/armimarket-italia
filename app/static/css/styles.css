@@ -1,0 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&display=swap');
+
+:root {
+    --olive: #4a5c2a;
+    --olive-light: #6b7d3e;
+    --olive-dark: #2e3a18;
+    --tan: #c8a96e;
+    --tan-light: #d4bc8e;
+    --carbon: #0d1008;
+    --steel: #1e2418;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.mil-brand {
+    font-family: 'Oswald', 'Impact', sans-serif;
+    letter-spacing: 0.04em;
+}
+
+header {
+    background: repeating-linear-gradient(
+        135deg,
+        #050805 0px, #050805 10px,
+        #080d06 10px, #080d06 20px
+    );
+    border-bottom: 2px solid var(--olive) !important;
+}
+
+.legal-banner {
+    background: linear-gradient(90deg, #1a2010 0%, #2d3d1a 50%, #1a2010 100%);
+    border-bottom: 1px solid var(--olive-light);
+}
+
+.btn-tactical {
+    background: linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%);
+    border: 1px solid var(--olive-light);
+    color: #f0ede0;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.btn-tactical:hover {
+    background: linear-gradient(135deg, var(--olive-light) 0%, #7d9049 100%);
+}
+
+.border-tactical {
+    border-color: var(--olive) !important;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0a0f06;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--olive);
+    border-radius: 3px;
+}
+
+.leaflet-popup-content-wrapper {
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+    padding: 0;
+    overflow: hidden;
+}
+
+.leaflet-popup-content {
+    margin: 0;
+    line-height: 1.4;
+}

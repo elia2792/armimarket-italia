@@ -4,68 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ArmiMarket Italia — Il Mercato delle Armi Lecite d'Italia | Compra, Vendi, Colleziona{% endblock %}</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS (Build Locale Statico Minificato) -->
+    <link rel="stylesheet" href="/static/css/tailwind.min.css">
+    <!-- Stili Militari / Tattici & Custom Leaflet -->
+    <link rel="stylesheet" href="/static/css/styles.css">
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
-    <style>
-        .leaflet-popup-content-wrapper {
-            border-radius: 0.75rem;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
-            padding: 0;
-            overflow: hidden;
-        }
-        .leaflet-popup-content {
-            margin: 0;
-            line-height: 1.4;
-        }
-        /* ── STILE MILITARE / TATTICO ──────────────────────── */
-        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&display=swap');
-        :root {
-            --olive: #4a5c2a;
-            --olive-light: #6b7d3e;
-            --olive-dark: #2e3a18;
-            --tan: #c8a96e;
-            --tan-light: #d4bc8e;
-            --carbon: #0d1008;
-            --steel: #1e2418;
-        }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; }
-        .mil-brand { font-family: 'Oswald', 'Impact', sans-serif; letter-spacing: 0.04em; }
-        /* Stripes tattiche sottili nella navbar */
-        header {
-            background: repeating-linear-gradient(
-                135deg,
-                #050805 0px, #050805 10px,
-                #080d06 10px, #080d06 20px
-            );
-            border-bottom: 2px solid var(--olive) !important;
-        }
-        /* Banner legale più tattico */
-        .legal-banner {
-            background: linear-gradient(90deg, #1a2010 0%, #2d3d1a 50%, #1a2010 100%);
-            border-bottom: 1px solid var(--olive-light);
-        }
-        /* Pulsante Inserisci Annuncio stile militare */
-        .btn-tactical {
-            background: linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%);
-            border: 1px solid var(--olive-light);
-            color: #f0ede0;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-        }
-        .btn-tactical:hover {
-            background: linear-gradient(135deg, var(--olive-light) 0%, #7d9049 100%);
-        }
-        /* Card annunci e bordi */
-        .border-tactical { border-color: var(--olive) !important; }
-        /* Scrollbar tattica */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0a0f06; }
-        ::-webkit-scrollbar-thumb { background: var(--olive); border-radius: 3px; }
-    </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
@@ -177,67 +124,9 @@
         </div>
     </footer>
 
-    <script>
-        // Gestione stato login in Navbar
-        document.addEventListener("DOMContentLoaded", () => {
-            const token = localStorage.getItem("armimarket_token");
-            const rawUser = localStorage.getItem("armimarket_user");
-            const navAuth = document.getElementById("navAuthLinks");
-            if (token && rawUser && navAuth) {
-                try {
-                    const u = JSON.parse(rawUser);
-                    let label = u.nickname || u.display_name || u.nome;
-                    if (u.ruolo === 'admin') {
-                        label = 'Admin';
-                    } else if (u.ruolo === 'armeria') {
-                        label = u.nickname || u.ragione_sociale || u.nome;
-                    }
+    <!-- Script Applicativo Globale -->
+    <script src="/static/js/app.js" defer></script>
 
-                    // Colori militari per ruolo
-                    const roleStyle = u.ruolo === 'armeria'
-                        ? 'color:#6ee7b7;border-color:#065f46'
-                        : (u.ruolo === 'admin' ? 'color:#c8a96e;border-color:#4a5c2a' : 'color:#93c5fd;border-color:#1e3a5f');
-
-                    // Avatar mini: foto profilo se presente, altrimenti icona
-                    const avatarHtml = u.foto_profilo
-                        ? `<img src="${u.foto_profilo}" class="w-6 h-6 rounded-full object-cover border border-stone-600" alt="avatar">`
-                        : `<i class="fa-solid ${u.ruolo === 'armeria' ? 'fa-store' : (u.ruolo === 'admin' ? 'fa-user-gear' : 'fa-user-shield')} text-[11px]"></i>`;
-
-                    const adminPostaBtn = (u.ruolo === 'admin') ? `
-                        <a href="/admin/posta" class="text-xs font-bold flex items-center space-x-1.5 py-1 px-2.5 rounded-lg transition-all shadow uppercase tracking-wide"
-                           style="background:#1a2010;border:1px solid #4a5c2a;color:#c8a96e;" title="Casella Postale Amministratore">
-                            <i class="fa-solid fa-envelope"></i>
-                            <span class="hidden sm:inline">Posta</span>
-                        </a>
-                        <a href="/admin/utenti" class="text-xs font-bold flex items-center space-x-1.5 py-1 px-2.5 rounded-lg transition-all shadow uppercase tracking-wide"
-                           style="background:#1a2010;border:1px solid #4a5c2a;color:#c8a96e;" title="Gestione Account Utenti">
-                            <i class="fa-solid fa-users-gear"></i>
-                            <span class="hidden sm:inline">Utenti</span>
-                        </a>
-                    ` : '';
-
-                    navAuth.innerHTML = `
-                        ${adminPostaBtn}
-                        <a href="/profilo" class="text-xs font-bold flex items-center space-x-1.5 py-1 px-2 rounded-lg transition-all uppercase tracking-wide"
-                           style="background:#0d1008;border:1px solid #2e3a18;${roleStyle}" title="Area Personale">
-                            ${avatarHtml}
-                            <span class="max-w-[110px] truncate">${label}</span>
-                        </a>
-                        <button onclick="logout()" class="text-[11px] text-stone-500 hover:text-rose-400 ml-1 p-1 transition-colors" title="Esci dall'account">
-                            <i class="fa-solid fa-right-from-bracket"></i>
-                        </button>
-                    `;
-
-                } catch(e) {}
-            }
-        });
-
-        function logout() {
-            localStorage.removeItem("armimarket_token");
-            localStorage.removeItem("armimarket_user");
-            window.location.href = "/";
-        }
-    </script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

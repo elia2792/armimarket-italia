@@ -201,7 +201,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ request.scope.get('csp_nonce', '') }}">
 let regMap = null;
 let regMarker = null;
 let comuniList = [];
@@ -424,7 +424,8 @@ async function handleRegister(e) {
             }, 1500);
         } else {
             alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-rose-950/70 border-rose-600 text-rose-200 flex items-center space-x-2";
-            alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i> <span>${data.detail || 'Errore durante la registrazione.'}</span>`;
+            const safeDetail = window.escapeHtml(typeof data.detail === 'string' ? data.detail : 'Errore durante la registrazione.');
+            alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i> <span>${safeDetail}</span>`;
             btn.disabled = false;
             btn.innerHTML = `<i class="fa-solid fa-user-plus mr-1"></i> Completa Registrazione`;
         }

@@ -116,7 +116,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ request.scope.get('csp_nonce', '') }}">
 const token = localStorage.getItem("armimarket_token");
 let currentPage = 1;
 let totalPages = 1;
@@ -201,6 +201,8 @@ function renderUtenti(utenti) {
         return;
     }
 
+    window.currentUtentiList = utenti;
+
     const rows = utenti.map(u => {
         const isAdmin = u.ruolo === "admin";
         const isArmeria = u.ruolo === "armeria";
@@ -215,15 +217,23 @@ function renderUtenti(utenti) {
             ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase" style="background:#052e16;border:1px solid #16a34a;color:#86efac;">● Attivo</span>`
             : `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase" style="background:#1a0808;border:1px solid #dc2626;color:#fca5a5;">● Disabilitato</span>`;
 
-        const avatarHtml = u.foto_profilo
-            ? `<img src="${u.foto_profilo}" class="w-10 h-10 rounded-xl object-cover flex-shrink-0" style="border:1px solid #2e3a18;" alt="avatar">`
+        const safeAvatar = u.foto_profilo ? encodeURI(u.foto_profilo) : null;
+        const avatarHtml = safeAvatar
+            ? `<img src="${safeAvatar}" class="w-10 h-10 rounded-xl object-cover flex-shrink-0" style="border:1px solid #2e3a18;" alt="avatar">`
             : `<div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-sm"
                     style="background:linear-gradient(135deg,#1a2010,#2e3a18);border:1px solid #2e3a18;color:#c8a96e;">
                     <i class="fa-solid ${isArmeria ? 'fa-store' : 'fa-user-shield'}"></i></div>`;
 
-        const displayName = u.nickname
-            ? `<span style="color:#c8a96e;">${u.nickname}</span>`
-            : `${u.nome}${u.cognome ? ' ' + u.cognome : ''}${u.ragione_sociale ? ' · ' + u.ragione_sociale : ''}`;
+        const safeNick = u.nickname ? escapeHtml(u.nickname) : "";
+        const safeNome = escapeHtml(u.nome || "");
+        const safeCognome = u.cognome ? escapeHtml(u.cognome) : "";
+        const safeRagione = u.ragione_sociale ? escapeHtml(u.ragione_sociale) : "";
+        const safeEmail = escapeHtml(u.email || "");
+        const safeTel = u.telefono ? escapeHtml(u.telefono) : "";
+
+        const displayName = safeNick
+            ? `<span style="color:#c8a96e;">${safeNick}</span>`
+            : `${safeNome}${safeCognome ? ' ' + safeCognome : ''}${safeRagione ? ' · ' + safeRagione : ''}`;
 
         const dataReg = new Date(u.data_registrazione).toLocaleDateString('it-IT', { day:'2-digit', month:'short', year:'numeric' });
 
@@ -232,20 +242,20 @@ function renderUtenti(utenti) {
         ` : `
             <div class="flex items-center gap-1.5">
                 ${u.is_active
-                    ? `<button onclick="disabilitaUtente(${u.id},'${u.email}')"
+                    ? `<button onclick="disabilitaUtente(${u.id})"
                               class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all"
                               style="background:#2d1b0e;border:1px solid #c2410c;color:#fb923c;"
                               title="Blocca accesso senza eliminare i dati">
                             <i class="fa-solid fa-ban mr-1"></i>Disabilita
                         </button>`
-                    : `<button onclick="riabilitaUtente(${u.id},'${u.email}')"
+                    : `<button onclick="riabilitaUtente(${u.id})"
                               class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all"
                               style="background:#052e16;border:1px solid #16a34a;color:#86efac;"
                               title="Riabilita accesso all'account">
                             <i class="fa-solid fa-circle-check mr-1"></i>Riabilita
                         </button>`
                 }
-                <button onclick="eliminaUtente(${u.id},'${u.email}')"
+                <button onclick="eliminaUtente(${u.id})"
                         class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all"
                         style="background:#1a0808;border:1px solid #7f1d1d;color:#fca5a5;"
                         title="Elimina definitivamente account e tutti i suoi annunci">
@@ -266,12 +276,12 @@ function renderUtenti(utenti) {
                             ${stateBadge}
                         </div>
                         <div class="text-[10px] font-mono truncate" style="color:#5a7030;">
-                            ${u.email}
+                            ${safeEmail}
                         </div>
                         <div class="flex flex-wrap gap-3 mt-1 text-[10px]" style="color:#4a5c2a;">
                             <span><i class="fa-solid fa-bullhorn mr-1"></i>${u.numero_annunci} annunci</span>
                             <span><i class="fa-regular fa-calendar mr-1"></i>${dataReg}</span>
-                            ${u.telefono ? `<span><i class="fa-solid fa-phone mr-1"></i>${u.telefono}</span>` : ''}
+                            ${safeTel ? `<span><i class="fa-solid fa-phone mr-1"></i>${safeTel}</span>` : ''}
                         </div>
                     </div>
                 </div>
@@ -285,7 +295,9 @@ function renderUtenti(utenti) {
     container.innerHTML = `<div class="space-y-2">${rows}</div>`;
 }
 
-async function disabilitaUtente(id, email) {
+async function disabilitaUtente(id) {
+    const user = (window.currentUtentiList || []).find(x => x.id === id);
+    const email = user ? user.email : id;
     if (!confirm(`Vuoi disabilitare l'account di "${email}"?\n\nL'utente non potrà più accedere ma i suoi dati resteranno nel database.`)) return;
     try {
         const resp = await fetch(`/api/v1/admin/utenti/${id}/disabilita`, {
@@ -303,7 +315,9 @@ async function disabilitaUtente(id, email) {
     } catch(e) { showAlert("Errore di connessione.", "danger"); }
 }
 
-async function riabilitaUtente(id, email) {
+async function riabilitaUtente(id) {
+    const user = (window.currentUtentiList || []).find(x => x.id === id);
+    const email = user ? user.email : id;
     if (!confirm(`Vuoi riabilitare l'account di "${email}"?`)) return;
     try {
         const resp = await fetch(`/api/v1/admin/utenti/${id}/riabilita`, {
@@ -321,7 +335,9 @@ async function riabilitaUtente(id, email) {
     } catch(e) { showAlert("Errore di connessione.", "danger"); }
 }
 
-async function eliminaUtente(id, email) {
+async function eliminaUtente(id) {
+    const user = (window.currentUtentiList || []).find(x => x.id === id);
+    const email = user ? user.email : id;
     const conferma = prompt(
         `⚠️ OPERAZIONE IRREVERSIBILE\n\nStai per eliminare definitivamente l'account di:\n"${email}"\n\nQuesta azione cancellerà TUTTI i suoi annunci, preferiti e dati.\n\nPer confermare, digita: ELIMINA`
     );
@@ -350,19 +366,27 @@ function changePage(delta) {
     loadUtenti();
 }
 
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 function showAlert(msg, type) {
     const box = document.getElementById("adminAlert");
+    if (!box) return;
     box.classList.remove("hidden");
-    if (type === "success") {
-        box.className = "mb-6 p-4 rounded-xl text-xs font-semibold border flex items-center gap-2";
-        box.style.cssText = "background:#052e16;border-color:#16a34a;color:#86efac;";
-        box.innerHTML = `<i class="fa-solid fa-circle-check text-base"></i><span>${msg}</span>`;
-    } else {
-        box.className = "mb-6 p-4 rounded-xl text-xs font-semibold border flex items-center gap-2";
-        box.style.cssText = "background:#1a0808;border-color:#dc2626;color:#fca5a5;";
-        box.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i><span>${msg}</span>`;
-    }
-    setTimeout(() => box.classList.add("hidden"), 6000);
+    const iconClass = type === "success" ? "fa-solid fa-circle-check text-base" : "fa-solid fa-triangle-exclamation text-base";
+    box.style.background = type === "success" ? "#052e16" : "#1a0808";
+    box.style.borderColor = type === "success" ? "#16a34a" : "#dc2626";
+    box.style.color = type === "success" ? "#86efac" : "#fca5a5";
+    box.innerHTML = `<i class="${iconClass}"></i><span></span>`;
+    box.querySelector("span").textContent = String(msg);
+    setTimeout(() => box.classList.add("hidden"), 5000);
 }
 </script>
 {% endblock %}

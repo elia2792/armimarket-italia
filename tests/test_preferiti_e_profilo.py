@@ -1,5 +1,6 @@
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 
 
 @pytest.mark.asyncio
@@ -109,24 +110,34 @@ async def test_email_duplicata_bloccata(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_recupero_e_reimpostazione_password(client: AsyncClient):
+async def test_recupero_e_reimpostazione_password(client: AsyncClient, db_session):
+    from app.models.email_log import EmailLog
     user_email = "privato.test@armimarket.it"
 
-    # 1. Richiesta di recupero password
+    # 1. Richiesta di recupero password: email esistente
     req_resp = await client.post("/api/v1/auth/forgot-password", json={"email": user_email})
     assert req_resp.status_code == 200
     data = req_resp.json()
-    assert "reset_link" in data
-    assert "token=" in data["reset_link"]
+    assert data.get("reset_link") is None, "Il link di reset NON deve mai comparire nella risposta JSON (anti-leak)"
+    assert "istruzioni" in data["message"].lower()
 
-    # Estrai token
-    token = data["reset_link"].split("token=")[1]
-
-    # 2. Richiesta con email inesistente
+    # 2. Richiesta con email inesistente: deve restituire ESATTAMENTE la stessa risposta 200 (anti user-enumeration)
     fake_resp = await client.post("/api/v1/auth/forgot-password", json={"email": "inesistente@test.it"})
-    assert fake_resp.status_code == 404
+    assert fake_resp.status_code == 200
+    assert fake_resp.json()["message"] == data["message"], "La risposta deve essere uniforme per email esistente e inesistente"
 
-    # 3. Reimposta la password
+    # 3. Recupero del token sicuro dall'email registrata internamente
+    stmt = (
+        select(EmailLog)
+        .where(EmailLog.destinatario == user_email, EmailLog.tipologia == "recupero_password")
+        .order_by(EmailLog.id.desc())
+    )
+    email_entry = (await db_session.execute(stmt)).scalars().first()
+    assert email_entry is not None
+    assert "token=" in email_entry.link_azione
+    token = email_entry.link_azione.split("token=")[1]
+
+    # 4. Reimposta la password
     new_password = "NuovaPasswordSicura2026!"
     reset_resp = await client.post("/api/v1/auth/reset-password", json={
         "token": token,
@@ -135,7 +146,15 @@ async def test_recupero_e_reimpostazione_password(client: AsyncClient):
     assert reset_resp.status_code == 200
     assert "successo" in reset_resp.json()["message"].lower()
 
-    # 4. Verifica che il login funzioni con la NUOVA password
+    # 5. Verifica che il token sia strettamente monouso (secondo tentativo con stesso token deve fallire con 400)
+    reuse_resp = await client.post("/api/v1/auth/reset-password", json={
+        "token": token,
+        "nuova_password": "TentativoRiutilizzo123!"
+    })
+    assert reuse_resp.status_code == 400
+    assert "non valido o è scaduto" in reuse_resp.json()["detail"].lower()
+
+    # 6. Verifica che il login funzioni con la NUOVA password
     login_resp = await client.post("/api/v1/auth/login", json={
         "email": user_email,
         "password": new_password

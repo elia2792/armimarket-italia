@@ -125,6 +125,9 @@ async def db_session():
 
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session):
+    from app.core.rate_limit import default_rate_limiter
+    default_rate_limiter.clear()
+
     async def override_get_db():
         yield db_session
 
@@ -133,6 +136,7 @@ async def client(db_session):
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
+    default_rate_limiter.clear()
 
 
 @pytest.fixture

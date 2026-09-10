@@ -48,7 +48,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ request.scope.get('csp_nonce', '') }}">
 document.addEventListener("DOMContentLoaded", () => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("registered")) {
@@ -82,9 +82,10 @@ async function handleLogin(e) {
 
         alertBox.classList.remove("hidden");
         if (resp.ok) {
-            // Salva token in localStorage
+            // Salva token in localStorage e cookie
             localStorage.setItem("armimarket_token", data.access_token);
             localStorage.setItem("armimarket_user", JSON.stringify(data.user));
+            document.cookie = "armimarket_token=" + encodeURIComponent(data.access_token) + "; path=/; max-age=86400; SameSite=Lax";
 
             alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-emerald-950/70 border-emerald-600 text-emerald-200 flex items-center space-x-2";
             alertBox.innerHTML = `<i class="fa-solid fa-check-circle text-base"></i> <span>Accesso eseguito! Reindirizzamento in corso...</span>`;
@@ -97,7 +98,8 @@ async function handleLogin(e) {
             }, 1000);
         } else {
             alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-rose-950/70 border-rose-600 text-rose-200 flex items-center space-x-2";
-            alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i> <span>${data.detail || 'Email o password errati.'}</span>`;
+            const safeDetail = window.escapeHtml(typeof data.detail === 'string' ? data.detail : 'Email o password errati.');
+            alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i> <span>${safeDetail}</span>`;
             btn.disabled = false;
             btn.innerHTML = `<i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> Accedi`;
         }

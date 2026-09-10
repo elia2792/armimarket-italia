@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.legal import LEGAL_DISCLAIMER_ANNUNCIO, LEGAL_DISCLAIMER_FOOTER
+from app.core.rate_limit import rate_limit
 from app.models.annuncio import (
     Annuncio,
     ClassificazioneArma,
@@ -21,7 +22,7 @@ from app.models.poligono import PoligonoTiro
 from app.models.ricerca_salvata import RicercaSalvata
 from app.models.segnalazione import SegnalazioneAnnuncio
 from app.models.user import RuoloUtente, User
-from app.routers.auth import get_current_user
+from app.routers.auth import get_current_user, get_optional_current_user
 from app.schemas.annuncio_schema import (
     AnnuncioCreate,
     AnnuncioDetailOut,
@@ -117,7 +118,12 @@ async def get_map_geojson(
     )
 
 
-@router.post("", response_model=AnnuncioPublicOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=AnnuncioPublicOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit(max_requests=10, window_seconds=60, prefix="annunci_create"))]
+)
 async def create_annuncio(
     annuncio_in: AnnuncioCreate,
     current_user: User = Depends(get_current_user),
@@ -214,7 +220,7 @@ async def create_annuncio(
         condizione=annuncio_completo.condizione,
         comune_id=annuncio_completo.comune_id,
         galleria_immagini=annuncio_completo.galleria_immagini or [],
-        email_contatto=annuncio_completo.email_contatto,
+        email_contatto=annuncio_completo.email_contatto if annuncio_completo.tipologia_inserzionista == TipologiaInserzionista.ARMERIA else None,
         telefono_contatto=annuncio_completo.telefono_contatto if annuncio_completo.mostra_telefono_pubblico else None,
         visualizzazioni=annuncio_completo.visualizzazioni,
         data_creazione=annuncio_completo.data_creazione,
@@ -222,6 +228,7 @@ async def create_annuncio(
         comune=ComuneOut(
             id=annuncio_completo.comune.id,
             nome=annuncio_completo.comune.nome,
+            codice_istat=annuncio_completo.comune.codice_istat,
             cap=annuncio_completo.comune.cap,
             provincia_id=annuncio_completo.comune.provincia_id,
             latitudine=annuncio_completo.comune.latitudine,
@@ -233,9 +240,16 @@ async def create_annuncio(
 
 
 @router.get("/{id}", response_model=AnnuncioDetailOut)
-async def get_annuncio_detail(id: int, db: AsyncSession = Depends(get_db)):
+async def get_annuncio_detail(
+    id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
     """
     Restituisce la scheda completa di un annuncio:
+    - PUBBLICATO: visibile a tutti
+    - IN_MODERAZIONE: visibile solo al proprietario e allo staff (admin/moderatori)
+    - RIFIUTATO / SOSPESO: riservato a proprietario e staff; restituisce 404 a utenti non autorizzati.
     - Incrementa automaticamente il contatore delle visualizzazioni.
     - Fornisce coordinate per la visualizzazione sulla mappa (centrate sul comune a tutela della privacy per privati).
     - Espone i disclaimer T.U.L.P.S. obbligatori.
@@ -257,6 +271,16 @@ async def get_annuncio_detail(id: int, db: AsyncSession = Depends(get_db)):
             detail="Annuncio non trovato."
         )
 
+    # Controllo stato annuncio e autorizzazioni
+    if annuncio.stato != StatoAnnuncio.PUBBLICATO:
+        is_owner = current_user and current_user.id == annuncio.utente_id
+        is_staff = current_user and current_user.ruolo in [RuoloUtente.ADMIN, RuoloUtente.MODERATORE]
+        if not (is_owner or is_staff):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Annuncio non trovato."
+            )
+
     # Incremento visualizzazioni
     annuncio.visualizzazioni += 1
     await db.commit()
@@ -270,6 +294,7 @@ async def get_annuncio_detail(id: int, db: AsyncSession = Depends(get_db)):
         comune_out = ComuneOut(
             id=annuncio.comune.id,
             nome=annuncio.comune.nome,
+            codice_istat=annuncio.comune.codice_istat,
             cap=annuncio.comune.cap,
             provincia_id=annuncio.comune.provincia_id,
             latitudine=annuncio.comune.latitudine,
@@ -300,7 +325,7 @@ async def get_annuncio_detail(id: int, db: AsyncSession = Depends(get_db)):
         condizione=annuncio.condizione,
         comune_id=annuncio.comune_id,
         galleria_immagini=annuncio.galleria_immagini or [],
-        email_contatto=annuncio.email_contatto,
+        email_contatto=annuncio.email_contatto if annuncio.tipologia_inserzionista == TipologiaInserzionista.ARMERIA else None,
         telefono_contatto=annuncio.telefono_contatto if annuncio.mostra_telefono_pubblico else None,
         visualizzazioni=annuncio.visualizzazioni,
         data_creazione=annuncio.data_creazione,
@@ -312,7 +337,11 @@ async def get_annuncio_detail(id: int, db: AsyncSession = Depends(get_db)):
     )
 
 
-@router.post("/{id}/contatta", response_model=ContactFormResponse)
+@router.post(
+    "/{id}/contatta",
+    response_model=ContactFormResponse,
+    dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, prefix="annunci_contatta"))]
+)
 async def contact_advertiser(
     id: int,
     form_in: ContactFormRequest,
@@ -472,12 +501,34 @@ async def update_annuncio_stato(
             detail="Non hai i permessi per modificare questo annuncio."
         )
 
+    # Prevenzione bypass moderazione: solo admin/moderatori possono pubblicare o approvare direttamente
+    if current_user.ruolo not in [RuoloUtente.ADMIN, RuoloUtente.MODERATORE]:
+        if nuovo_stato == StatoAnnuncio.PUBBLICATO:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo l'amministratore o un moderatore autorizzato può approvare o pubblicare direttamente un annuncio."
+            )
+        if nuovo_stato == StatoAnnuncio.RIFIUTATO:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Non puoi contrassegnare l'annuncio come rifiutato."
+            )
+        if nuovo_stato not in [StatoAnnuncio.VENDUTO, StatoAnnuncio.ARCHIVIATO, StatoAnnuncio.IN_MODERAZIONE]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Transizione di stato a '{nuovo_stato.value}' non consentita per l'inserzionista."
+            )
+
     annuncio.stato = nuovo_stato
     await db.commit()
     return {"message": f"Stato annuncio aggiornato a '{nuovo_stato.value}'.", "id": id, "stato": nuovo_stato.value}
 
 
-@router.post("/{id}/segnala", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{id}/segnala",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, prefix="annunci_segnala"))]
+)
 async def segnala_annuncio(
     id: int,
     req: SegnalazioneCreate,
@@ -522,7 +573,11 @@ async def segnala_annuncio(
     }
 
 
-@router.post("/salva-ricerca", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/salva-ricerca",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit(max_requests=10, window_seconds=60, prefix="annunci_salva_ricerca"))]
+)
 async def save_search_alert(
     req: RicercaSalvataCreate,
     db: AsyncSession = Depends(get_db)

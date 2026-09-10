@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.legal import LEGAL_DISCLAIMER_ANNUNCIO, LEGAL_DISCLAIMER_FOOTER
+from app.core.security import decode_access_token
 from app.models.annuncio import (
     Annuncio,
     ClassificazioneArma,
@@ -19,6 +20,7 @@ from app.models.annuncio import (
     TipologiaInserzionista,
 )
 from app.models.geo import Comune, Provincia, Regione
+from app.models.user import RuoloUtente, User
 from app.services.search_service import SearchService
 from app.services.scraper.product_scraper import MultiArmeriaSearchScraper
 
@@ -197,6 +199,32 @@ async def ad_detail_view(id: int, request: Request, db: AsyncSession = Depends(g
 
     if not annuncio:
         raise HTTPException(status_code=404, detail="Annuncio non trovato.")
+
+    # Controllo stato annuncio e autenticazione (cookie, header, query param)
+    if annuncio.stato != StatoAnnuncio.PUBBLICATO:
+        token = None
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ", 1)[1].strip()
+        elif request.cookies.get("armimarket_token"):
+            token = request.cookies.get("armimarket_token")
+
+        current_user = None
+        if token:
+            payload = decode_access_token(token)
+            if payload and "sub" in payload:
+                try:
+                    u_id = int(payload["sub"])
+                    current_user = (
+                        await db.execute(select(User).where(User.id == u_id, User.is_active == True))
+                    ).scalar_one_or_none()
+                except (ValueError, TypeError):
+                    pass
+
+        is_owner = current_user and current_user.id == annuncio.utente_id
+        is_staff = current_user and current_user.ruolo in [RuoloUtente.ADMIN, RuoloUtente.MODERATORE]
+        if not (is_owner or is_staff):
+            raise HTTPException(status_code=404, detail="Annuncio non trovato.")
 
     # Incremento visualizzazioni
     annuncio.visualizzazioni += 1

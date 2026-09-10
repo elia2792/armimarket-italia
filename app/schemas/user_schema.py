@@ -1,7 +1,13 @@
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+import enum
 from app.models.user import RuoloUtente
+
+
+class RuoloRegistrazione(str, enum.Enum):
+    PRIVATO = "privato"
+    ARMERIA = "armeria"
 
 
 class UserBase(BaseModel):
@@ -13,7 +19,7 @@ class UserBase(BaseModel):
     partita_iva: Optional[str] = Field(None, max_length=20)
     codice_fiscale: Optional[str] = Field(None, min_length=16, max_length=16)
     licenza_tulps: Optional[str] = Field(None, max_length=100, description="Rif. Licenza T.U.L.P.S. Questura")
-    ruolo: RuoloUtente = RuoloUtente.PRIVATO
+    ruolo: RuoloRegistrazione = RuoloRegistrazione.PRIVATO
     telefono: Optional[str] = Field(None, max_length=30)
     comune_id: Optional[int] = Field(None, description="ID Comune di residenza o sede armeria")
     indirizzo: Optional[str] = Field(None, max_length=255, description="Indirizzo o via (sede per armerie)")
@@ -24,6 +30,10 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8, description="Password di almeno 8 caratteri")
+    ruolo: RuoloRegistrazione = Field(
+        default=RuoloRegistrazione.PRIVATO,
+        description="Ruolo di registrazione (consentiti solo 'privato' o 'armeria')"
+    )
 
 
 class UserUpdateProfile(BaseModel):

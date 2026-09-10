@@ -66,7 +66,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ request.scope.get('csp_nonce', '') }}">
     // Inizializzazione Mappa Leaflet centrata sull'Italia
     const map = L.map('armimarket-map', {
         center: [42.5, 12.5],

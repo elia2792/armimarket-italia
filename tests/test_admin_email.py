@@ -9,7 +9,8 @@ async def test_recupero_password_crea_email_log(client: AsyncClient, admin_token
     resp = await client.post("/api/v1/auth/forgot-password", json=req_data)
     assert resp.status_code == 200
     res_json = resp.json()
-    assert "inviato un'email" in res_json["message"] or "Richiesta registrata" in res_json["message"]
+    assert "istruzioni" in res_json["message"].lower()
+    assert res_json.get("reset_link") is None, "Nessun link di reset deve comparire nel JSON"
 
     # 2. Consultazione casella postale da parte dell admin
     resp_mail = await client.get("/api/v1/admin/email", headers=admin_token_headers)

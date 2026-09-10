@@ -1,7 +1,7 @@
 import re
 from typing import Any, Dict, List, Optional
-import xml.etree.ElementTree as ET
-import httpx
+import defusedxml.ElementTree as ET
+from app.core.network import safe_http_get
 from app.models.annuncio import (
     ClassificazioneArma,
     CondizioneArma,
@@ -16,14 +16,14 @@ class XmlFeedAdapter(BaseGunshopAdapter):
     """
 
     async def fetch_remote_xml(self, feed_url: str) -> str:
-        """Scarica il file XML da una URL remota."""
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-            resp = await client.get(
-                feed_url,
-                headers={"User-Agent": "ArmiMarket-XML-Sync/1.0"}
-            )
-            resp.raise_for_status()
-            return resp.text
+        """Scarica il file XML da una URL remota protetta da SSRF."""
+        resp = await safe_http_get(
+            feed_url,
+            headers={"User-Agent": "ArmiMarket-XML-Sync/1.0"},
+            timeout=30.0
+        )
+        resp.raise_for_status()
+        return resp.text
 
     def fetch_feed(self, source: Any) -> List[Dict[str, Any]]:
         """Parsa il testo XML ed estrae la lista di prodotti/items."""

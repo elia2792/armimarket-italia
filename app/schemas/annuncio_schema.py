@@ -101,7 +101,7 @@ class AnnuncioPublicOut(BaseModel):
     comune_id: int
     galleria_immagini: List[str]
     link_esterno: Optional[str] = Field(None, description="Link diretto alla scheda prodotto sul sito originale dell'armeria")
-    email_contatto: EmailStr
+    email_contatto: Optional[EmailStr] = Field(None, description="Email di contatto (omessa per venditori privati a tutela della privacy)")
     telefono_contatto: Optional[str] = None  # Popolato solo se mostra_telefono_pubblico è True
     visualizzazioni: int
     data_creazione: datetime

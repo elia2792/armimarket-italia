@@ -35,7 +35,7 @@ async def test_xml_feed_adapter_parsing():
 
 
 @pytest.mark.asyncio
-async def test_sync_file_endpoint(client: AsyncClient, db_session):
+async def test_sync_file_endpoint(client: AsyncClient, db_session, admin_token_headers):
     # Recupera l'armeria creata nella fixture
     stmt = select(User).where(User.ruolo == RuoloUtente.ARMERIA)
     res = await db_session.execute(stmt)
@@ -63,7 +63,13 @@ async def test_sync_file_endpoint(client: AsyncClient, db_session):
         "comune_id": "1"
     }
 
-    response = await client.post("/api/v1/ingestion/sync-file", data=data, files=files)
+    # Chiamata autenticata come admin
+    response = await client.post(
+        "/api/v1/ingestion/sync-file",
+        data=data,
+        files=files,
+        headers=admin_token_headers
+    )
     assert response.status_code == 200
     res_data = response.json()
     assert res_data["success"] is True

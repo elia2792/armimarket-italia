@@ -1,6 +1,6 @@
 import re
 from typing import Any, Dict, List, Optional
-import httpx
+from app.core.network import safe_http_get
 from app.models.annuncio import (
     ClassificazioneArma,
     CondizioneArma,
@@ -43,15 +43,15 @@ class WooCommerceLiveAdapter(BaseGunshopAdapter):
         if consumer_key and consumer_secret:
             auth = (consumer_key, consumer_secret)
 
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-            resp = await client.get(
-                endpoint,
-                params=params,
-                auth=auth,
-                headers={"User-Agent": "ArmiMarket-Sync-Bot/1.0 (+https://armimarket.it)"}
-            )
-            resp.raise_for_status()
-            return resp.json()
+        resp = await safe_http_get(
+            endpoint,
+            params=params,
+            auth=auth,
+            headers={"User-Agent": "ArmiMarket-Sync-Bot/1.0 (+https://armimarket.it)"},
+            timeout=30.0
+        )
+        resp.raise_for_status()
+        return resp.json()
 
     def fetch_feed(self, source: Any) -> List[Dict[str, Any]]:
         """Riceve la lista di prodotti grezza JSON restituita da WooCommerce."""

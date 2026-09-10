@@ -6,26 +6,43 @@ services:
     name: armimarket-italia
     runtime: docker
     dockerfilePath: ./Dockerfile
-    # Piano gratuito (si mette in pausa dopo 15 min di inattività)
-    plan: free
+    plan: starter      # Nota: i dischi persistenti (disk) richiedono piano Starter o superiore
     region: frankfurt   # Più vicino all'Italia
 
-    # Variabili d'ambiente (le sensitive le imposti dalla dashboard Render)
+    # Esegui migrazioni Alembic automaticamente prima di esporre la nuova versione del container
+    preDeployCommand: alembic upgrade head
+
+    # Storage persistente per upload avatar (protegge da perdita dati a ogni restart/deploy)
+    disk:
+      name: armimarket-avatars
+      mountPath: /data
+      sizeGB: 1
+
+    # Variabili d'ambiente dell'applicazione
     envVars:
       - key: ENVIRONMENT
         value: production
       - key: DEBUG
         value: "False"
-      - key: DATABASE_URL
-        value: "sqlite+aiosqlite:///./armimarket_prod.db"
+      - key: AVATAR_UPLOAD_DIR
+        value: "/data/uploads/avatars"
+      - key: BEHIND_TRUSTED_PROXY
+        value: "True"
       - key: UPLOAD_DIR
         value: "./app/static/uploads"
-      # Queste le imposti MANUALMENTE nella dashboard Render (sezione Environment):
+
+      # Da impostare o generare su Render Dashboard:
       - key: SECRET_KEY
-        generateValue: true        # Render genera una chiave casuale automaticamente
+        generateValue: true        # Render genera una chiave casuale sicura a 256-bit
+      - key: DATABASE_URL
+        sync: false                # Inserire la connection string PostgreSQL/Neon (postgresql+asyncpg://...)
       - key: FIRST_SUPERUSER_EMAIL
-        sync: false                # Da impostare manualmente
+        sync: false                # Es: admin@armimarket.it
       - key: FIRST_SUPERUSER_PASSWORD
-        sync: false                # Da impostare manualmente
+        sync: false                # Password complessa (min 12 caratteri, diversa da dev)
       - key: BASE_URL
         sync: false                # Es: https://armimarket-italia.onrender.com
+      - key: ALLOWED_ORIGINS
+        sync: false                # Es: ["https://armimarket-italia.onrender.com"]
+      - key: REDIS_URL
+        sync: false                # Es: rediss://default:...@upstash.io:6379 (opzionale ma consigliato)

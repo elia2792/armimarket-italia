@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import smtplib
 from email.header import Header
 from email.mime.multipart import MIMEMultipart
@@ -9,17 +10,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.models.email_log import EmailLog, TipologiaEmail
 
+logger = logging.getLogger("app.services.email_service")
+
 
 class EmailService:
     @staticmethod
     def _send_smtp_email_sync(to_email: str, subject: str, html_body: str, text_body: str) -> Tuple[bool, Optional[str]]:
         """Invia email tramite SMTP standard sincrono. Ritorna (successo, eventuale_errore)."""
         if not settings.SMTP_HOST:
-            # SMTP non configurato: registriamo nei log di console
-            print(f"--- [EMAIL SERVICE: SMTP non configurato] Destinatario: {to_email} ---")
-            print(f"Oggetto: {subject}")
-            print(f"Corpo del messaggio:\n{text_body}")
-            print("----------------------------------------------------------------------")
+            # SMTP non configurato: registriamo solo metadati non sensibili senza esporre token o corpi email nei log
+            logger.info("Notifica email registrata localmente (No-SMTP attivo)")
             return False, "SMTP_HOST non configurato nel file .env (Email registrata nella Webmail locale)"
 
         msg = MIMEMultipart("alternative")
@@ -39,11 +39,11 @@ class EmailService:
                 if settings.SMTP_USER and settings.SMTP_PASSWORD:
                     server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
                 server.sendmail(settings.EMAILS_FROM_EMAIL, [to_email], msg.as_string())
-            print(f"[EMAIL SERVICE] Email inviata con successo via SMTP a: {to_email}")
+            logger.info("Email inviata con successo via SMTP.")
             return True, None
         except Exception as e:
             err_msg = str(e)
-            print(f"[EMAIL SERVICE ERROR] Impossibile inviare email via SMTP a {to_email}: {err_msg}")
+            logger.error(f"Impossibile inviare email via SMTP: {err_msg}")
             return False, err_msg
 
     @classmethod

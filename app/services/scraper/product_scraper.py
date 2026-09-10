@@ -12,8 +12,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-
 from app.core.legal import BANNED_KEYWORDS
+from app.core.network import safe_http_get, validate_url_safe
 from app.models.annuncio import (
     Annuncio,
     ClassificazioneArma,
@@ -58,15 +58,15 @@ class UniversalArmeriaScraper:
         - Link diretto originale all'armeria
         - Marca, calibro, categoria normalizzati
         """
-        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True, headers=cls.HEADERS) as client:
-            try:
-                resp = await client.get(product_url)
-                if resp.status_code != 200:
-                    logger.warning(f"Pagina non raggiungibile ({resp.status_code}): {product_url}")
-                    return None
-            except Exception as e:
-                logger.error(f"Errore connessione a {product_url}: {e}")
+        try:
+            safe_url = validate_url_safe(product_url)
+            resp = await safe_http_get(safe_url, headers=cls.HEADERS, timeout=20.0)
+            if resp.status_code != 200:
+                logger.warning(f"Pagina non raggiungibile ({resp.status_code}): {safe_url}")
                 return None
+        except Exception as e:
+            logger.error(f"Errore connessione sicura a {product_url}: {e}")
+            return None
 
         html = resp.text
         soup = BeautifulSoup(html, "html.parser")
@@ -261,22 +261,22 @@ class UniversalArmeriaScraper:
         """
         Esplora una pagina di categoria/catalogo di un'armeria ed estrae i link alle singole schede prodotto.
         """
-        async with httpx.AsyncClient(timeout=25.0, follow_redirects=True, headers=cls.HEADERS) as client:
-            try:
-                resp = await client.get(catalog_url)
-                if resp.status_code != 200:
-                    return []
-            except Exception as e:
-                logger.error(f"Errore esplorazione catalogo {catalog_url}: {e}")
+        try:
+            safe_catalog_url = validate_url_safe(catalog_url)
+            resp = await safe_http_get(safe_catalog_url, headers=cls.HEADERS, timeout=25.0)
+            if resp.status_code != 200:
                 return []
+        except Exception as e:
+            logger.error(f"Errore esplorazione catalogo {catalog_url}: {e}")
+            return []
 
         soup = BeautifulSoup(resp.text, "html.parser")
-        parsed_domain = urlparse(catalog_url).netloc
+        parsed_domain = urlparse(safe_catalog_url).netloc
         found_links: Set[str] = set()
 
         for a in soup.find_all("a", href=True):
             href = a["href"].strip()
-            full_url = urljoin(catalog_url, href)
+            full_url = urljoin(safe_catalog_url, href)
             p = urlparse(full_url)
             # Solo link dello stesso dominio
             if p.netloc != parsed_domain:
@@ -288,7 +288,11 @@ class UniversalArmeriaScraper:
                 # Esclude pagine di amministrazione, carrelli o categorie
                 if not any(skip in path for skip in ["cart", "carrello", "checkout", "login", "account", "tag", "category", "categoria", "collections/page"]):
                     clean_url = full_url.split("#")[0]
-                    found_links.add(clean_url)
+                    try:
+                        safe_prod_url = validate_url_safe(clean_url)
+                        found_links.add(safe_prod_url)
+                    except ValueError:
+                        continue
                     if len(found_links) >= max_links:
                         break
 
@@ -486,6 +490,9 @@ class MultiArmeriaSearchScraper:
                 # Risolvi comune sede armeria per coordinate geografiche
                 stmt_comune = select(Comune).where(Comune.nome.ilike(f"%{armeria_cfg['citta']}%"))
                 comune = (await db.execute(stmt_comune)).scalars().first()
+                if not comune:
+                    stmt_comune = select(Comune).order_by(Comune.id.asc()).limit(1)
+                    comune = (await db.execute(stmt_comune)).scalars().first()
                 comune_id = comune.id if comune else 1
 
                 # Ricerca remota dei link prodotto

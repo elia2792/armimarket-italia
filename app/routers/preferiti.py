@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
-from app.models.annuncio import Annuncio, StatoAnnuncio
+from app.models.annuncio import Annuncio, StatoAnnuncio, TipologiaInserzionista
 from app.models.geo import Comune, Provincia
 from app.models.preferito import Preferito
 from app.models.user import User
@@ -66,7 +66,7 @@ async def list_preferiti(
                 comune_id=a.comune_id,
                 galleria_immagini=a.galleria_immagini or [],
                 link_esterno=a.link_esterno,
-                email_contatto=a.email_contatto,
+                email_contatto=a.email_contatto if a.tipologia_inserzionista == TipologiaInserzionista.ARMERIA else None,
                 telefono_contatto=a.telefono_contatto if a.mostra_telefono_pubblico else None,
                 visualizzazioni=a.visualizzazioni,
                 data_creazione=a.data_creazione,

@@ -21,10 +21,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Codice sorgente
 COPY . .
 
-# Cartella uploads locale (fallback se il volume non è montato)
-RUN mkdir -p app/static/uploads/avatars /data/uploads/avatars
+# Cartelle uploads locale e persistente con permessi per utente non privilegiato
+RUN mkdir -p app/static/uploads/avatars /data/uploads/avatars && \
+    groupadd -g 1001 appgroup && \
+    useradd -u 1001 -g appgroup -s /bin/bash -m appuser && \
+    chown -R appuser:appgroup /app /data/uploads
+
+USER appuser
 
 EXPOSE 8000
 
-# Avvio — porta letta da $PORT (Fly la imposta automaticamente)
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Avvio con utente non-root e soppressione dell'header Server Uvicorn
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --no-server-header

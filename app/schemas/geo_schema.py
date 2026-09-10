@@ -24,6 +24,7 @@ class ComuneOut(BaseModel):
 
     id: int
     nome: str
+    codice_istat: Optional[str] = None
     cap: str
     provincia_id: int
     latitudine: float

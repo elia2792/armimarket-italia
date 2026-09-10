@@ -36,6 +36,7 @@ async def list_comuni(
         ComuneOut(
             id=c.id,
             nome=c.nome,
+            codice_istat=c.codice_istat,
             cap=c.cap,
             provincia_id=c.provincia_id,
             latitudine=c.latitudine,

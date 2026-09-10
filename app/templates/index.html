@@ -303,7 +303,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ request.scope.get('csp_nonce', '') }}">
 let userFavIds = new Set();
 const token = localStorage.getItem("armimarket_token");
 
@@ -361,12 +361,14 @@ async function handleSalvaRicercaSubmit(e) {
         statusDiv.classList.remove("hidden");
 
         if (resp.ok) {
-            statusDiv.className = "p-3 bg-emerald-950 border border-emerald-700 text-emerald-300 rounded-lg text-xs leading-relaxed";
-            statusDiv.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> ${data.message}`;
-            setTimeout(() => { closeSalvaRicercaModal(); }, 3000);
+            statusDiv.className = "text-xs font-bold text-emerald-400";
+            const safeMsg = window.escapeHtml ? window.escapeHtml(data.message) : data.message;
+            statusDiv.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> ${safeMsg}`;
+            setTimeout(() => { modal.classList.add("hidden"); }, 2000);
         } else {
-            statusDiv.className = "p-3 bg-rose-950 border border-rose-700 text-rose-300 rounded-lg text-xs leading-relaxed";
-            statusDiv.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${data.detail || "Errore durante il salvataggio."}`;
+            statusDiv.className = "text-xs font-bold text-rose-400";
+            const safeDetail = window.escapeHtml ? window.escapeHtml(data.detail || "Errore durante il salvataggio.") : (data.detail || "Errore durante il salvataggio.");
+            statusDiv.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${safeDetail}`;
         }
     } catch(err) {
         statusDiv.classList.remove("hidden");

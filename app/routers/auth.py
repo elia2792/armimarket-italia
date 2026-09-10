@@ -1,10 +1,12 @@
-from datetime import timedelta
+import io
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import shutil
 import uuid
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Security, UploadFile, File, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from PIL import Image, UnidentifiedImageError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,12 +14,12 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import (
     create_access_token,
-    create_password_reset_token,
     decode_access_token,
     hash_password,
     verify_password,
-    verify_password_reset_token,
 )
+from app.core.rate_limit import rate_limit
+from app.models.password_reset import PasswordResetToken
 from app.models.user import RuoloUtente, User
 from app.services.email_service import EmailService
 from app.schemas.user_schema import (
@@ -58,7 +60,14 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user_id = int(payload["sub"])
+    try:
+        user_id = int(payload["sub"])
+    except (ValueError, TypeError, KeyError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token non valido o identificativo utente non valido.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     stmt = select(User).where(User.id == user_id)
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
@@ -89,7 +98,47 @@ async def get_current_moderator(
     return current_user
 
 
-@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+async def get_current_admin(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """Dipendenza che richiede ruolo ADMIN."""
+    if current_user.ruolo != RuoloUtente.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Operazione riservata esclusivamente agli amministratori."
+        )
+    return current_user
+
+
+async def get_optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(security_scheme),
+    db: AsyncSession = Depends(get_db)
+) -> Optional[User]:
+    """Restituisce l'utente autenticato se presente un Bearer token valido, altrimenti None."""
+    if not credentials:
+        return None
+    try:
+        token = credentials.credentials
+        payload = decode_access_token(token)
+        if not payload or "sub" not in payload:
+            return None
+        user_id = int(payload["sub"])
+        stmt = select(User).where(User.id == user_id)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+        if user and user.is_active:
+            return user
+        return None
+    except Exception:
+        return None
+
+
+@router.post(
+    "/register",
+    response_model=UserOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit(max_requests=3, window_seconds=60, prefix="auth_register"))]
+)
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     """Registrazione di un nuovo privato o armeria autorizzata."""
     stmt = select(User).where(User.email == user_in.email.lower())
@@ -110,6 +159,16 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
                 detail=f"Il nickname '{clean_nick}' è già utilizzato. Scegline un altro."
             )
 
+    # Defense in depth: accetta esclusivamente ruoli non privilegiati (privato o armeria)
+    requested_ruolo_str = str(getattr(user_in.ruolo, "value", user_in.ruolo)).lower()
+    if requested_ruolo_str in ("admin", "moderatore"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Non è consentito registrarsi con ruoli amministrativi o di moderazione."
+        )
+
+    assigned_ruolo = RuoloUtente.ARMERIA if requested_ruolo_str == "armeria" else RuoloUtente.PRIVATO
+
     new_user = User(
         email=user_in.email.lower(),
         hashed_password=hash_password(user_in.password),
@@ -120,7 +179,7 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         partita_iva=user_in.partita_iva,
         codice_fiscale=user_in.codice_fiscale.upper() if user_in.codice_fiscale else None,
         licenza_tulps=user_in.licenza_tulps,
-        ruolo=user_in.ruolo,
+        ruolo=assigned_ruolo,
         telefono=user_in.telefono,
         comune_id=user_in.comune_id,
         indirizzo=user_in.indirizzo,
@@ -146,7 +205,11 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     return new_user
 
 
-@router.post("/login", response_model=Token)
+@router.post(
+    "/login",
+    response_model=Token,
+    dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, prefix="auth_login"))]
+)
 async def login(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
     """Autenticazione con rilascio token JWT."""
     stmt = select(User).where(User.email == credentials.email.lower())
@@ -211,79 +274,95 @@ async def update_profile(
     return current_user
 
 
-@router.post("/forgot-password", response_model=PasswordResetResponse)
+@router.post(
+    "/forgot-password",
+    response_model=PasswordResetResponse,
+    dependencies=[Depends(rate_limit(max_requests=3, window_seconds=60, prefix="auth_forgot"))]
+)
 async def forgot_password(req: PasswordResetRequest, db: AsyncSession = Depends(get_db)):
     """
-    Richiesta di recupero password:
-    - Verifica che l'email esista nel database.
-    - Genera un token temporaneo crittografato e univoco con validità di 30 minuti.
-    - Restituisce il messaggio di conferma e il link di ripristino sicuro (utilizzato dal frontend e per invio email).
+    Richiesta di recupero password anti-enumeration:
+    - Restituisce la medesima risposta generica sia per email esistenti che inesistenti (OWASP ASVS).
+    - Non espone MAI token o reset_link nella risposta JSON o nei log.
+    - Se l'account esiste ed è attivo, genera un token crittografico monouso ad alta entropia
+      salvando l'hash SHA-256 nel database con validità di 30 minuti.
     """
     clean_email = req.email.lower().strip()
     stmt = select(User).where(User.email == clean_email)
     user = (await db.execute(stmt)).scalar_one_or_none()
 
-    if not user:
-        # Per sicurezza (anti user-enumeration) restituiamo un messaggio neutro o 404 controllato
-        # In questo caso, per chiarezza all'utente segnaliamo se l'indirizzo non è registrato:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nessun account registrato trovato con questo indirizzo email."
+    if user and user.is_active:
+        # Genera token crittografico monouso (URL-safe ad alta entropia) e relativo hash SHA-256
+        raw_token, token_hash = PasswordResetToken.generate_token()
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+
+        reset_entry = PasswordResetToken(
+            user_id=user.id,
+            token_hash=token_hash,
+            expires_at=expires_at,
+            used=False
         )
+        db.add(reset_entry)
+        await db.commit()
 
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="L'account associato a questa email risulta disattivato."
-        )
+        reset_url = f"/reimposta-password?token={raw_token}"
+        # Invia l'email sicura (o memorizza nel log della casella interna se SMTP non configurato)
+        await EmailService.send_password_reset_email(clean_email, reset_url, db=db)
 
-    # Genera token crittografico di reset
-    reset_token = create_password_reset_token(clean_email)
-    reset_url = f"/reimposta-password?token={reset_token}"
-
-    # Invio effettivo email tramite servizio email e persistenza su log casella postale
-    email_sent = await EmailService.send_password_reset_email(clean_email, reset_url, db=db)
-
-    msg = f"Ti abbiamo inviato un'email all'indirizzo {clean_email} con il link per reimpostare la tua password."
-    if not email_sent and not settings.SMTP_HOST:
-        msg = f"Richiesta registrata per {clean_email}. (SMTP di posta in uscita non configurato nel file .env: il link di ripristino è disponibile per il test)."
-
+    # Risposta generica sempre identica: nessun token o link restituito nel JSON
     return PasswordResetResponse(
-        message=msg,
-        reset_link=reset_url if (settings.DEBUG or not settings.SMTP_HOST) else None
+        message="Se l'indirizzo email fornito è associato a un account attivo, riceverai a breve le istruzioni per reimpostare la tua password.",
+        reset_link=None
     )
 
 
-@router.post("/reset-password")
+@router.post(
+    "/reset-password",
+    dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, prefix="auth_reset"))]
+)
 async def reset_password(req: PasswordResetConfirm, db: AsyncSession = Depends(get_db)):
     """
-    Reimpostazione della password tramite token:
-    - Valida la firma crittografica e la scadenza del token di reset.
-    - Aggiorna la password dell'utente calcolando un nuovo hash bcrypt sicuro.
+    Reimpostazione della password tramite token monouso:
+    - Verifica l'hash SHA-256 del token crittografico.
+    - Verifica che il token non sia scaduto e non sia già stato utilizzato.
+    - Aggiorna la password con hash bcrypt e marca immediatamente il token come utilizzato.
     """
-    email = verify_password_reset_token(req.token)
-    if not email:
+    token_hash = PasswordResetToken.hash_token(req.token)
+    now = datetime.now(timezone.utc)
+
+    stmt = select(PasswordResetToken).where(
+        PasswordResetToken.token_hash == token_hash,
+        PasswordResetToken.used.is_(False),
+        PasswordResetToken.expires_at > now
+    )
+    reset_entry = (await db.execute(stmt)).scalar_one_or_none()
+
+    if not reset_entry:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Il link di recupero password è non valido o è scaduto. Richiedine uno nuovo."
         )
 
-    stmt = select(User).where(User.email == email.lower().strip())
-    user = (await db.execute(stmt)).scalar_one_or_none()
-
-    if not user:
+    user = (await db.execute(select(User).where(User.id == reset_entry.user_id))).scalar_one_or_none()
+    if not user or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Utente associato al token non trovato."
+            detail="Utente associato al token non trovato o account non attivo."
         )
 
+    # Aggiorna password
     user.hashed_password = hash_password(req.nuova_password)
+    # Invalida immediatamente il token (monouso)
+    reset_entry.used = True
     await db.commit()
 
     return {"message": "Password reimpostata con successo! Ora puoi effettuare l'accesso con la nuova password."}
 
 
-@router.post("/contatta-admin")
+@router.post(
+    "/contatta-admin",
+    dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, prefix="auth_contatta"))]
+)
 async def contatta_admin(req: ContactAdminRequest, db: AsyncSession = Depends(get_db)):
     """
     Consente a chiunque (iscritti o visitatori) di inviare un messaggio diretto all'amministratore (Admin).
@@ -335,58 +414,149 @@ async def contatta_admin(req: ContactAdminRequest, db: AsyncSession = Depends(ge
     }
 
 
-# ──────────────────────────────────────────────────────────────
-# UPLOAD FOTO PROFILO
-# ──────────────────────────────────────────────────────────────
+def validate_image_magic_bytes(data: bytes) -> str:
+    """
+    Verifica i magic bytes effettivi del file:
+    - JPEG: \\xFF\\xD8\\xFF
+    - PNG:  \\x89PNG\\r\\n\\x1a\\n
+    - WebP: RIFF....WEBP
+    Rifiuta categoricamente SVG, file HTML, script PHP o JavaScript mascherati.
+    """
+    if len(data) < 12:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File immagine troppo piccolo o incompleto."
+        )
 
-AVATAR_DIR = Path(__file__).resolve().parent.parent / "static" / "uploads" / "avatars"
-ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
+    prefix_lower = data[:256].lower()
+    if (
+        b"<?xml" in prefix_lower
+        or b"<svg" in prefix_lower
+        or b"<!doctype" in prefix_lower
+        or b"<html" in prefix_lower
+        or b"<script" in prefix_lower
+        or b"<?php" in prefix_lower
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Formato non consentito: file SVG, HTML, script o contenuti attivi sono vietati."
+        )
+
+    if data[:3] == b"\xff\xd8\xff":
+        return "JPEG"
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "PNG"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "WEBP"
+
+    raise HTTPException(
+        status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        detail="Formato non supportato. Sono accettati solo file JPG/JPEG, PNG o WebP autentici."
+    )
+
+
 MAX_AVATAR_BYTES = 3 * 1024 * 1024  # 3 MB
 
 
-@router.post("/me/foto", response_model=UserOut, summary="Carica Foto Profilo")
+def get_avatar_dir() -> Path:
+    """Restituisce la directory di salvataggio avatar (supporta persistent disk Render)."""
+    if settings.AVATAR_UPLOAD_DIR:
+        return Path(settings.AVATAR_UPLOAD_DIR).resolve()
+    return (Path(__file__).resolve().parents[1] / "static" / "uploads" / "avatars").resolve()
+
+
+@router.post(
+    "/me/foto",
+    response_model=UserOut,
+    summary="Carica Foto Profilo",
+    dependencies=[Depends(rate_limit(max_requests=5, window_seconds=60, prefix="auth_avatar"))]
+)
 async def upload_foto_profilo(
     file: UploadFile = File(..., description="Immagine JPG, PNG o WebP (max 3 MB)"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Carica o sostituisce la foto profilo dell'utente autenticato.
-    Accetta JPG, PNG e WebP fino a 3 MB. La foto viene servita
-    come file statico all'URL /static/uploads/avatars/<filename>.
+    Carica, valida e normalizza la foto profilo dell'utente autenticato:
+    - Dimensione massima: 3 MB lato server.
+    - Validazione magic bytes effettivi (blocco SVG, HTML, script).
+    - Normalizzazione e ricodifica dell'immagine con Pillow (eliminazione EXIF e payload nascosti).
+    - Nome file e percorso generati esclusivamente lato server (prevenzione path traversal).
     """
-    if file.content_type not in ALLOWED_TYPES:
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Formato non supportato. Usa JPG, PNG o WebP.",
-        )
-
-    # Leggi il contenuto e controlla la dimensione
+    # 1. Lettura buffer e verifica dimensione
     contents = await file.read()
     if len(contents) > MAX_AVATAR_BYTES:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="L'immagine supera la dimensione massima consentita di 3 MB.",
         )
 
-    # Genera nome univoco per evitare collisioni
-    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else "jpg"
-    filename = f"{current_user.id}_{uuid.uuid4().hex}.{ext}"
-    AVATAR_DIR.mkdir(parents=True, exist_ok=True)
-    dest = AVATAR_DIR / filename
+    # 2. Verifica magic bytes
+    detected_format = validate_image_magic_bytes(contents)
 
-    # Scrivi su disco
+    # 3. Verifica strutturale con Pillow e ricodifica sicura
+    try:
+        # Verifica integrità iniziale
+        with Image.open(io.BytesIO(contents)) as img_check:
+            img_check.verify()
+
+        # Riapertura per sanitizzazione/ricodifica (verify invalida il puntatore)
+        with Image.open(io.BytesIO(contents)) as img:
+            real_format = (img.format or detected_format).upper()
+            if real_format not in ("JPEG", "PNG", "WEBP"):
+                raise HTTPException(
+                    status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                    detail="Formato immagine non supportato (consentiti solo JPEG, PNG, WebP)."
+                )
+
+            ext_map = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}
+            safe_ext = ext_map.get(real_format, "jpg")
+
+            # Ricodifica in nuovo buffer pulito rimuovendo tutti i metadati EXIF
+            output_buffer = io.BytesIO()
+            if real_format == "JPEG":
+                if img.mode in ("RGBA", "LA", "P"):
+                    img = img.convert("RGB")
+                img.save(output_buffer, format="JPEG", quality=85, optimize=True)
+            elif real_format == "PNG":
+                img.save(output_buffer, format="PNG", optimize=True)
+            elif real_format == "WEBP":
+                img.save(output_buffer, format="WEBP", quality=85)
+
+            reencoded_bytes = output_buffer.getvalue()
+
+    except HTTPException:
+        raise
+    except (UnidentifiedImageError, OSError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Il file caricato non è un'immagine valida o risulta corrotto."
+        )
+
+    # 4. Generazione nome univoco e path server-side protetto (il filename del client è scartato)
+    filename = f"avatar_{current_user.id}_{uuid.uuid4().hex}.{safe_ext}"
+    avatar_dir = get_avatar_dir()
+    avatar_dir.mkdir(parents=True, exist_ok=True)
+    dest = (avatar_dir / filename).resolve()
+
+    if not dest.is_relative_to(avatar_dir):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Percorso di destinazione non valido."
+        )
+
+    # 5. Scrittura sicura su disco
     with dest.open("wb") as f:
-        f.write(contents)
+        f.write(reencoded_bytes)
 
-    # Rimuovi vecchia foto se esisteva
+    # 6. Rimozione eventuale avatar precedente se risiede nella cartella avatar
     if current_user.foto_profilo:
-        old_name = current_user.foto_profilo.split("/")[-1]
-        old_path = AVATAR_DIR / old_name
-        if old_path.exists():
+        old_name = Path(current_user.foto_profilo).name
+        old_path = (avatar_dir / old_name).resolve()
+        if old_path.is_relative_to(avatar_dir) and old_path.exists():
             old_path.unlink(missing_ok=True)
 
-    # Aggiorna DB
+    # 7. Aggiornamento record utente
     current_user.foto_profilo = f"/static/uploads/avatars/{filename}"
     await db.commit()
     await db.refresh(current_user)
