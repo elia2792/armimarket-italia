@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 
 from app.core.config import settings
-from app.core.database import Base, async_session_factory, engine
+from app.core.database import Base, async_session_factory, engine, is_sqlite
 from app.core.security import hash_password
 from app.models.poligono import PoligonoTiro, TipologiaPoligono
 from app.models.user import RuoloUtente, User
@@ -147,14 +147,15 @@ async def lifespan(app: FastAPI):
     """Lifecycle manager: inizializzazione schema tabelle, admin, poligoni e task orario scraping."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        # Micro-migrazione: aggiunge colonne nuove su DB esistenti (SQLite non ha IF NOT EXISTS su ADD COLUMN)
-        for migration_sql in [
-            "ALTER TABLE utenti ADD COLUMN foto_profilo VARCHAR(512)",
-        ]:
-            try:
-                await conn.execute(__import__("sqlalchemy").text(migration_sql))
-            except Exception:
-                pass  # Colonna già esistente – ignora
+        # Micro-migrazione per SQLite (Postgres crea già le colonne da Base.metadata.create_all)
+        if is_sqlite:
+            for migration_sql in [
+                "ALTER TABLE utenti ADD COLUMN foto_profilo VARCHAR(512)",
+            ]:
+                try:
+                    await conn.execute(__import__("sqlalchemy").text(migration_sql))
+                except Exception:
+                    pass  # Colonna già esistente – ignora
 
     # Inizializza superuser amministratore e poligoni se assenti
     async with async_session_factory() as session:
