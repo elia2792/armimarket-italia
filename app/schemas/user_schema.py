@@ -1,8 +1,14 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 import enum
 from app.models.user import RuoloUtente
+from app.core.validators import (
+    validate_partita_iva,
+    normalize_partita_iva,
+    validate_codice_fiscale,
+    normalize_codice_fiscale,
+)
 
 
 class RuoloRegistrazione(str, enum.Enum):
@@ -22,7 +28,7 @@ class UserBase(BaseModel):
     ruolo: RuoloRegistrazione = RuoloRegistrazione.PRIVATO
     telefono: Optional[str] = Field(None, max_length=30)
     comune_id: Optional[int] = Field(None, description="ID Comune di residenza o sede armeria")
-    indirizzo: Optional[str] = Field(None, max_length=255, description="Indirizzo o via (sede per armerie)")
+    indirizzo: Optional[str] = Field(None, max_length=255, description="Indirizzo o via (facoltativo)")
     sito_web: Optional[str] = Field(None, max_length=255, description="Sito internet ufficiale dell'armeria")
     latitudine: Optional[str] = Field(None, max_length=30)
     longitudine: Optional[str] = Field(None, max_length=30)
@@ -34,6 +40,27 @@ class UserCreate(UserBase):
         default=RuoloRegistrazione.PRIVATO,
         description="Ruolo di registrazione (consentiti solo 'privato' o 'armeria')"
     )
+
+    @model_validator(mode="after")
+    def validate_anagrafica_ruolo(self):
+        ruolo_val = getattr(self.ruolo, "value", self.ruolo)
+        if ruolo_val == "armeria":
+            clean_piva = normalize_partita_iva(self.partita_iva)
+            if not clean_piva:
+                raise ValueError("La Partita IVA è obbligatoria per gli utenti di tipo armeria.")
+            if not validate_partita_iva(clean_piva):
+                raise ValueError("La Partita IVA inserita non è formalmente valida (deve essere composta da 11 cifre con codice di controllo valido).")
+            self.partita_iva = clean_piva
+            self.codice_fiscale = None  # Il codice fiscale non si applica per le armerie
+        else:
+            if self.codice_fiscale:
+                clean_cf = normalize_codice_fiscale(self.codice_fiscale)
+                if not validate_codice_fiscale(clean_cf):
+                    raise ValueError("Il Codice Fiscale inserito non è formalmente valido.")
+                self.codice_fiscale = clean_cf
+        if self.indirizzo:
+            self.indirizzo = self.indirizzo.strip() or None
+        return self
 
 
 class UserUpdateProfile(BaseModel):
@@ -56,6 +83,8 @@ class UserOut(BaseModel):
     nome: str
     cognome: Optional[str] = None
     ragione_sociale: Optional[str] = None
+    partita_iva: Optional[str] = None
+    codice_fiscale: Optional[str] = None
     sito_web: Optional[str] = None
     foto_profilo: Optional[str] = None
     ruolo: RuoloUtente

@@ -15,59 +15,59 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+<body class="theme-light bg-[#F7F5EF] text-[#252821] min-h-screen flex flex-col font-sans">
 
     <!-- Header / Navbar ─────────────────────────────────── -->
-    <header class="sticky top-0 z-50 shadow-2xl shadow-black/60" style="border-bottom:2px solid var(--olive)">
+    <header class="sticky top-0 z-50 shadow-sm bg-white" style="border-bottom:2px solid var(--olive)">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <a href="/" class="flex items-center space-x-3 group">
                 <!-- Logo tattico -->
                 <div class="relative w-11 h-11 flex-shrink-0">
-                    <div class="w-11 h-11 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-xl"
-                         style="background:linear-gradient(135deg,#2e3a18 0%,#4a5c2a 100%);border:1.5px solid #6b7d3e;">
-                        <i class="fa-solid fa-crosshairs" style="color:#c8a96e;filter:drop-shadow(0 0 4px rgba(200,169,110,.5))"></i>
+                    <div class="w-11 h-11 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow"
+                         style="background:linear-gradient(135deg,#4F5A30 0%,#68733F 100%);border:1.5px solid #7E8C4E;">
+                        <i class="fa-solid fa-crosshairs" style="color:#F7F3EA;filter:drop-shadow(0 0 3px rgba(0,0,0,.3))"></i>
                     </div>
                     <!-- Angolo tattico -->
-                    <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 border-b-2 border-r-2" style="border-color:#6b7d3e;"></div>
+                    <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 border-b-2 border-r-2" style="border-color:#68733F;"></div>
                 </div>
                 <div class="leading-tight">
-                    <span class="mil-brand text-[22px] font-bold tracking-wider text-white group-hover:text-stone-100 transition-colors"
-                          style="text-shadow:0 1px 12px rgba(200,169,110,.35);letter-spacing:.06em">
-                        ARMI<span style="color:#c8a96e">MARKET</span> <span style="color:#e2d9c8">ITALIA</span>
+                    <span class="mil-brand text-[22px] font-bold tracking-wider text-[#252821] group-hover:text-[#4F5A30] transition-colors"
+                          style="letter-spacing:.06em">
+                        ARMI<span style="color:#B59A68">MARKET</span> <span style="color:#68733F">ITALIA</span>
                     </span>
                     <span class="block text-[8.5px] uppercase font-mono mt-0.5 tracking-widest"
-                          style="color:#5a7030;letter-spacing:.22em">
+                          style="color:#4F5A30;letter-spacing:.22em">
                         ⬛ IL MERCATO DELLE ARMI LECITE D'ITALIA
                     </span>
                 </div>
             </a>
 
             <nav class="flex items-center space-x-3 sm:space-x-4 text-sm font-medium">
-                <a href="/" class="hover:text-stone-200 transition-colors flex items-center space-x-1.5 text-stone-400 text-xs uppercase tracking-wide font-semibold">
+                <a href="/" class="hover:text-[#4F5A30] transition-colors flex items-center space-x-1.5 text-[#4A4E44] text-xs uppercase tracking-wide font-semibold">
                     <i class="fa-solid fa-crosshairs text-[11px]"></i>
                     <span class="hidden md:inline">Bacheca</span>
                 </a>
-                <a href="/mappa" class="flex items-center space-x-1.5 text-xs uppercase tracking-wide font-semibold transition-colors hover:text-stone-200"
-                   style="color:#c8a96e;">
+                <a href="/mappa" class="flex items-center space-x-1.5 text-xs uppercase tracking-wide font-semibold transition-colors hover:text-[#4F5A30]"
+                   style="color:#8C734B;">
                     <i class="fa-solid fa-map-location-dot text-[11px]"></i>
                     <span class="hidden md:inline">Mappa</span>
                 </a>
 
                 <!-- Autenticazione -->
                 <div id="navAuthLinks" class="flex items-center space-x-2 pl-3"
-                     style="border-left:1px solid #2e3a18">
-                    <a href="/login" class="text-xs text-stone-400 hover:text-white px-2.5 py-1.5 rounded transition-colors uppercase tracking-wide">
+                     style="border-left:1px solid #DDD9CD">
+                    <a href="/login" class="text-xs text-[#4A4E44] hover:text-[#252821] px-2.5 py-1.5 rounded transition-colors uppercase tracking-wide font-semibold">
                         Accedi
                     </a>
                     <a href="/registrati" class="text-xs px-3 py-1.5 rounded-lg font-bold transition-all uppercase tracking-wide"
-                       style="background:#1e2418;border:1px solid #4a5c2a;color:#c8a96e;">
+                       style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
                         Registrati
                     </a>
                 </div>
 
                 <!-- Inserisci Annuncio ─ Stile Militare -->
                 <a href="/nuovo-annuncio"
-                   class="btn-tactical font-black px-3.5 py-1.5 rounded-lg text-xs shadow-lg transition-all flex items-center space-x-1.5 uppercase tracking-wide">
+                   class="btn-tactical font-black px-3.5 py-1.5 rounded-lg text-xs shadow transition-all flex items-center space-x-1.5 uppercase tracking-wide">
                     <i class="fa-solid fa-bullseye"></i>
                     <span>+ Annuncio</span>
                 </a>
@@ -76,11 +76,11 @@
     </header>
 
     <!-- Banner Legale Tattico ──────────────────────────── -->
-    <div class="legal-banner px-4 py-2 text-xs" style="color:#a0b080;">
+    <div class="legal-banner px-4 py-2 text-xs" style="color:#4A4E44;">
         <div class="max-w-7xl mx-auto flex items-center space-x-2">
-            <i class="fa-solid fa-shield-halved text-base" style="color:#6b7d3e;"></i>
+            <i class="fa-solid fa-shield-halved text-base" style="color:#68733F;"></i>
             <span class="font-mono tracking-wide">
-                <strong style="color:#c8a96e">◆ AVVISO PUBBLICA SICUREZZA:</strong>
+                <strong style="color:#8C734B">◆ AVVISO PUBBLICA SICUREZZA:</strong>
                 Piattaforma riservata a titolari di licenza valida T.U.L.P.S. ·
                 Vietata vendita per corrispondenza · Art. 38 T.U.L.P.S. · D.Lgs. 104/2018
             </span>
@@ -94,30 +94,30 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-slate-950 border-t border-slate-800 mt-12 py-8 text-xs text-slate-400">
+    <footer class="border-t border-[#DDD9CD] mt-12 py-8 text-xs text-[#6B7064]" style="background-color:#F1EFE7;">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div class="flex items-center space-x-2">
-                    <i class="fa-solid fa-scale-balanced text-amber-500 text-lg"></i>
-                    <span class="font-semibold text-slate-200">Conformità Legale T.U.L.P.S. & D.Lgs. 104/2018</span>
+                    <i class="fa-solid fa-scale-balanced text-amber-600 text-lg"></i>
+                    <span class="font-semibold text-[#252821]">Conformità Legale T.U.L.P.S. & D.Lgs. 104/2018</span>
                 </div>
-                <div class="flex space-x-6 text-slate-400">
-                    <a href="/contatta-admin" class="hover:text-amber-400 font-semibold text-amber-400/90 flex items-center space-x-1">
+                <div class="flex space-x-6 text-[#6B7064]">
+                    <a href="/contatta-admin" class="hover:text-[#4F5A30] font-semibold text-[#68733F] flex items-center space-x-1">
                         <i class="fa-solid fa-envelope"></i>
                         <span>Contatta Admin</span>
                     </a>
-                    <a href="/mappa" class="hover:text-amber-400">Cerca per Posizione</a>
-                    <a href="/docs" class="hover:text-amber-400">Documentazione REST API</a>
+                    <a href="/mappa" class="hover:text-[#4F5A30]">Cerca per Posizione</a>
+                    <a href="/docs" class="hover:text-[#4F5A30]">Documentazione REST API</a>
                 </div>
 
             </div>
-            <p class="text-slate-400 leading-relaxed">
+            <p class="text-[#6B7064] leading-relaxed">
                 <strong>Avviso Legale & Disclaimer:</strong> Questo portale web è esclusivamente una <strong>bacheca motore di ricerca</strong> 
                 e aggregatore informativo per facilitare la consultazione pubblica. <strong>Non abbiamo alcun legame, affiliazione, accordo societario o mandato di intermediazione con le armerie o con i soggetti privati che pubblicano annunci o i cui cataloghi sono indicizzati dal motore di ricerca.</strong> 
                 Questo sito non effettua commercio, non vende armi, non percepisce commissioni, non incassa pagamenti e non organizza spedizioni. 
                 Qualsiasi trattativa, accertamento dei titoli abilitativi di polizia (Porto d'Armi / Licenza T.U.L.P.S. ex Artt. 35-38, L. 110/1975) e passaggio di proprietà materiale dell'arma avviene esclusivamente tra le parti interessate di persona presso i locali autorizzati dalla legge.
             </p>
-            <div class="pt-4 border-t border-slate-800/60 flex justify-between items-center text-[11px] text-slate-400">
+            <div class="pt-4 border-t border-[#DDD9CD] flex justify-between items-center text-[11px] text-[#6B7064]">
                 <span>&copy; 2026 ArmiMarket Italia &bull; Bacheca Motore di Ricerca Indipendente</span>
                 <span class="font-mono">PostGIS Spatial Engine + FastAPI v{{ version|default('1.0.0') }}</span>
             </div>

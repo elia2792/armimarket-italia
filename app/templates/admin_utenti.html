@@ -6,32 +6,33 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
     <!-- Header sezione -->
-    <div class="mb-8 p-6 rounded-2xl shadow-2xl relative overflow-hidden"
-         style="background:linear-gradient(135deg,#0d1008 0%,#1a2410 100%);border:1px solid #3a4c20;">
-        <div class="absolute -right-8 -bottom-8 opacity-5 pointer-events-none text-[180px]"
-             style="color:#c8a96e"><i class="fa-solid fa-users-gear"></i></div>
+    <div class="mb-8 p-6 rounded-2xl shadow relative overflow-hidden bg-white border border-[#DDD9CD]"
+         style="background:linear-gradient(135deg,#FFFFFF 0%,#F7F5EF 100%);">
+        <div class="absolute -right-8 -bottom-8 opacity-5 pointer-events-none text-[180px] text-[#4F5A30]">
+            <i class="fa-solid fa-users-gear"></i>
+        </div>
         <div class="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
                 <div class="flex items-center gap-3 mb-1">
                     <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base"
-                         style="background:#2e3a18;border:1px solid #4a5c2a;color:#c8a96e;">
+                         style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
                         <i class="fa-solid fa-users-gear"></i>
                     </div>
-                    <h1 class="mil-brand text-2xl font-bold text-white tracking-wide">GESTIONE ACCOUNT</h1>
+                    <h1 class="mil-brand text-2xl font-bold text-[#252821] tracking-wide">GESTIONE ACCOUNT</h1>
                 </div>
-                <p class="text-xs font-mono" style="color:#6b7d3e;">
+                <p class="text-xs font-mono text-[#68733F]">
                     ◆ Pannello riservato ADMIN · Visualizza, blocca ed elimina account registrati
                 </p>
             </div>
             <div class="flex gap-2">
                 <a href="/admin/posta"
-                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all"
-                   style="background:#1a2010;border:1px solid #4a5c2a;color:#c8a96e;">
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
+                   style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
                     <i class="fa-solid fa-envelope"></i><span class="hidden sm:inline">Webmail</span>
                 </a>
                 <a href="/"
-                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all"
-                   style="background:#1e2418;border:1px solid #2e3a18;color:#94a3b8;">
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
+                   style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;">
                     <i class="fa-solid fa-house"></i><span class="hidden sm:inline">Home</span>
                 </a>
             </div>
@@ -43,43 +44,42 @@
 
     <!-- Statistiche rapide -->
     <div id="statsRow" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div class="p-4 rounded-xl text-center" style="background:#0d1008;border:1px solid #2e3a18;">
-            <div id="statTotale" class="text-2xl font-black" style="color:#c8a96e;">—</div>
-            <div class="text-[10px] uppercase tracking-widest mt-1 font-mono" style="color:#5a7030;">Totale Account</div>
+        <div class="p-4 rounded-xl text-center bg-white border border-[#DDD9CD] shadow-sm">
+            <div id="statTotale" class="text-2xl font-black text-[#8C734B]">—</div>
+            <div class="text-[10px] uppercase tracking-widest mt-1 font-mono text-[#6B7064]">Totale Account</div>
         </div>
-        <div class="p-4 rounded-xl text-center" style="background:#0d1008;border:1px solid #2e3a18;">
-            <div id="statPrivati" class="text-2xl font-black text-sky-400">—</div>
-            <div class="text-[10px] uppercase tracking-widest mt-1 font-mono" style="color:#5a7030;">Privati</div>
+        <div class="p-4 rounded-xl text-center bg-white border border-[#DDD9CD] shadow-sm">
+            <div id="statPrivati" class="text-2xl font-black text-sky-600">—</div>
+            <div class="text-[10px] uppercase tracking-widest mt-1 font-mono text-[#6B7064]">Privati</div>
         </div>
-        <div class="p-4 rounded-xl text-center" style="background:#0d1008;border:1px solid #2e3a18;">
-            <div id="statArmerie" class="text-2xl font-black text-emerald-400">—</div>
-            <div class="text-[10px] uppercase tracking-widest mt-1 font-mono" style="color:#5a7030;">Armerie</div>
+        <div class="p-4 rounded-xl text-center bg-white border border-[#DDD9CD] shadow-sm">
+            <div id="statArmerie" class="text-2xl font-black text-emerald-600">—</div>
+            <div class="text-[10px] uppercase tracking-widest mt-1 font-mono text-[#6B7064]">Armerie</div>
         </div>
-        <div class="p-4 rounded-xl text-center" style="background:#0d1008;border:1px solid #2e3a18;">
-            <div id="statDisabilitati" class="text-2xl font-black text-rose-400">—</div>
-            <div class="text-[10px] uppercase tracking-widest mt-1 font-mono" style="color:#5a7030;">Disabilitati</div>
+        <div class="p-4 rounded-xl text-center bg-white border border-[#DDD9CD] shadow-sm">
+            <div id="statDisabilitati" class="text-2xl font-black text-rose-600">—</div>
+            <div class="text-[10px] uppercase tracking-widest mt-1 font-mono text-[#6B7064]">Disabilitati</div>
         </div>
     </div>
 
     <!-- Filtri & Ricerca -->
-    <div class="p-4 rounded-xl mb-5 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center"
-         style="background:#0d1008;border:1px solid #2e3a18;">
+    <div class="p-4 rounded-xl mb-5 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center bg-white border border-[#DDD9CD] shadow-sm">
         <div class="flex-1 relative">
-            <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[11px]" style="color:#5a7030;"></i>
+            <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-[#6B7064]"></i>
             <input id="searchInput" type="text" placeholder="Cerca per nome, email, nickname..."
-                   class="w-full pl-8 pr-3 py-2 rounded-lg text-xs text-white focus:outline-none"
-                   style="background:#131a0d;border:1px solid #2e3a18;color:#e2e8f0;"
+                   class="w-full pl-8 pr-3 py-2 rounded-lg text-xs text-[#252821] focus:outline-none"
+                   style="background:#F7F5EF;border:1px solid #DDD9CD;"
                    oninput="debounceSearch()">
         </div>
         <select id="filterRuolo" onchange="loadUtenti()" class="text-xs px-3 py-2 rounded-lg focus:outline-none"
-                style="background:#131a0d;border:1px solid #2e3a18;color:#c8a96e;">
+                style="background:#F7F5EF;border:1px solid #DDD9CD;color:#252821;">
             <option value="">Tutti i ruoli</option>
             <option value="privato">Privato</option>
             <option value="armeria">Armeria</option>
             <option value="admin">Admin</option>
         </select>
         <select id="filterAttivo" onchange="loadUtenti()" class="text-xs px-3 py-2 rounded-lg focus:outline-none"
-                style="background:#131a0d;border:1px solid #2e3a18;color:#c8a96e;">
+                style="background:#F7F5EF;border:1px solid #DDD9CD;color:#252821;">
             <option value="">Tutti gli stati</option>
             <option value="true">Attivi</option>
             <option value="false">Disabilitati</option>
@@ -91,23 +91,23 @@
 
     <!-- Tabella utenti -->
     <div id="utentiContainer">
-        <div class="p-12 text-center rounded-2xl" style="background:#0d1008;border:1px solid #2e3a18;">
-            <i class="fa-solid fa-spinner fa-spin text-2xl mb-2" style="color:#4a5c2a;"></i>
-            <p class="text-xs" style="color:#5a7030;">Caricamento utenti...</p>
+        <div class="p-12 text-center rounded-2xl bg-white border border-[#DDD9CD] shadow-sm">
+            <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-[#68733F]"></i>
+            <p class="text-xs text-[#6B7064]">Caricamento utenti...</p>
         </div>
     </div>
 
     <!-- Paginazione -->
     <div id="pagination" class="hidden flex items-center justify-center gap-3 mt-6">
         <button id="btnPrev" onclick="changePage(-1)"
-                class="text-xs px-4 py-2 rounded-lg font-bold uppercase tracking-wide transition-all disabled:opacity-40"
-                style="background:#1e2418;border:1px solid #2e3a18;color:#94a3b8;">
+                class="text-xs px-4 py-2 rounded-lg font-bold uppercase tracking-wide transition-all disabled:opacity-40 shadow-sm"
+                style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;">
             ← Precedente
         </button>
-        <span id="pageInfo" class="text-xs font-mono" style="color:#5a7030;"></span>
+        <span id="pageInfo" class="text-xs font-mono font-semibold" style="color:#4F5A30;"></span>
         <button id="btnNext" onclick="changePage(1)"
-                class="text-xs px-4 py-2 rounded-lg font-bold uppercase tracking-wide transition-all disabled:opacity-40"
-                style="background:#1e2418;border:1px solid #2e3a18;color:#94a3b8;">
+                class="text-xs px-4 py-2 rounded-lg font-bold uppercase tracking-wide transition-all disabled:opacity-40 shadow-sm"
+                style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;">
             Successiva →
         </button>
     </div>
@@ -161,9 +161,9 @@ async function loadStats() {
 
 async function loadUtenti() {
     const container = document.getElementById("utentiContainer");
-    container.innerHTML = `<div class="p-10 text-center rounded-xl" style="background:#0d1008;border:1px solid #2e3a18;">
-        <i class="fa-solid fa-spinner fa-spin text-xl mb-2" style="color:#4a5c2a;"></i>
-        <p class="text-xs" style="color:#5a7030;">Caricamento...</p></div>`;
+    container.innerHTML = `<div class="p-10 text-center rounded-xl bg-white border border-[#DDD9CD] shadow-sm">
+        <i class="fa-solid fa-spinner fa-spin text-xl mb-2 text-[#68733F]"></i>
+        <p class="text-xs text-[#6B7064]">Caricamento...</p></div>`;
 
     const cerca = document.getElementById("searchInput").value.trim();
     const ruolo = document.getElementById("filterRuolo").value;
@@ -179,13 +179,13 @@ async function loadUtenti() {
         if (!resp.ok) {
             const err = await resp.json();
             showAlert(err.detail || "Errore nel caricamento utenti.", "danger");
-            container.innerHTML = `<div class="p-8 text-center text-rose-400 rounded-xl" style="background:#1a0808;border:1px solid #7f1d1d;">Errore nel caricamento.</div>`;
+            container.innerHTML = `<div class="p-8 text-center text-rose-600 rounded-xl bg-rose-50 border border-rose-200">Errore nel caricamento.</div>`;
             return;
         }
         const utenti = await resp.json();
         renderUtenti(utenti);
     } catch(e) {
-        container.innerHTML = `<div class="p-8 text-center text-rose-400 rounded-xl" style="background:#1a0808;border:1px solid #7f1d1d;">Errore di rete.</div>`;
+        container.innerHTML = `<div class="p-8 text-center text-rose-600 rounded-xl bg-rose-50 border border-rose-200">Errore di rete.</div>`;
     }
 }
 
@@ -193,10 +193,10 @@ function renderUtenti(utenti) {
     const container = document.getElementById("utentiContainer");
     if (utenti.length === 0) {
         container.innerHTML = `
-            <div class="p-16 text-center rounded-2xl" style="background:#0d1008;border:1px solid #2e3a18;">
-                <i class="fa-solid fa-user-slash text-4xl mb-3" style="color:#2e3a18;"></i>
-                <p class="text-sm font-bold text-white mb-1">Nessun account trovato</p>
-                <p class="text-xs" style="color:#5a7030;">Modifica i filtri di ricerca per trovare altri utenti.</p>
+            <div class="p-16 text-center rounded-2xl bg-white border border-[#DDD9CD] shadow-sm">
+                <i class="fa-solid fa-user-slash text-4xl mb-3 text-[#B59A68]"></i>
+                <p class="text-sm font-bold text-[#252821] mb-1">Nessun account trovato</p>
+                <p class="text-xs text-[#6B7064]">Modifica i filtri di ricerca per trovare altri utenti.</p>
             </div>`;
         return;
     }
@@ -208,20 +208,20 @@ function renderUtenti(utenti) {
         const isArmeria = u.ruolo === "armeria";
 
         const roleBadge = isAdmin
-            ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide" style="background:#2e1a00;border:1px solid #c8a96e;color:#c8a96e;">ADMIN</span>`
+            ? `<span class="text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wide" style="background:#F7F3EA;border:1px solid #B59A68;color:#8C734B;">ADMIN</span>`
             : isArmeria
-            ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide" style="background:#052e16;border:1px solid #22c55e;color:#86efac;">ARMERIA</span>`
-            : `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide" style="background:#0c1a2e;border:1px solid #38bdf8;color:#93c5fd;">PRIVATO</span>`;
+            ? `<span class="text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wide" style="background:#EBEFE0;border:1px solid #68733F;color:#3A4C20;">ARMERIA</span>`
+            : `<span class="text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wide" style="background:#EFF6FF;border:1px solid #93C5FD;color:#1E40AF;">PRIVATO</span>`;
 
         const stateBadge = u.is_active
-            ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase" style="background:#052e16;border:1px solid #16a34a;color:#86efac;">● Attivo</span>`
-            : `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase" style="background:#1a0808;border:1px solid #dc2626;color:#fca5a5;">● Disabilitato</span>`;
+            ? `<span class="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase" style="background:#EBEFE0;border:1px solid #A4B882;color:#27471E;">● Attivo</span>`
+            : `<span class="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase" style="background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;">● Disabilitato</span>`;
 
         const safeAvatar = u.foto_profilo ? encodeURI(u.foto_profilo) : null;
         const avatarHtml = safeAvatar
-            ? `<img src="${safeAvatar}" class="w-10 h-10 rounded-xl object-cover flex-shrink-0" style="border:1px solid #2e3a18;" alt="avatar">`
+            ? `<img src="${safeAvatar}" class="w-10 h-10 rounded-xl object-cover flex-shrink-0" style="border:1px solid #DDD9CD;" alt="avatar">`
             : `<div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-sm"
-                    style="background:linear-gradient(135deg,#1a2010,#2e3a18);border:1px solid #2e3a18;color:#c8a96e;">
+                    style="background:#F1EFE7;border:1px solid #DDD9CD;color:#68733F;">
                     <i class="fa-solid ${isArmeria ? 'fa-store' : 'fa-user-shield'}"></i></div>`;
 
         const safeNick = u.nickname ? escapeHtml(u.nickname) : "";
@@ -232,32 +232,36 @@ function renderUtenti(utenti) {
         const safeTel = u.telefono ? escapeHtml(u.telefono) : "";
 
         const displayName = safeNick
-            ? `<span style="color:#c8a96e;">${safeNick}</span>`
+            ? `<span style="color:#4F5A30;">${safeNick}</span>`
             : `${safeNome}${safeCognome ? ' ' + safeCognome : ''}${safeRagione ? ' · ' + safeRagione : ''}`;
 
         const dataReg = new Date(u.data_registrazione).toLocaleDateString('it-IT', { day:'2-digit', month:'short', year:'numeric' });
 
+        const pivaDisplay = isArmeria && u.partita_iva 
+            ? `<span class="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"><i class="fa-solid fa-file-invoice mr-1 text-emerald-700"></i>P.IVA: ${escapeHtml(u.partita_iva)}</span>` 
+            : (!isArmeria && !isAdmin && u.codice_fiscale ? `<span class="text-slate-500 font-mono"><i class="fa-solid fa-id-card mr-1"></i>CF: ${escapeHtml(u.codice_fiscale)}</span>` : '');
+
         const actionBtns = isAdmin ? `
-            <span class="text-[10px] font-mono" style="color:#4a5c2a;">Account Admin protetto</span>
+            <span class="text-[10px] font-mono text-[#68733F]">Account Admin protetto</span>
         ` : `
             <div class="flex items-center gap-1.5">
                 ${u.is_active
                     ? `<button onclick="disabilitaUtente(${u.id})"
-                              class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all"
-                              style="background:#2d1b0e;border:1px solid #c2410c;color:#fb923c;"
+                              class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all shadow-sm"
+                              style="background:#FFF7ED;border:1px solid #FDBA74;color:#C2410C;"
                               title="Blocca accesso senza eliminare i dati">
                             <i class="fa-solid fa-ban mr-1"></i>Disabilita
                         </button>`
                     : `<button onclick="riabilitaUtente(${u.id})"
-                              class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all"
-                              style="background:#052e16;border:1px solid #16a34a;color:#86efac;"
+                              class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all shadow-sm"
+                              style="background:#ECFDF5;border:1px solid #86EFAC;color:#15803D;"
                               title="Riabilita accesso all'account">
                             <i class="fa-solid fa-circle-check mr-1"></i>Riabilita
                         </button>`
                 }
                 <button onclick="eliminaUtente(${u.id})"
-                        class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all"
-                        style="background:#1a0808;border:1px solid #7f1d1d;color:#fca5a5;"
+                        class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all shadow-sm"
+                        style="background:#FEF2F2;border:1px solid #FCA5A5;color:#B91C1C;"
                         title="Elimina definitivamente account e tutti i suoi annunci">
                     <i class="fa-solid fa-trash-can mr-1"></i>Elimina
                 </button>
@@ -265,23 +269,23 @@ function renderUtenti(utenti) {
         `;
 
         return `
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl transition-all hover:brightness-110"
-                 style="background:#0a0f06;border:1px solid #1e2a12;" id="user-row-${u.id}">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl transition-all hover:shadow-md bg-white border border-[#DDD9CD]" id="user-row-${u.id}">
                 <div class="flex items-center gap-3 min-w-0">
                     ${avatarHtml}
                     <div class="min-w-0">
                         <div class="flex items-center flex-wrap gap-1.5 mb-0.5">
-                            <span class="text-sm font-bold text-white truncate">${displayName}</span>
+                            <span class="text-sm font-bold text-[#252821] truncate">${displayName}</span>
                             ${roleBadge}
                             ${stateBadge}
                         </div>
-                        <div class="text-[10px] font-mono truncate" style="color:#5a7030;">
+                        <div class="text-[10px] font-mono truncate text-[#6B7064]">
                             ${safeEmail}
                         </div>
-                        <div class="flex flex-wrap gap-3 mt-1 text-[10px]" style="color:#4a5c2a;">
+                        <div class="flex flex-wrap items-center gap-3 mt-1 text-[10px] text-[#6B7064]">
                             <span><i class="fa-solid fa-bullhorn mr-1"></i>${u.numero_annunci} annunci</span>
                             <span><i class="fa-regular fa-calendar mr-1"></i>${dataReg}</span>
                             ${safeTel ? `<span><i class="fa-solid fa-phone mr-1"></i>${safeTel}</span>` : ''}
+                            ${pivaDisplay}
                         </div>
                     </div>
                 </div>
@@ -292,7 +296,7 @@ function renderUtenti(utenti) {
         `;
     }).join("");
 
-    container.innerHTML = `<div class="space-y-2">${rows}</div>`;
+    container.innerHTML = `<div class="space-y-2.5">${rows}</div>`;
 }
 
 async function disabilitaUtente(id) {

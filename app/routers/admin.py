@@ -480,6 +480,8 @@ class UserAdminOut(BaseModel):
     cognome: Optional[str] = None
     ragione_sociale: Optional[str] = None
     nickname: Optional[str] = None
+    partita_iva: Optional[str] = None
+    codice_fiscale: Optional[str] = None
     ruolo: str
     is_active: bool
     is_verified: bool
@@ -544,6 +546,7 @@ async def list_utenti(
         out.append(UserAdminOut(
             id=u.id, email=u.email, nome=u.nome, cognome=u.cognome,
             ragione_sociale=u.ragione_sociale, nickname=u.nickname,
+            partita_iva=u.partita_iva, codice_fiscale=u.codice_fiscale,
             ruolo=u.ruolo.value if hasattr(u.ruolo, 'value') else u.ruolo,
             is_active=u.is_active, is_verified=u.is_verified,
             data_registrazione=u.data_registrazione,
@@ -575,6 +578,7 @@ async def get_utente_detail(
     return UserAdminOut(
         id=u.id, email=u.email, nome=u.nome, cognome=u.cognome,
         ragione_sociale=u.ragione_sociale, nickname=u.nickname,
+        partita_iva=u.partita_iva, codice_fiscale=u.codice_fiscale,
         ruolo=u.ruolo.value if hasattr(u.ruolo, 'value') else u.ruolo,
         is_active=u.is_active, is_verified=u.is_verified,
         data_registrazione=u.data_registrazione,

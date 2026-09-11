@@ -68,7 +68,8 @@
 
                     <p id="userEmail" class="text-xs text-slate-400 font-mono mt-1.5">---</p>
                     <div class="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-400">
-                        <span id="userLocation"><i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> Italia</span>
+                        <span id="userLocation"><i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> <span>Italia</span></span>
+                        <span id="userPiva" class="hidden"><i class="fa-solid fa-file-invoice text-amber-500 mr-1"></i> P.IVA: <strong class="text-slate-200 font-mono"></strong></span>
                         <span id="userPhone" class="hidden"><i class="fa-solid fa-phone text-slate-500 mr-1"></i> <span></span></span>
                         <span id="userWhatsApp" class="hidden"><a href="#" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"><i class="fa-brands fa-whatsapp text-emerald-400"></i> WhatsApp</a></span>
                         <span id="userWebsite" class="hidden"><i class="fa-solid fa-globe text-emerald-400 mr-1"></i> <a href="#" target="_blank" class="hover:underline text-emerald-400"></a></span>
@@ -228,7 +229,18 @@ function renderUserProfile(u) {
     }
 
     if (u.indirizzo) {
-        document.getElementById("userLocation").innerHTML = `<i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> ${escapeHtml(u.indirizzo)}`;
+        document.getElementById("userLocation").innerHTML = `<i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> <span>${escapeHtml(u.indirizzo)}</span>`;
+    } else {
+        document.getElementById("userLocation").innerHTML = `<i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> <span>Italia</span>`;
+    }
+    const pivaEl = document.getElementById("userPiva");
+    if (pivaEl) {
+        if (isArmeria && u.partita_iva) {
+            pivaEl.classList.remove("hidden");
+            pivaEl.querySelector("strong").textContent = u.partita_iva;
+        } else {
+            pivaEl.classList.add("hidden");
+        }
     }
     if (u.telefono) {
         const ph = document.getElementById("userPhone");

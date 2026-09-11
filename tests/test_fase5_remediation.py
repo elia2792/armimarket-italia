@@ -46,6 +46,7 @@ def test_sec01_privilege_escalation_blocked():
         password="ValidPassword123!",
         nome="Armeria",
         cognome="Centrale",
+        partita_iva="00811720580",
         ruolo=RuoloRegistrazione.ARMERIA,
     )
     assert user_armeria.ruolo == RuoloRegistrazione.ARMERIA

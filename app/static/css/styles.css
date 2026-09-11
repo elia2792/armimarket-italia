@@ -1,69 +1,365 @@
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-    --olive: #4a5c2a;
-    --olive-light: #6b7d3e;
-    --olive-dark: #2e3a18;
-    --tan: #c8a96e;
-    --tan-light: #d4bc8e;
-    --carbon: #0d1008;
-    --steel: #1e2418;
+    /* Tavolozza Tema Chiaro & Luminoso ArmiMarket Italia */
+    --bg-main: #F7F5EF;
+    --bg-surface: #FFFFFF;
+    --bg-subtle: #F1EFE7;
+    --bg-muted: #E8E5DC;
+    --border-color: #DDD9CD;
+    --border-subtle: #E8E5DB;
+    --border-dark: #C9C4B5;
+
+    /* Tipografia ad alto contrasto */
+    --text-primary: #252821;
+    --text-secondary: #4A4E44;
+    --text-muted: #6B7064;
+    --text-light: #8E9486;
+
+    /* Brand Tattico / Militare: Verde Oliva */
+    --olive: #68733F;
+    --olive-dark: #4F5A30;
+    --olive-light: #7E8C4E;
+    --olive-subtle: #EBEFE0;
+
+    /* Brand Secondario: Sabbia / Tan Dorato */
+    --tan: #B59A68;
+    --tan-dark: #8C734B;
+    --tan-light: #D4C29B;
+    --tan-subtle: #F7F3EA;
+
+    /* Feedback semantici chiari */
+    --success-bg: #EBEFE0;
+    --success-border: #A4B882;
+    --success-text: #27471E;
+
+    --danger-bg: #FEF2F2;
+    --danger-border: #FCA5A5;
+    --danger-text: #991B1B;
+
+    --info-bg: #EFF6FF;
+    --info-border: #BFDBFE;
+    --info-text: #1E3A8A;
 }
 
-body {
-    font-family: 'Segoe UI', system-ui, sans-serif;
+/* =========================================================================
+   BASE LAYOUT & BACKGROUND
+   ========================================================================= */
+body, body.theme-light {
+    background-color: var(--bg-main) !important;
+    color: var(--text-primary) !important;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
 }
 
 .mil-brand {
     font-family: 'Oswald', 'Impact', sans-serif;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
 }
 
+/* =========================================================================
+   HEADER / NAVBAR (Luminoso, pulito, con accento tattico)
+   ========================================================================= */
 header {
-    background: repeating-linear-gradient(
-        135deg,
-        #050805 0px, #050805 10px,
-        #080d06 10px, #080d06 20px
-    );
+    background: #FFFFFF !important;
     border-bottom: 2px solid var(--olive) !important;
+    box-shadow: 0 2px 12px rgba(37, 40, 33, 0.06) !important;
 }
 
+header a {
+    color: var(--text-secondary);
+}
+
+header a:hover {
+    color: var(--olive-dark) !important;
+}
+
+.brand-text-dark {
+    color: var(--text-primary) !important;
+}
+
+/* =========================================================================
+   BANNER LEGALE DI PUBBLICA SICUREZZA
+   ========================================================================= */
 .legal-banner {
-    background: linear-gradient(90deg, #1a2010 0%, #2d3d1a 50%, #1a2010 100%);
-    border-bottom: 1px solid var(--olive-light);
+    background: linear-gradient(90deg, #F1EFE7 0%, #EBEFE0 50%, #F1EFE7 100%) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    color: var(--text-secondary) !important;
 }
 
+.legal-banner strong {
+    color: var(--tan-dark) !important;
+}
+
+/* =========================================================================
+   BOTTONI TATTICI & AZIONI
+   ========================================================================= */
 .btn-tactical {
-    background: linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%);
-    border: 1px solid var(--olive-light);
-    color: #f0ede0;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    background: linear-gradient(135deg, var(--olive) 0%, var(--olive-light) 100%) !important;
+    border: 1px solid var(--olive-dark) !important;
+    color: #FFFFFF !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 2px 6px rgba(79, 90, 48, 0.25) !important;
 }
 
 .btn-tactical:hover {
-    background: linear-gradient(135deg, var(--olive-light) 0%, #7d9049 100%);
+    background: linear-gradient(135deg, var(--olive-light) 0%, #8D9E59 100%) !important;
+    box-shadow: 0 4px 10px rgba(79, 90, 48, 0.35) !important;
+    color: #FFFFFF !important;
 }
 
 .border-tactical {
     border-color: var(--olive) !important;
 }
 
+/* =========================================================================
+   SOVRASCRITTURE UTILITY TAILWIND PER TEMA CHIARO GLOBALE
+   ========================================================================= */
+
+/* Superfici principali e Card */
+.bg-slate-950,
+.bg-slate-900 {
+    background-color: var(--bg-surface) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary);
+}
+
+.bg-slate-950\/80,
+.bg-slate-950\/90,
+.bg-slate-900\/80,
+.bg-slate-900\/90,
+.bg-slate-900\/60 {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Superfici secondarie / annidate */
+.bg-slate-800 {
+    background-color: var(--bg-subtle) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+.bg-slate-800\/50,
+.bg-slate-800\/60 {
+    background-color: var(--bg-muted) !important;
+}
+
+.bg-slate-700,
+.bg-slate-700\/50 {
+    background-color: var(--bg-muted) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Bordi */
+.border-slate-800,
+.border-slate-700,
+.border-slate-600 {
+    border-color: var(--border-color) !important;
+}
+
+/* Hero Banner con Gradiente e Box Immagini */
+.bg-gradient-to-r.from-slate-950,
+.from-slate-950 {
+    background: linear-gradient(135deg, #FFFFFF 0%, #FAF8F2 50%, #F1EFE7 100%) !important;
+    border-color: var(--border-color) !important;
+}
+
+.bg-black {
+    background-color: var(--bg-subtle) !important;
+}
+
+.fav-card-btn {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-muted) !important;
+}
+
+.fav-card-btn:hover {
+    color: #E11D48 !important;
+    background-color: #FFFFFF !important;
+}
+
+/* Tipografia e Colori Testo */
+.text-white {
+    color: var(--text-primary) !important;
+}
+
+.text-slate-100,
+.text-slate-200 {
+    color: var(--text-primary) !important;
+}
+
+.text-slate-300 {
+    color: var(--text-secondary) !important;
+}
+
+.text-slate-400 {
+    color: var(--text-muted) !important;
+}
+
+.text-slate-500 {
+    color: var(--text-light) !important;
+}
+
+/* Accenti Colore: Amber/Oro riconvertito in Tan caldo ad alta leggibilità */
+.text-amber-400,
+.text-amber-500 {
+    color: var(--tan-dark) !important;
+}
+
+.text-amber-300 {
+    color: var(--tan-dark) !important;
+}
+
+.text-emerald-400 {
+    color: #276721 !important;
+}
+
+.text-blue-400 {
+    color: #1E40AF !important;
+}
+
+.text-rose-400 {
+    color: #991B1B !important;
+}
+
+/* Badge & Box di Stato */
+.bg-amber-950,
+.bg-amber-950\/40,
+.bg-amber-950\/60,
+.bg-amber-950\/80,
+.bg-amber-950\/90 {
+    background-color: var(--tan-subtle) !important;
+    border-color: var(--tan-light) !important;
+    color: var(--text-secondary) !important;
+}
+
+.bg-amber-500\/10,
+.bg-amber-500\/20,
+.bg-amber-500\/30 {
+    background-color: var(--tan-subtle) !important;
+    border-color: var(--tan-light) !important;
+    color: var(--tan-dark) !important;
+}
+
+.bg-emerald-950,
+.bg-emerald-950\/40,
+.bg-emerald-950\/60,
+.bg-emerald-950\/70,
+.bg-emerald-950\/80 {
+    background-color: var(--success-bg) !important;
+    border-color: var(--success-border) !important;
+    color: var(--success-text) !important;
+}
+
+.bg-emerald-500\/10,
+.bg-emerald-500\/20,
+.bg-emerald-500\/30 {
+    background-color: var(--success-bg) !important;
+    border-color: var(--success-border) !important;
+    color: var(--success-text) !important;
+}
+
+.bg-rose-950,
+.bg-rose-950\/60,
+.bg-rose-950\/70,
+.bg-rose-950\/80 {
+    background-color: var(--danger-bg) !important;
+    border-color: var(--danger-border) !important;
+    color: var(--danger-text) !important;
+}
+
+.bg-blue-950,
+.bg-blue-950\/80 {
+    background-color: var(--info-bg) !important;
+    border-color: var(--info-border) !important;
+    color: var(--info-text) !important;
+}
+
+/* Form Controls: Campi input, select, textarea */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+input[type="search"],
+select,
+textarea {
+    background-color: #FFFFFF !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-light) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--olive) !important;
+    box-shadow: 0 0 0 3px rgba(104, 115, 63, 0.15) !important;
+    outline: none !important;
+}
+
+/* Ombreggiatura card più morbida e moderna */
+.shadow-2xl,
+.shadow-xl,
+.shadow-lg {
+    box-shadow: 0 4px 20px rgba(37, 40, 33, 0.05), 0 1px 3px rgba(37, 40, 33, 0.03) !important;
+}
+
+/* Footer Luminoso */
+footer {
+    background-color: var(--bg-subtle) !important;
+    border-top: 1px solid var(--border-color) !important;
+    color: var(--text-muted) !important;
+}
+
+footer a {
+    color: var(--olive-dark) !important;
+}
+
+footer a:hover {
+    color: var(--text-primary) !important;
+    text-decoration: underline;
+}
+
+footer .border-slate-800,
+footer .border-slate-800\/60 {
+    border-color: var(--border-color) !important;
+}
+
+/* Scrollbar moderna con accento olive */
 ::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
+    height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #0a0f06;
+    background: var(--bg-subtle);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--olive);
-    border-radius: 3px;
+    background: var(--border-dark);
+    border-radius: 4px;
 }
 
+::-webkit-scrollbar-thumb:hover {
+    background: var(--olive);
+}
+
+/* Leaflet popups */
 .leaflet-popup-content-wrapper {
+    background: #FFFFFF !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color);
     border-radius: 0.75rem;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 10px 25px -5px rgba(37, 40, 33, 0.15);
     padding: 0;
     overflow: hidden;
 }
@@ -71,4 +367,8 @@ header {
 .leaflet-popup-content {
     margin: 0;
     line-height: 1.4;
+}
+
+.leaflet-popup-tip {
+    background: #FFFFFF !important;
 }

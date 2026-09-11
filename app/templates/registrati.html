@@ -145,8 +145,8 @@
                         </div>
                     </div>
                     <div id="indirizzoFieldWrapper">
-                        <label class="block text-xs font-semibold text-slate-300 mb-1" id="lblIndirizzo">Indirizzo o Sede (Opzionale per privati) *</label>
-                        <input type="text" id="regIndirizzo" placeholder="es. Via Roma 15" onblur="geocodeAddress()" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1" id="lblIndirizzo">Indirizzo o Sede <span class="text-slate-500 font-normal">(Opzionale)</span></label>
+                        <input type="text" id="regIndirizzo" placeholder="es. Via Roma 15 (opzionale)" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
                     </div>
                 </div>
 
@@ -335,9 +335,9 @@ function toggleRuoloFields() {
         document.getElementById('regLicenzaTulps').required = true;
         document.getElementById('regCodiceFiscale').required = false;
         
-        lblIndirizzo.textContent = "Indirizzo della Sede del Negozio *";
-        document.getElementById('regIndirizzo').required = true;
-        privacyBadge.textContent = "Sede Negozio Pubblica";
+        lblIndirizzo.innerHTML = 'Indirizzo della Sede del Negozio <span class="text-slate-500 font-normal">(Opzionale)</span>';
+        document.getElementById('regIndirizzo').required = false;
+        privacyBadge.textContent = "Sede Negozio";
         privacyBadge.className = "text-[10px] bg-emerald-950/80 border border-emerald-600 text-emerald-300 px-2.5 py-1 rounded-full font-semibold";
         pinTypeLabel.textContent = "Marker: Armeria Negozio";
         pinTypeLabel.className = "text-emerald-400 font-semibold";
@@ -351,7 +351,7 @@ function toggleRuoloFields() {
         document.getElementById('regLicenzaTulps').required = false;
         document.getElementById('regCodiceFiscale').required = false;
 
-        lblIndirizzo.textContent = "Indirizzo o Frazione (Opzionale per privati)";
+        lblIndirizzo.innerHTML = 'Indirizzo o Frazione <span class="text-slate-500 font-normal">(Opzionale)</span>';
         document.getElementById('regIndirizzo').required = false;
         privacyBadge.textContent = "Tutela Privacy Baricentro";
         privacyBadge.className = "text-[10px] bg-slate-900 border border-slate-700 text-slate-300 px-2.5 py-1 rounded-full";
@@ -399,7 +399,17 @@ async function handleRegister(e) {
 
     if (isArmeria) {
         payload.ragione_sociale = document.getElementById('regRagioneSociale').value.trim();
-        payload.partita_iva = document.getElementById('regPartitaIva').value.trim();
+        const pivaClean = document.getElementById('regPartitaIva').value.trim().replace(/\s+/g, '').replace(/-/g, '');
+        if (!pivaClean || pivaClean.length !== 11 || !/^\d{11}$/.test(pivaClean)) {
+            alertBox.classList.remove('hidden');
+            alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-rose-950/70 border-rose-600 text-rose-200 flex items-center space-x-2";
+            alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i> <span>La Partita IVA dell'armeria è obbligatoria e deve essere composta da 11 cifre numeriche.</span>`;
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-user-plus mr-1"></i> Completa Registrazione`;
+            document.getElementById('regPartitaIva').focus();
+            return;
+        }
+        payload.partita_iva = pivaClean;
         payload.licenza_tulps = document.getElementById('regLicenzaTulps').value.trim();
         payload.sito_web = document.getElementById('regSitoWeb').value.trim() || null;
     } else {
