@@ -168,7 +168,7 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("Ambiente di produzione rilevato: schema database gestito esclusivamente tramite migrazioni Alembic.")
 
-    # Inizializza superuser amministratore e poligoni se assenti
+    # Inizializza o sincronizza superuser amministratore e poligoni
     async with async_session_factory() as session:
         stmt = select(User).where(User.email == settings.FIRST_SUPERUSER_EMAIL.lower())
         res = await session.execute(stmt)
@@ -185,6 +185,15 @@ async def lifespan(app: FastAPI):
             )
             session.add(admin_user)
             await session.commit()
+            logger.info("Creato superuser admin predefinito: %s", settings.FIRST_SUPERUSER_EMAIL.lower())
+        else:
+            # Sincronizza password e stato attivo se modificati nelle variabili d'ambiente
+            admin.hashed_password = hash_password(settings.FIRST_SUPERUSER_PASSWORD)
+            admin.ruolo = RuoloUtente.ADMIN
+            admin.is_active = True
+            admin.is_verified = True
+            await session.commit()
+            logger.info("Sincronizzato superuser admin con le credenziali di configurazione: %s", settings.FIRST_SUPERUSER_EMAIL.lower())
         await seed_geo_if_empty(session)
         await seed_poligoni_if_empty(session)
 

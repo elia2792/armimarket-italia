@@ -42,7 +42,7 @@
             </div>
         </div>
 
-        <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4">
+        <form id="registerForm" class="space-y-4">
             
             <!-- Nickname Pubblico (Pseudonimo per tutelare la privacy negli annunci) -->
             <div>
@@ -240,7 +240,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         updateMarkerPosition(e.latlng.lat, e.latlng.lng, true);
     });
 
-    // 2. Caricamento anagrafica Comuni
+    // 2. Event listener invio form registrazione
+    const regForm = document.getElementById("registerForm");
+    if (regForm) {
+        regForm.addEventListener("submit", handleRegister);
+    }
+
+    // 3. Caricamento anagrafica Comuni
     loadComuni();
 });
 

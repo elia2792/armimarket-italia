@@ -45,7 +45,7 @@
     <!-- Form Inserimento Annuncio -->
     <div id="annuncioFormCard" class="opacity-50 pointer-events-none bg-slate-950 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
 
-        <form id="createAdForm" onsubmit="handleCreateAnnuncio(event)" class="space-y-5">
+        <form id="createAdForm" class="space-y-5">
             
             <!-- 1. Dati Principali Arma -->
             <div>
@@ -263,7 +263,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 1. Caricamento anagrafica comuni
     loadAdComuni();
 
-    // 2. Controllo Autenticazione Utente
+    // 2. Event listener invio annuncio
+    const form = document.getElementById("createAdForm");
+    if (form) {
+        form.addEventListener("submit", handleCreateAnnuncio);
+    }
+
+    // 3. Controllo Autenticazione Utente
     if (token) {
         try {
             const resp = await fetch("/api/v1/auth/me", {

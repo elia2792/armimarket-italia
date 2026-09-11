@@ -274,7 +274,7 @@
             Ricevi una notifica email gratuita non appena un'armeria o un privato pubblica un nuovo annuncio compatibile con i criteri della tua ricerca attuale.
         </p>
 
-        <form id="salvaRicercaForm" onsubmit="handleSalvaRicercaSubmit(event)" class="space-y-3 text-xs">
+        <form id="salvaRicercaForm" class="space-y-3 text-xs">
             <div>
                 <label class="block text-slate-300 font-semibold mb-1">Descrizione Avviso</label>
                 <input type="text" id="alertDesc" required placeholder="es. Carabina .308 o Beretta 9x21 sotto 600€" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500">
@@ -382,6 +382,11 @@ async function handleSalvaRicercaSubmit(e) {
 
 
 document.addEventListener("DOMContentLoaded", async () => {
+    const salvaForm = document.getElementById("salvaRicercaForm");
+    if (salvaForm) {
+        salvaForm.addEventListener("submit", handleSalvaRicercaSubmit);
+    }
+
     if (!token) return;
     try {
         const resp = await fetch("/api/v1/preferiti/ids", {
