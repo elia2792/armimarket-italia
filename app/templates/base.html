@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}ArmiMarket Italia — Il Mercato delle Armi Lecite d'Italia | Compra, Vendi, Colleziona{% endblock %}</title>
     <!-- Tailwind CSS (Build Locale Statico Minificato) -->
-    <link rel="stylesheet" href="/static/css/tailwind.min.css">
+    <link rel="stylesheet" href="/static/css/tailwind.min.css?v=1.0.2">
     <!-- Stili Militari / Tattici & Custom Leaflet -->
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/styles.css?v=1.0.2">
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -15,10 +15,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="theme-light bg-[#F7F5EF] text-[#252821] min-h-screen flex flex-col font-sans">
+<body class="theme-light bg-[#F7F5EF] text-[#252821] min-h-screen flex flex-col font-sans" style="background-color: #F7F5EF !important; color: #252821 !important;">
 
     <!-- Header / Navbar ─────────────────────────────────── -->
-    <header class="sticky top-0 z-50 shadow-sm bg-white" style="border-bottom:2px solid var(--olive)">
+    <header class="sticky top-0 z-50 shadow-sm" style="background-color: #FFFFFF !important; background-image: none !important; border-bottom: 2px solid #68733F !important;">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <a href="/" class="flex items-center space-x-3 group">
                 <!-- Logo tattico -->
@@ -76,7 +76,7 @@
     </header>
 
     <!-- Banner Legale Tattico ──────────────────────────── -->
-    <div class="legal-banner px-4 py-2 text-xs" style="color:#4A4E44;">
+    <div class="legal-banner px-4 py-2 text-xs" style="background: linear-gradient(90deg, #F1EFE7 0%, #EBEFE0 50%, #F1EFE7 100%) !important; border-bottom: 1px solid #DDD9CD !important; color: #4A4E44 !important;">
         <div class="max-w-7xl mx-auto flex items-center space-x-2">
             <i class="fa-solid fa-shield-halved text-base" style="color:#68733F;"></i>
             <span class="font-mono tracking-wide">
@@ -125,7 +125,7 @@
     </footer>
 
     <!-- Script Applicativo Globale -->
-    <script src="/static/js/app.js" defer></script>
+    <script src="/static/js/app.js?v=1.0.2" defer></script>
 
     {% block extra_scripts %}{% endblock %}
 </body>
