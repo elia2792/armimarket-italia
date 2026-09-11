@@ -103,7 +103,8 @@ async function handleLogin(e) {
             }, 1000);
         } else {
             alertBox.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-rose-950/70 border-rose-600 text-rose-200 flex items-center space-x-2";
-            const safeDetail = window.escapeHtml(typeof data.detail === 'string' ? data.detail : 'Email o password errati.');
+            const rawDetail = typeof data.detail === 'string' ? data.detail : 'Email o password errati.';
+            const safeDetail = (window.escapeHtml ? window.escapeHtml(rawDetail) : rawDetail);
             alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i> <span>${safeDetail}</span>`;
             btn.disabled = false;
             btn.innerHTML = `<i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> Accedi`;
