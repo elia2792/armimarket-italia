@@ -145,53 +145,63 @@
                     </div>
                 </div>
 
-                <!-- Foto: Caricamento Diretto da Dispositivo & URL -->
+                <!-- Foto: Caricamento Diretto da Dispositivo -->
                 <div class="space-y-3">
-                    <label class="block text-xs font-semibold text-slate-300">
-                        <i class="fa-solid fa-camera text-amber-500 mr-1"></i> Fotografie dell'Arma (Carica direttamente o inserisci URL)
-                    </label>
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold text-[#252821] uppercase tracking-wide">
+                            <i class="fa-solid fa-camera text-[#68733F] mr-1 text-sm"></i> Fotografie dell'Arma (Caricamento Diretto)
+                        </label>
+                        <span class="text-[10px] font-semibold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full">
+                            <i class="fa-solid fa-check mr-1"></i> Caricamento file attivo (nessun link richiesto)
+                        </span>
+                    </div>
 
                     <!-- Zona Upload Diretto Drag & Drop -->
-                    <div id="dropZoneFoto" class="border-2 border-dashed border-slate-700 hover:border-amber-500 rounded-xl p-6 text-center cursor-pointer transition-colors bg-slate-950/60 hover:bg-slate-900/50">
+                    <div id="dropZoneFoto" 
+                         class="border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all shadow-sm group hover:border-[#4F5A30]"
+                         style="background:#F7F5EF;border-color:#68733F;">
                         <input type="file" id="fileInputFoto" multiple accept="image/jpeg,image/png,image/webp" class="hidden">
-                        <div class="space-y-2 pointer-events-none">
-                            <div class="w-12 h-12 mx-auto rounded-full bg-slate-900 flex items-center justify-center text-amber-500 text-xl border border-slate-800">
+                        
+                        <div class="space-y-3 pointer-events-none">
+                            <div class="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center text-white text-2xl shadow-md transition-transform group-hover:scale-105"
+                                 style="background:linear-gradient(135deg, #68733F 0%, #4F5A30 100%);">
                                 <i class="fa-solid fa-cloud-arrow-up"></i>
                             </div>
-                            <p class="text-xs font-bold text-white">
-                                Trascina qui le foto o <span class="text-amber-400 underline">fai clic per selezionarle dal computer / smartphone</span>
-                            </p>
-                            <p class="text-[11px] text-slate-400">
-                                Supportati JPG, PNG, WebP (max 5 MB per foto, max 10 immagini). I metadati EXIF vengono rimossi automaticamente.
+                            
+                            <div>
+                                <span class="btn-tactical py-2.5 px-6 rounded-xl font-bold text-xs uppercase tracking-wide shadow transition-all inline-flex items-center space-x-2">
+                                    <i class="fa-solid fa-images"></i>
+                                    <span>Seleziona Foto dal Tuo Dispositivo</span>
+                                </span>
+                                <p class="text-xs text-[#6B7064] mt-2 font-medium">
+                                    oppure <strong>trascina qui i file</strong> direttamente dal computer o telefono
+                                </p>
+                            </div>
+
+                            <p class="text-[11px] text-[#8E9486]">
+                                Formati supportati: <strong>JPG, PNG, WebP</strong> (fino a 10 foto, max 5 MB ciascuna). I dati sensibili EXIF/GPS vengono rimossi automaticamente a tutela della privacy.
                             </p>
                         </div>
                     </div>
 
                     <!-- Spinner / Stato Upload in corso -->
-                    <div id="uploadFotoProgress" class="hidden p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs text-amber-400 flex items-center space-x-2">
-                        <i class="fa-solid fa-spinner fa-spin"></i>
+                    <div id="uploadFotoProgress" class="hidden p-4 rounded-xl border flex items-center space-x-3 text-xs font-semibold shadow-sm"
+                         style="background:#EBEFE0;border-color:#A4B882;color:#27471E;">
+                        <i class="fa-solid fa-spinner fa-spin text-base text-[#68733F]"></i>
                         <span id="uploadFotoProgressText">Caricamento e ottimizzazione immagini in corso...</span>
                     </div>
 
                     <!-- Griglia Anteprima Foto Caricate -->
-                    <div id="anteprimaFotoContainer" class="hidden space-y-2">
-                        <div class="flex items-center justify-between text-xs text-slate-400">
-                            <span class="font-bold text-white"><i class="fa-solid fa-images mr-1 text-emerald-400"></i> Immagini pronte per l'annuncio (<span id="countFotoCaricate">0</span>):</span>
-                            <span class="text-[10px]">La prima foto sarà la copertina dell'annuncio</span>
+                    <div id="anteprimaFotoContainer" class="hidden space-y-3 pt-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-bold text-[#252821] flex items-center gap-1.5">
+                                <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                                Immagini caricate pronte per l'annuncio (<span id="countFotoCaricate">0</span>):
+                            </span>
+                            <span class="text-[11px] font-mono text-[#6B7064]">La prima foto sarà la copertina principale</span>
                         </div>
                         <div id="anteprimaFotoGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
                             <!-- Popolato dinamicamente da JS -->
-                        </div>
-                    </div>
-
-                    <!-- Opzione secondaria: URL esterni aggiuntivi -->
-                    <div class="pt-2">
-                        <button type="button" id="btnToggleUrlBox" class="text-[11px] text-slate-400 hover:text-amber-400 underline flex items-center gap-1 cursor-pointer">
-                            <i class="fa-solid fa-link"></i> Vuoi inserire anche link web a immagini esterne?
-                        </button>
-                        <div id="adImmaginiUrlBox" class="hidden mt-2 space-y-1">
-                            <textarea id="adImmagini" rows="2" placeholder="https://esempio.it/foto1.jpg, https://esempio.it/foto2.jpg" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500 font-mono"></textarea>
-                            <p class="text-[10px] text-slate-500">Separare più URL da virgola o a capo.</p>
                         </div>
                     </div>
                 </div>
@@ -285,14 +295,6 @@ function initFotoUpload() {
     const dropZone = document.getElementById("dropZoneFoto");
     const fileInput = document.getElementById("fileInputFoto");
     const grid = document.getElementById("anteprimaFotoGrid");
-    const btnToggle = document.getElementById("btnToggleUrlBox");
-
-    if (btnToggle) {
-        btnToggle.addEventListener("click", () => {
-            const box = document.getElementById("adImmaginiUrlBox");
-            if (box) box.classList.toggle("hidden");
-        });
-    }
 
     if (grid) {
         grid.addEventListener("click", (e) => {
@@ -313,16 +315,19 @@ function initFotoUpload() {
 
     dropZone.addEventListener("dragover", (e) => {
         e.preventDefault();
-        dropZone.classList.add("border-amber-500", "bg-slate-900");
+        dropZone.style.borderColor = "#4F5A30";
+        dropZone.style.background = "#EBEFE0";
     });
 
     dropZone.addEventListener("dragleave", () => {
-        dropZone.classList.remove("border-amber-500", "bg-slate-900");
+        dropZone.style.borderColor = "#68733F";
+        dropZone.style.background = "#F7F5EF";
     });
 
     dropZone.addEventListener("drop", (e) => {
         e.preventDefault();
-        dropZone.classList.remove("border-amber-500", "bg-slate-900");
+        dropZone.style.borderColor = "#68733F";
+        dropZone.style.background = "#F7F5EF";
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             uploadSelectedFiles(e.dataTransfer.files);
         }
@@ -395,10 +400,10 @@ function renderFotoAnteprima() {
     counter.textContent = uploadedFotoUrls.length;
 
     grid.innerHTML = uploadedFotoUrls.map((url, idx) => `
-        <div class="relative group rounded-xl overflow-hidden border border-slate-700 bg-slate-900 aspect-square">
+        <div class="relative group rounded-xl overflow-hidden border border-[#DDD9CD] bg-white shadow aspect-square">
             <img src="${encodeURI(url)}" class="w-full h-full object-cover" alt="Foto ${idx+1}">
-            ${idx === 0 ? '<span class="absolute bottom-1 left-1 bg-amber-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded shadow">Copertina</span>' : ''}
-            <button type="button" data-remove-foto="${idx}" class="absolute top-1 right-1 w-6 h-6 rounded-full bg-rose-950/90 text-rose-300 border border-rose-700 hover:bg-rose-900 flex items-center justify-center text-xs shadow opacity-90 hover:opacity-100 transition-opacity cursor-pointer" title="Rimuovi foto">
+            ${idx === 0 ? '<span class="absolute bottom-1.5 left-1.5 bg-[#68733F] text-white font-bold text-[9px] px-2 py-0.5 rounded shadow">Copertina</span>' : ''}
+            <button type="button" data-remove-foto="${idx}" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-rose-600 text-white hover:bg-rose-700 flex items-center justify-center text-xs shadow transition-all cursor-pointer" title="Rimuovi foto">
                 <i class="fa-solid fa-xmark pointer-events-none"></i>
             </button>
         </div>
