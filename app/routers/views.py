@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,6 +44,7 @@ async def index_view(
     prezzo_min: Optional[str] = None,
     prezzo_max: Optional[str] = None,
     auto_scrape: Optional[str] = "1",  # Di default cerca e raschia dai siti
+    pagina: int = 1,
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -129,11 +130,12 @@ async def index_view(
         tipologia_inserzionista=tipo_ins_enum,
         prezzo_min=parsed_prezzo_min,
         prezzo_max=parsed_prezzo_max,
-        ordina_per="data_desc",
-        pagina=1,
-        elementi_per_pagina=36,
+        pagina=pagina,
+        elementi_per_pagina=50,
         solo_pubblicati=True
     )
+
+    totale_pagine = max(1, (totale + 49) // 50) if totale > 0 else 1
 
     # Se ancora 0 annunci e non era stato avviato lo scraper, invia notifica suggerimento
     return templates.TemplateResponse(
@@ -142,6 +144,9 @@ async def index_view(
         context={
             "annunci": annunci,
             "totale": totale,
+            "pagina": pagina,
+            "totale_pagine": totale_pagine,
+            "elementi_per_pagina": 50,
             "regioni": regioni,
             "current_q": q,
             "current_marca": marca,
@@ -237,6 +242,17 @@ async def ad_detail_view(id: int, request: Request, db: AsyncSession = Depends(g
         if annuncio.tipologia_inserzionista == TipologiaInserzionista.ARMERIA
         else "comunale_protetta"
     )
+
+    # Risoluzione nome inserzionista reale (per armerie registrate o indicizzate da scraping)
+    nome_inserzionista = (annuncio.utente.ragione_sociale or annuncio.utente.nome) if annuncio.utente else "Armeria"
+    if annuncio.utente and annuncio.utente.email == "indicizzatore.bot@armimarket.it":
+        from app.services.scraper.directory import ARMERIE_TARGETS
+        matched_target = next((a for a in ARMERIE_TARGETS if a.get("email", "").lower() == (annuncio.email_contatto or "").lower()), None)
+        if matched_target:
+            nome_inserzionista = matched_target.get("ragione_sociale") or matched_target.get("nome")
+        else:
+            nome_inserzionista = "Armeria Online Indipendente"
+    setattr(annuncio, "nome_inserzionista_reale", nome_inserzionista)
 
     # Proprietà aggiuntive per il template
     setattr(annuncio, "latitudine_mappa", lat)
@@ -347,3 +363,25 @@ async def admin_utenti_view(request: Request):
         name="admin_utenti.html",
         context={"version": settings.VERSION}
     )
+
+
+@views_router.get("/admin", response_class=HTMLResponse)
+async def admin_dashboard_view(request: Request):
+    """Pannello admin principale: panoramica di tutte le statistiche della piattaforma."""
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_dashboard.html",
+        context={"version": settings.VERSION}
+    )
+
+
+@views_router.get("/logout")
+async def logout_view():
+    """Logout infallibile lato server: rimozione cookie e reindirizzamento alla homepage."""
+    response = RedirectResponse(url="/", status_code=303)
+    response.headers["Clear-Site-Data"] = '"cache", "cookies", "storage"'
+    response.delete_cookie(key="armimarket_token", path="/")
+    response.delete_cookie(key="access_token", path="/")
+    response.delete_cookie(key="token", path="/")
+    return response
+

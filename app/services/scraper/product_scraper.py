@@ -298,19 +298,160 @@ class UniversalArmeriaScraper:
 
         return list(found_links)
 
+SYSTEM_BOT_EMAIL = "indicizzatore.bot@armimarket.it"
+
+
+async def get_or_create_system_bot_user(db: AsyncSession) -> User:
+    """Restituisce l'utente tecnico di sistema per gli annunci indicizzati dallo scraper."""
+    from app.core.security import hash_password
+    stmt = select(User).where(User.email == SYSTEM_BOT_EMAIL)
+    bot = (await db.execute(stmt)).scalar_one_or_none()
+    if not bot:
+        bot = User(
+            email=SYSTEM_BOT_EMAIL,
+            hashed_password=hash_password("SystemBotSecretPass2026!"),
+            nome="Indicizzatore Web",
+            cognome="Scraper Cataloghi",
+            ragione_sociale="Sistema Indicizzazione ArmiMarket",
+            ruolo=RuoloUtente.ADMIN,
+            is_active=True,
+            is_verified=True,
+        )
+        db.add(bot)
+        await db.commit()
+        await db.refresh(bot)
+    return bot
+
+
+class UniversalArmeriaScraper:
+    """
+    Scraper universale basato su BeautifulSoup4 e Trafilatura/Regex.
+    Estrae titoli, calibri, prezzi, immagini e condizioni dalle schede prodotto dei negozi online.
+    """
+
+    @classmethod
+    async def scrape_single_product_page(cls, url: str) -> Optional[Dict[str, Any]]:
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 "
+                "(ArmiMarket-Italia-Bot/1.0; +https://armimarket.it)"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "it-IT,it;q=0.9,en;q=0.8",
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=12.0, follow_redirects=True, headers=headers) as client:
+                resp = await client.get(url)
+                if resp.status_code != 200:
+                    return None
+                html = resp.text
+        except Exception as e:
+            logger.warning(f"Errore download {url}: {e}")
+            return None
+
+        # Estrazione Campi con Heuristics
+        titolo = cls._extract_title(html)
+        if not titolo or len(titolo) < 4:
+            return None
+
+        prezzo = cls._extract_price(html)
+        calibro = cls._extract_calibro(titolo, html)
+        marca = cls._extract_brand(titolo)
+        tipologia = cls._extract_tipologia(titolo)
+        classificazione = cls._extract_classificazione(titolo, html)
+        immagini = cls._extract_images(html, url)
+        descrizione = cls._extract_description(html)
+
+        return {
+            "titolo": titolo,
+            "prezzo": prezzo,
+            "calibro": calibro or "N/D",
+            "marca": marca or "Altro",
+            "tipologia_arma": tipologia,
+            "classificazione": classificazione,
+            "immagini": immagini[:6],
+            "descrizione": descrizione[:1500] if descrizione else "",
+            "matricola": None,
+        }
+
+    @classmethod
+    async def discover_product_links_from_catalog(
+        cls,
+        catalog_url: str,
+        max_links: int = 15
+    ) -> List[str]:
+        """
+        Esplora una pagina di categoria o ricerca estraendo i link ai singoli prodotti.
+        """
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            )
+        }
+        found_links = set()
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True, headers=headers) as client:
+                resp = await client.get(catalog_url)
+                if resp.status_code != 200:
+                    return []
+                soup = BeautifulSoup(resp.text, "html.parser")
+        except Exception as e:
+            logger.warning(f"Errore scansione catalogo {catalog_url}: {e}")
+            return []
+
+        base_parsed = urlparse(catalog_url)
+        base_domain = f"{base_parsed.scheme}://{base_parsed.netloc}"
+
+        for a in soup.find_all("a", href=True):
+            href = a["href"].strip()
+            if not href or href.startswith("#") or href.startswith("javascript:"):
+                continue
+
+            full_url = urljoin(base_domain, href)
+
+            # Criteri di inclusione link prodotto (WooCommerce, PrestaShop, Shopify o pattern generici)
+            product_patterns = ["/prodotto/", "/products/", "/p/", "-prodotto-", ".html"]
+            is_product = any(p in full_url.lower() for p in product_patterns)
+            is_same_domain = urlparse(full_url).netloc == base_parsed.netloc
+
+            if is_product and is_same_domain:
+                if any(x in full_url.lower() for x in ["cart", "carrello", "checkout", "account", "login", "wishlist", "tag"]):
+                    continue
+                found_links.add(full_url)
+                if len(found_links) >= max_links:
+                    break
+
+        return list(found_links)
+
     @classmethod
     async def scrape_and_save_listings(
         cls,
         db: AsyncSession,
         product_urls: List[str],
-        armeria_user: User,
-        comune_id: int
+        armeria_user: Optional[User] = None,
+        comune_id: int = 1,
+        armeria_info: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, int]:
         """
         Scansiona una lista di link prodotto, estrae dati, foto originali e link diretto,
-        salvando gli annunci reali nel database.
+        salvando gli annunci reali nel database senza creare utenti fittizi.
         """
         stats = {"inseriti": 0, "esistenti": 0, "scartati": 0}
+
+        if not armeria_user:
+            armeria_user = await get_or_create_system_bot_user(db)
+
+        nome_armeria = (
+            (armeria_info.get("ragione_sociale") or armeria_info.get("nome"))
+            if armeria_info
+            else (armeria_user.ragione_sociale or armeria_user.nome)
+        )
+        email_armeria = armeria_info.get("email") if armeria_info else armeria_user.email
+        telefono_armeria = armeria_info.get("telefono") if armeria_info else armeria_user.telefono
 
         for url in product_urls:
             # Verifica se l'URL è già stato importato per evitare duplicati
@@ -329,7 +470,7 @@ class UniversalArmeriaScraper:
             clean_slug = re.sub(r"[^\w\s-]", "", titolo.lower()).strip()
             slug = f"{re.sub(r'[-\s]+', '-', clean_slug)}-{uuid.uuid4().hex[:6]}"
 
-            descrizione = data.get("descrizione") or f"Scheda originale dal catalogo di {armeria_user.ragione_sociale or armeria_user.nome}."
+            descrizione = data.get("descrizione") or f"Scheda originale dal catalogo di {nome_armeria}."
 
             nuovo_annuncio = Annuncio(
                 titolo=titolo,
@@ -349,8 +490,8 @@ class UniversalArmeriaScraper:
                 utente_id=armeria_user.id,
                 galleria_immagini=data.get("immagini", []),
                 link_esterno=url,  # LINK DIRETTO ORIGINALE ALL'ARMERIA
-                email_contatto=armeria_user.email,
-                telefono_contatto=armeria_user.telefono,
+                email_contatto=email_armeria,
+                telefono_contatto=telefono_armeria,
                 mostra_telefono_pubblico=True,
             )
 
@@ -417,18 +558,17 @@ class MultiArmeriaSearchScraper:
 
         # Includi anche tutte le NUOVE ARMERIE REGISTRATE dagli utenti aventi un sito internet
         stmt_reg_armerie = (
-            select(User)
-            .join(Comune, User.comune_id == Comune.id)
-            .join(Provincia, Comune.provincia_id == Provincia.id)
-            .options(selectinload(User.annunci))
+            select(User, Comune, Provincia)
+            .outerjoin(Comune, User.comune_id == Comune.id)
+            .outerjoin(Provincia, Comune.provincia_id == Provincia.id)
             .where(
                 User.ruolo == RuoloUtente.ARMERIA,
                 User.sito_web.isnot(None),
                 User.is_active.is_(True)
             )
         )
-        reg_armerie_users = (await db.execute(stmt_reg_armerie)).scalars().all()
-        for u in reg_armerie_users:
+        reg_armerie_rows = (await db.execute(stmt_reg_armerie)).all()
+        for u, com, prov in reg_armerie_rows:
             if not u.sito_web:
                 continue
             # Evita duplicati con directory
@@ -443,11 +583,11 @@ class MultiArmeriaSearchScraper:
                 "email": u.email,
                 "telefono": u.telefono or "",
                 "licenza_tulps": u.licenza_tulps or "Verifica in corso",
-                "citta": "",
-                "provincia_sigla": "",
+                "citta": com.nome if com else "",
+                "provincia_sigla": prov.sigla_automobilistica if prov else "",
                 "regione": "",
-                "latitudine": float(u.latitudine) if u.latitudine else 42.5,
-                "longitudine": float(u.longitudine) if u.longitudine else 12.5,
+                "latitudine": float(u.latitudine) if u.latitudine else (com.latitudine if com else 42.5),
+                "longitudine": float(u.longitudine) if u.longitudine else (com.longitudine if com else 12.5),
                 "piattaforma": "woocommerce",
                 "base_url": u.sito_web,
                 "search_url_template": search_tmpl,
@@ -464,28 +604,12 @@ class MultiArmeriaSearchScraper:
         # 3. Interroga in parallelo le armerie selezionate
         for armeria_cfg in target_armerie:
             try:
-                # Trova o crea utente armeria
-                if armeria_cfg.get("user_obj"):
-                    armeria_user = armeria_cfg["user_obj"]
-                else:
-                    stmt_u = select(User).where(User.email == armeria_cfg["email"].lower())
-                    armeria_user = (await db.execute(stmt_u)).scalar_one_or_none()
-                    if not armeria_user:
-                        armeria_user = User(
-                            email=armeria_cfg["email"].lower(),
-                            hashed_password=hash_password("Partner123!"),
-                            nome=armeria_cfg["nome"],
-                            ragione_sociale=armeria_cfg["ragione_sociale"],
-                            telefono=armeria_cfg["telefono"],
-                            licenza_tulps=armeria_cfg["licenza_tulps"],
-                            ruolo=RuoloUtente.ARMERIA,
-                            sito_web=armeria_cfg.get("base_url"),
-                            is_active=True,
-                            is_verified=True,
-                        )
-                        db.add(armeria_user)
-                        await db.commit()
-                        await db.refresh(armeria_user)
+                # Gestione utente: se è un'armeria registrata, usa il suo user_obj.
+                # Se è un target della directory di scraping, NON creare l'account utente!
+                # Le armerie devono registrarsi autonomamente; per lo scraping usiamo il bot di sistema.
+                armeria_user = armeria_cfg.get("user_obj")
+                if not armeria_user:
+                    armeria_user = await get_or_create_system_bot_user(db)
 
                 # Risolvi comune sede armeria per coordinate geografiche
                 stmt_comune = select(Comune).where(Comune.nome.ilike(f"%{armeria_cfg['citta']}%"))
@@ -509,7 +633,8 @@ class MultiArmeriaSearchScraper:
                         db=db,
                         product_urls=product_urls,
                         armeria_user=armeria_user,
-                        comune_id=comune_id
+                        comune_id=comune_id,
+                        armeria_info=armeria_cfg
                     )
                     logger.info(f"Scraper su {armeria_cfg['nome']}: {stats}")
 

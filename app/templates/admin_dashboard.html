@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Statistiche · Admin — ArmiMarket Italia{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Header Sezione Admin -->
+    <div class="mb-8 p-6 rounded-2xl shadow relative overflow-hidden bg-white border border-[#DDD9CD]"
+         style="background:linear-gradient(135deg,#FFFFFF 0%,#F7F5EF 100%);">
+        <div class="absolute -right-8 -bottom-8 opacity-5 pointer-events-none text-[180px] text-[#4F5A30]">
+            <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <div class="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-3 mb-1">
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+                         style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+                    <h1 class="mil-brand text-2xl font-bold text-[#252821] tracking-wide">PANNELLO STATISTICHE</h1>
+                </div>
+                <p class="text-xs font-mono text-[#68733F]">
+                    ◆ Metriche in tempo reale · Monitoraggio annunci, visualizzazioni, anagrafiche e comunicazioni
+                </p>
+            </div>
+            <div class="flex items-center flex-wrap gap-2">
+                <button type="button" id="btnRefreshStats"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm cursor-pointer"
+                   style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
+                    <i class="fa-solid fa-rotate" id="refreshIcon"></i><span class="hidden sm:inline">Aggiorna</span>
+                </button>
+                <a href="/admin/utenti"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
+                   style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;">
+                    <i class="fa-solid fa-users-gear"></i><span class="hidden sm:inline">Utenti</span>
+                </a>
+                <a href="/admin/posta"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
+                   style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;">
+                    <i class="fa-solid fa-envelope"></i><span class="hidden sm:inline">Webmail</span>
+                </a>
+                <a href="/"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
+                   style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;">
+                    <i class="fa-solid fa-house"></i><span class="hidden sm:inline">Home</span>
+                </a>
+                <a href="/logout" id="btnAdminLogout" data-action="logout"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 cursor-pointer"
+                   title="Esci dal pannello amministratore">
+                    <i class="fa-solid fa-right-from-bracket"></i><span>Esci</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert / Stato -->
+    <div id="statsAlert" class="hidden mb-6 p-4 rounded-xl text-xs font-semibold border"></div>
+
+    <!-- 1. KPI TOP LEVEL: 4 Card principali -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <!-- Totale Annunci -->
+        <div class="p-5 rounded-2xl bg-white border border-[#DDD9CD] shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] uppercase tracking-widest font-mono text-[#6B7064]">Annunci Totali</span>
+                <span class="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style="background:#F7F3EA;color:#8C734B;">
+                    <i class="fa-solid fa-bullhorn"></i>
+                </span>
+            </div>
+            <div id="kpiAnnunciTotale" class="text-3xl font-black text-[#252821] mt-2">—</div>
+            <div class="text-[11px] text-[#68733F] mt-1 font-medium flex items-center gap-1">
+                <span id="kpiAnnunciPubblicati">—</span> pubblicati attivi
+            </div>
+        </div>
+
+        <!-- Visualizzazioni Totali -->
+        <div class="p-5 rounded-2xl bg-white border border-[#DDD9CD] shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] uppercase tracking-widest font-mono text-[#6B7064]">Visualizzazioni</span>
+                <span class="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style="background:#EFF6FF;color:#2563EB;">
+                    <i class="fa-solid fa-eye"></i>
+                </span>
+            </div>
+            <div id="kpiVisualizzazioni" class="text-3xl font-black text-[#252821] mt-2">—</div>
+            <div class="text-[11px] text-blue-600 mt-1 font-medium">
+                Traffico organico bacheca
+            </div>
+        </div>
+
+        <!-- Utenti Registrati -->
+        <div class="p-5 rounded-2xl bg-white border border-[#DDD9CD] shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] uppercase tracking-widest font-mono text-[#6B7064]">Utenti Registrati</span>
+                <span class="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style="background:#ECFDF5;color:#16A34A;">
+                    <i class="fa-solid fa-users"></i>
+                </span>
+            </div>
+            <div id="kpiUtentiTotale" class="text-3xl font-black text-[#252821] mt-2">—</div>
+            <div class="text-[11px] text-emerald-600 mt-1 font-medium flex items-center gap-1">
+                <span id="kpiUtentiAttivi">—</span> attivi · <span id="kpiUtentiDisabilitati">—</span> bloccati
+            </div>
+        </div>
+
+        <!-- Segnalazioni / Notifiche -->
+        <div class="p-5 rounded-2xl bg-white border border-[#DDD9CD] shadow-sm relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] uppercase tracking-widest font-mono text-[#6B7064]">Segnalazioni T.U.L.P.S.</span>
+                <span class="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style="background:#FEF2F2;color:#DC2626;">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </span>
+            </div>
+            <div id="kpiSegnalazioni" class="text-3xl font-black text-[#252821] mt-2">—</div>
+            <div class="text-[11px] text-rose-600 mt-1 font-medium flex items-center gap-1">
+                <span id="kpiSegnalazioniAperte">—</span> aperte · <span id="kpiSegnalazioniRisolte">—</span> gestite
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. GRID A 2 COLONNE: STATO ANNUNCI & INSERZIONISTI -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        
+        <!-- Scheda Stato Annunci -->
+        <div class="p-6 rounded-2xl bg-white border border-[#DDD9CD] shadow-sm">
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#DDD9CD]">
+                <h2 class="text-sm font-bold text-[#252821] uppercase tracking-wide flex items-center gap-2">
+                    <i class="fa-solid fa-boxes-stacked text-[#8C734B]"></i>
+                    Stato Annunci in Catalogo
+                </h2>
+                <span class="text-xs font-mono font-bold text-[#68733F]" id="badgeAnnunciTotale">0 TOT</span>
+            </div>
+
+            <div class="space-y-3.5">
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-medium text-[#252821] flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Pubblicati (Visibili)
+                        </span>
+                        <span class="font-mono font-bold text-[#252821]" id="valAnnunciPubblicati">0</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-stone-100 overflow-hidden">
+                        <div id="barAnnunciPubblicati" class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-medium text-[#252821] flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>In Moderazione / Controllo
+                        </span>
+                        <span class="font-mono font-bold text-[#252821]" id="valAnnunciModerazione">0</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-stone-100 overflow-hidden">
+                        <div id="barAnnunciModerazione" class="h-full bg-amber-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-medium text-[#252821] flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>Venduti / Conclusi
+                        </span>
+                        <span class="font-mono font-bold text-[#252821]" id="valAnnunciVenduti">0</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-stone-100 overflow-hidden">
+                        <div id="barAnnunciVenduti" class="h-full bg-sky-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-medium text-[#252821] flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>Rifiutati / Difformi
+                        </span>
+                        <span class="font-mono font-bold text-[#252821]" id="valAnnunciRifiutati">0</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-stone-100 overflow-hidden">
+                        <div id="barAnnunciRifiutati" class="h-full bg-rose-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-medium text-[#252821] flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-stone-400"></span>Bozze non completate
+                        </span>
+                        <span class="font-mono font-bold text-[#252821]" id="valAnnunciBozza">0</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-stone-100 overflow-hidden">
+                        <div id="barAnnunciBozza" class="h-full bg-stone-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scheda Tipologia Inserzionisti & Account -->
+        <div class="p-6 rounded-2xl bg-white border border-[#DDD9CD] shadow-sm">
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#DDD9CD]">
+                <h2 class="text-sm font-bold text-[#252821] uppercase tracking-wide flex items-center gap-2">
+                    <i class="fa-solid fa-user-group text-[#68733F]"></i>
+                    Composizione Inserzionisti & Account
+                </h2>
+                <span class="text-xs font-mono font-bold text-[#8C734B]" id="badgeUtentiTotale">0 ACCOUNT</span>
+            </div>
+
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-3 mb-2">
+                    <div class="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50">
+                        <div class="text-[10px] uppercase font-mono text-emerald-800 font-bold">Annunci Armerie</div>
+                        <div class="text-2xl font-black text-emerald-900 mt-1" id="valInsArmeria">0</div>
+                        <div class="text-[10px] text-emerald-700 mt-0.5" id="pctInsArmeria">0% del totale</div>
+                    </div>
+                    <div class="p-3.5 rounded-xl border border-sky-200 bg-sky-50/50">
+                        <div class="text-[10px] uppercase font-mono text-sky-800 font-bold">Annunci Privati</div>
+                        <div class="text-2xl font-black text-sky-900 mt-1" id="valInsPrivato">0</div>
+                        <div class="text-[10px] text-sky-700 mt-0.5" id="pctInsPrivato">0% del totale</div>
+                    </div>
+                </div>
+
+                <div class="border-t border-[#DDD9CD] pt-3">
+                    <div class="text-xs font-bold text-[#252821] mb-2 uppercase tracking-wide">Dettaglio Account Registrati</div>
+                    <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div class="p-2.5 rounded-lg bg-[#F7F5EF] border border-[#DDD9CD]">
+                            <div class="text-[10px] text-[#6B7064] uppercase font-mono">Privati</div>
+                            <div class="font-black text-base text-[#252821] mt-0.5" id="valUtentiPrivati">0</div>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-[#F7F5EF] border border-[#DDD9CD]">
+                            <div class="text-[10px] text-[#6B7064] uppercase font-mono">Armerie</div>
+                            <div class="font-black text-base text-[#252821] mt-0.5" id="valUtentiArmerie">0</div>
+                        </div>
+                        <div class="p-2.5 rounded-lg bg-[#F7F5EF] border border-[#DDD9CD]">
+                            <div class="text-[10px] text-[#6B7064] uppercase font-mono">Admin</div>
+                            <div class="font-black text-base text-[#8C734B] mt-0.5" id="valUtentiAdmin">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between text-xs pt-1">
+                    <span class="text-[#6B7064]">Account con stato attivo:</span>
+                    <span class="font-bold text-emerald-700" id="valUtentiAttiviLabel">0</span>
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-[#6B7064]">Account disabilitati / sospesi:</span>
+                    <span class="font-bold text-rose-700" id="valUtentiDisabilitatiLabel">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. GRID A 2 COLONNE: CATEGORIE ARMI & COMUNICAZIONI EMAIL -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Ripartizione Tipologia Armi -->
+        <div class="p-6 rounded-2xl bg-white border border-[#DDD9CD] shadow-sm">
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#DDD9CD]">
+                <h2 class="text-sm font-bold text-[#252821] uppercase tracking-wide flex items-center gap-2">
+                    <i class="fa-solid fa-crosshairs text-[#4F5A30]"></i>
+                    Ripartizione Categorie Armi
+                </h2>
+                <span class="text-xs font-mono font-bold text-[#68733F]" id="badgeArmiTotale">0</span>
+            </div>
+
+            <div class="space-y-3.5">
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-medium text-[#252821]">Arma Corta (Pistole / Revolver)</span>
+                        <span class="font-mono font-bold text-[#252821]" id="valArmaCorta">0</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-stone-100 overflow-hidden">
+                        <div id="barArmaCorta" class="h-full bg-[#68733F] rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-medium text-[#252821]">Arma Lunga Rigata (Carabine / Fucili)</span>
+                        <span class="font-mono font-bold text-[#252821]" id="valArmaLunga">0</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-stone-100 overflow-hidden">
+                        <div id="barArmaLunga" class="h-full bg-[#8C734B] rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-medium text-[#252821]">Canna Liscia (Fucili a pallini / Tiro a volo)</span>
+                        <span class="font-mono font-bold text-[#252821]" id="valCannaLiscia">0</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-stone-100 overflow-hidden">
+                        <div id="barCannaLiscia" class="h-full bg-amber-600 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-medium text-[#252821]">Aria Compressa Libera Vendita (&lt; 7.5 Joule)</span>
+                        <span class="font-mono font-bold text-[#252821]" id="valAriaCompressa">0</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-stone-100 overflow-hidden">
+                        <div id="barAriaCompressa" class="h-full bg-teal-600 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-medium text-[#252821]">Accessori, Ottiche & Fondine</span>
+                        <span class="font-mono font-bold text-[#252821]" id="valAccessori">0</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-stone-100 overflow-hidden">
+                        <div id="barAccessori" class="h-full bg-stone-600 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flussi di Comunicazione & Email di Sistema -->
+        <div class="p-6 rounded-2xl bg-white border border-[#DDD9CD] shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#DDD9CD]">
+                    <h2 class="text-sm font-bold text-[#252821] uppercase tracking-wide flex items-center gap-2">
+                        <i class="fa-solid fa-paper-plane text-emerald-600"></i>
+                        Comunicazioni & Posta di Sistema
+                    </h2>
+                    <a href="/admin/posta" class="text-xs font-bold text-[#68733F] hover:underline flex items-center gap-1">
+                        Apri Posta <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3 mb-6">
+                    <div class="p-4 rounded-xl bg-white border border-[#DDD9CD] text-center">
+                        <div class="text-[10px] uppercase font-mono text-[#6B7064]">Email Totali</div>
+                        <div class="text-2xl font-black text-[#252821] mt-1" id="valEmailTotali">0</div>
+                    </div>
+                    <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/60 text-center">
+                        <div class="text-[10px] uppercase font-mono text-emerald-800 font-bold">Inviate OK</div>
+                        <div class="text-2xl font-black text-emerald-700 mt-1" id="valEmailInviate">0</div>
+                    </div>
+                    <div class="p-4 rounded-xl border border-rose-200 bg-rose-50/60 text-center">
+                        <div class="text-[10px] uppercase font-mono text-rose-800 font-bold">Errori Invio</div>
+                        <div class="text-2xl font-black text-rose-700 mt-1" id="valEmailErrori">0</div>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-xl bg-[#F7F5EF] border border-[#DDD9CD] space-y-2 text-xs">
+                    <div class="font-bold text-[#252821] flex items-center gap-2">
+                        <i class="fa-solid fa-info-circle text-[#8C734B]"></i>
+                        Riepilogo Notifiche & Sicurezza
+                    </div>
+                    <p class="text-[#6B7064] text-[11px] leading-relaxed">
+                        Tutte le comunicazioni generate dalla bacheca (recupero password crittografici, contatto con inserzionisti autorizzati T.U.L.P.S. e messaggi tra utenti) vengono tracciate e possono essere verificate in tempo reale.
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-between pt-4 border-t border-[#DDD9CD] text-xs text-[#6B7064]">
+                <span>Ultimo aggiornamento: <strong id="lblLastUpdate" class="text-[#252821]">—</strong></span>
+                <span class="inline-flex items-center gap-1.5 font-mono text-[11px] text-emerald-700">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>Live Monitoring
+                </span>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script nonce="{{ request.scope.get('csp_nonce', '') }}">
+function getAuthToken() {
+    const ls = localStorage.getItem("armimarket_token");
+    if (ls) return ls;
+    const match = document.cookie.match(/(?:^|;\s*)armimarket_token=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+    const btnOut = document.getElementById("btnAdminLogout");
+    if (btnOut) {
+        btnOut.addEventListener("click", (e) => {
+            e.preventDefault();
+            if (typeof window.logout === "function") {
+                window.logout();
+            } else {
+                localStorage.removeItem("armimarket_token");
+                localStorage.removeItem("armimarket_user");
+                window.location.replace("/logout");
+            }
+        });
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+        window.location.href = "/login?redirect=/admin";
+        return;
+    }
+
+    // Verifica ruolo admin
+    try {
+        const me = await fetch("/api/v1/auth/me", { headers: { "Authorization": `Bearer ${token}` } });
+        const u = await me.json();
+        if (u.ruolo !== "admin") {
+            window.location.href = "/";
+            return;
+        }
+    } catch(e) {
+        window.location.href = "/login";
+        return;
+    }
+
+    // Event listener refresh
+    const btnRef = document.getElementById("btnRefreshStats");
+    if (btnRef) {
+        btnRef.addEventListener("click", () => {
+            caricaStatistiche();
+        });
+    }
+
+    // Carica statistiche
+    await caricaStatistiche();
+});
+
+async function caricaStatistiche() {
+    const token = getAuthToken();
+    const icon = document.getElementById("refreshIcon");
+    if (icon) icon.classList.add("fa-spin");
+
+    try {
+        const resp = await fetch("/api/v1/admin/statistiche", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            showStatsAlert(err.detail || "Errore durante il caricamento delle statistiche.", "danger");
+            return;
+        }
+
+        const data = await resp.json();
+        renderStatistiche(data);
+        document.getElementById("lblLastUpdate").textContent = new Date().toLocaleTimeString('it-IT');
+    } catch(e) {
+        showStatsAlert("Errore di connessione con il server.", "danger");
+    } finally {
+        if (icon) icon.classList.remove("fa-spin");
+    }
+}
+
+function renderStatistiche(d) {
+    const u = d.utenti || {};
+    const a = d.annunci || {};
+    const ins = d.inserzionisti || {};
+    const armi = d.tipologie_arma || {};
+    const com = d.comunicazioni || {};
+
+    // 1. KPI Top
+    document.getElementById("kpiAnnunciTotale").textContent = a.totale || 0;
+    document.getElementById("kpiAnnunciPubblicati").textContent = a.pubblicati || 0;
+    document.getElementById("kpiVisualizzazioni").textContent = Number(a.totale_visualizzazioni || 0).toLocaleString('it-IT');
+    
+    document.getElementById("kpiUtentiTotale").textContent = u.totale || 0;
+    document.getElementById("kpiUtentiAttivi").textContent = u.attivi || 0;
+    document.getElementById("kpiUtentiDisabilitati").textContent = u.disabilitati || 0;
+
+    document.getElementById("kpiSegnalazioni").textContent = com.segnalazioni_totali || 0;
+    document.getElementById("kpiSegnalazioniAperte").textContent = com.segnalazioni_aperte || 0;
+    document.getElementById("kpiSegnalazioniRisolte").textContent = com.segnalazioni_risolte || 0;
+
+    // 2. Stato Annunci
+    const totA = a.totale || 0;
+    document.getElementById("badgeAnnunciTotale").textContent = `${totA} TOT`;
+
+    const setBar = (valId, barId, count) => {
+        document.getElementById(valId).textContent = count;
+        const pct = totA > 0 ? Math.round((count / totA) * 100) : 0;
+        document.getElementById(barId).style.width = `${pct}%`;
+    };
+
+    setBar("valAnnunciPubblicati", "barAnnunciPubblicati", a.pubblicati || 0);
+    setBar("valAnnunciModerazione", "barAnnunciModerazione", a.in_moderazione || 0);
+    setBar("valAnnunciVenduti", "barAnnunciVenduti", a.venduti || 0);
+    setBar("valAnnunciRifiutati", "barAnnunciRifiutati", a.rifiutati || 0);
+    setBar("valAnnunciBozza", "barAnnunciBozza", a.bozza || 0);
+
+    // 3. Inserzionisti & Utenti
+    document.getElementById("badgeUtentiTotale").textContent = `${u.totale || 0} ACCOUNT`;
+    const insArmeria = ins.armeria || 0;
+    const insPrivato = ins.privato || 0;
+    const totIns = insArmeria + insPrivato;
+
+    document.getElementById("valInsArmeria").textContent = insArmeria;
+    document.getElementById("valInsPrivato").textContent = insPrivato;
+    document.getElementById("pctInsArmeria").textContent = totIns > 0 ? `${Math.round((insArmeria/totIns)*100)}% degli annunci` : '0%';
+    document.getElementById("pctInsPrivato").textContent = totIns > 0 ? `${Math.round((insPrivato/totIns)*100)}% degli annunci` : '0%';
+
+    document.getElementById("valUtentiPrivati").textContent = u.privati || 0;
+    document.getElementById("valUtentiArmerie").textContent = u.armerie || 0;
+    document.getElementById("valUtentiAdmin").textContent = u.admin || 0;
+
+    document.getElementById("valUtentiAttiviLabel").textContent = `${u.attivi || 0} (${u.totale > 0 ? Math.round((u.attivi/u.totale)*100) : 0}%)`;
+    document.getElementById("valUtentiDisabilitatiLabel").textContent = `${u.disabilitati || 0} (${u.totale > 0 ? Math.round((u.disabilitati/u.totale)*100) : 0}%)`;
+
+    // 4. Ripartizione Armi
+    const totArmi = (armi.arma_corta || 0) + (armi.arma_lunga_rigata || 0) + (armi.canna_liscia || 0) + (armi.aria_compressa_libera || 0) + (armi.accessorio_ottica || 0);
+    document.getElementById("badgeArmiTotale").textContent = `${totArmi} CATALOGATI`;
+
+    const setArmaBar = (valId, barId, count) => {
+        document.getElementById(valId).textContent = count;
+        const pct = totArmi > 0 ? Math.round((count / totArmi) * 100) : 0;
+        document.getElementById(barId).style.width = `${pct}%`;
+    };
+
+    setArmaBar("valArmaCorta", "barArmaCorta", armi.arma_corta || 0);
+    setArmaBar("valArmaLunga", "barArmaLunga", armi.arma_lunga_rigata || 0);
+    setArmaBar("valCannaLiscia", "barCannaLiscia", armi.canna_liscia || 0);
+    setArmaBar("valAriaCompressa", "barAriaCompressa", armi.aria_compressa_libera || 0);
+    setArmaBar("valAccessori", "barAccessori", armi.accessorio_ottica || 0);
+
+    // 5. Comunicazioni
+    document.getElementById("valEmailTotali").textContent = com.email_totali || 0;
+    document.getElementById("valEmailInviate").textContent = com.email_inviate || 0;
+    document.getElementById("valEmailErrori").textContent = com.email_errori || 0;
+}
+
+function showStatsAlert(msg, type) {
+    const box = document.getElementById("statsAlert");
+    if (!box) return;
+    box.classList.remove("hidden");
+    const iconClass = type === "success" ? "fa-solid fa-circle-check mr-2" : "fa-solid fa-triangle-exclamation text-base mr-2";
+    if (type === "success") {
+        box.style.background = "#ECFDF5";
+        box.style.borderColor = "#86EFAC";
+        box.style.color = "#166534";
+    } else {
+        box.style.background = "#FEF2F2";
+        box.style.borderColor = "#FCA5A5";
+        box.style.color = "#991B1B";
+    }
+    box.innerHTML = `<i class="${iconClass}"></i><span></span>`;
+    box.querySelector("span").textContent = String(msg);
+    setTimeout(() => box.classList.add("hidden"), 5000);
+}
+</script>
+{% endblock %}

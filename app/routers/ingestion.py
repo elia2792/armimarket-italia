@@ -309,34 +309,19 @@ async def scrape_all_directory(
     Scarica annunci reali, foto originali e link di rimando diretto.
     Riservato agli amministratori.
     """
-    from app.services.scraper.product_scraper import UniversalArmeriaScraper
+    from app.services.scraper.product_scraper import UniversalArmeriaScraper, get_or_create_system_bot_user
     from app.services.scraper.directory import ARMERIE_TARGETS
-    from app.core.security import hash_password
 
     tot_analizzati = 0
     tot_inseriti = 0
     tot_esistenti = 0
     tot_scartati = 0
 
+    system_bot = await get_or_create_system_bot_user(db)
+
     for target in ARMERIE_TARGETS:
-        # Trova o crea utente per l'armeria reale
-        stmt = select(User).where(User.email == target["email"].lower())
-        armeria = (await db.execute(stmt)).scalar_one_or_none()
-        if not armeria:
-            armeria = User(
-                email=target["email"].lower(),
-                hashed_password=hash_password("Partner123!"),
-                nome=target["nome"],
-                ragione_sociale=target["ragione_sociale"],
-                telefono=target["telefono"],
-                licenza_tulps=target["licenza_tulps"],
-                ruolo=RuoloUtente.ARMERIA,
-                is_active=True,
-                is_verified=True,
-            )
-            db.add(armeria)
-            await db.commit()
-            await db.refresh(armeria)
+        # NON creare utente per le armerie esterne della directory: devono registrarsi loro!
+        # Le armerie della directory servono esclusivamente per lo scraping informativo.
 
         # Trova comune
         stmt_comune = select(Comune).where(Comune.nome.ilike(f"%{target['citta']}%"))
@@ -359,8 +344,9 @@ async def scrape_all_directory(
             stats = await UniversalArmeriaScraper.scrape_and_save_listings(
                 db=db,
                 product_urls=product_links,
-                armeria_user=armeria,
-                comune_id=comune_id
+                armeria_user=system_bot,
+                comune_id=comune_id,
+                armeria_info=target
             )
             tot_inseriti += stats["inseriti"]
             tot_esistenti += stats["esistenti"]

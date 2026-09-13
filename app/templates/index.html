@@ -239,6 +239,63 @@
             </div>
             {% endfor %}
         </div>
+
+        <!-- Barra di Paginazione Elegante (50 Annunci per Pagina) -->
+        {% if totale_pagine and totale_pagine > 1 %}
+        {% set query_params = [] %}
+        {% if current_q %}{% set _ = query_params.append('q=' ~ current_q|urlencode) %}{% endif %}
+        {% if current_marca %}{% set _ = query_params.append('marca=' ~ current_marca|urlencode) %}{% endif %}
+        {% if current_modello %}{% set _ = query_params.append('modello=' ~ current_modello|urlencode) %}{% endif %}
+        {% if current_calibro %}{% set _ = query_params.append('calibro=' ~ current_calibro|urlencode) %}{% endif %}
+        {% if current_regione_id %}{% set _ = query_params.append('regione_id=' ~ current_regione_id) %}{% endif %}
+        {% if current_tipo %}{% set _ = query_params.append('tipologia_arma=' ~ current_tipo|urlencode) %}{% endif %}
+        {% if current_ins %}{% set _ = query_params.append('tipologia_inserzionista=' ~ current_ins|urlencode) %}{% endif %}
+        {% if current_pmin %}{% set _ = query_params.append('prezzo_min=' ~ current_pmin) %}{% endif %}
+        {% if current_pmax %}{% set _ = query_params.append('prezzo_max=' ~ current_pmax) %}{% endif %}
+        {% if not auto_scrape_active %}{% set _ = query_params.append('auto_scrape=0') %}{% endif %}
+        {% set base_qs = ('&' ~ query_params|join('&')) if query_params else '' %}
+
+        <div class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl border border-[#DDD9CD] bg-white shadow-sm">
+            <div class="text-xs text-[#6B7064] font-medium">
+                Mostrando <strong class="text-[#252821]">{{ ((pagina - 1) * elementi_per_pagina) + 1 }}</strong> - <strong class="text-[#252821]">{{ [pagina * elementi_per_pagina, totale]|min }}</strong> di <strong class="text-[#8C734B]">{{ totale }}</strong> annunci (50 per pagina)
+            </div>
+
+            <div class="flex items-center space-x-2">
+                {% if pagina > 1 %}
+                <a href="/?pagina={{ pagina - 1 }}{{ base_qs }}" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center space-x-1"
+                   style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
+                    <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                    <span>Precedente</span>
+                </a>
+                {% else %}
+                <span class="px-3.5 py-1.5 rounded-lg text-xs font-bold opacity-40 cursor-not-allowed flex items-center space-x-1"
+                      style="background:#F1EFE7;border:1px solid #DDD9CD;color:#A8A29E;">
+                    <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                    <span>Precedente</span>
+                </span>
+                {% endif %}
+
+                <span class="px-3 py-1.5 rounded-lg text-xs font-mono font-bold"
+                      style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;">
+                    Pagina {{ pagina }} di {{ totale_pagine }}
+                </span>
+
+                {% if pagina < totale_pagine %}
+                <a href="/?pagina={{ pagina + 1 }}{{ base_qs }}" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center space-x-1"
+                   style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
+                    <span>Successiva</span>
+                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </a>
+                {% else %}
+                <span class="px-3.5 py-1.5 rounded-lg text-xs font-bold opacity-40 cursor-not-allowed flex items-center space-x-1"
+                      style="background:#F1EFE7;border:1px solid #DDD9CD;color:#A8A29E;">
+                    <span>Successiva</span>
+                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
         {% else %}
         <div class="bg-slate-950 border border-slate-800 rounded-xl p-12 text-center text-slate-400">
             <i class="fa-solid fa-magnifying-glass text-4xl text-slate-600 mb-3"></i>

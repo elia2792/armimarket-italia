@@ -24,7 +24,12 @@
                     ◆ Pannello riservato ADMIN · Visualizza, blocca ed elimina account registrati
                 </p>
             </div>
-            <div class="flex gap-2">
+            <div class="flex items-center gap-2">
+                <a href="/admin"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
+                   style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
+                    <i class="fa-solid fa-chart-pie"></i><span class="hidden sm:inline">Statistiche</span>
+                </a>
                 <a href="/admin/posta"
                    class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
                    style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
@@ -34,6 +39,11 @@
                    class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
                    style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;">
                     <i class="fa-solid fa-house"></i><span class="hidden sm:inline">Home</span>
+                </a>
+                <a href="/logout" id="btnAdminLogout" data-action="logout"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 cursor-pointer"
+                   title="Esci dal pannello amministratore">
+                    <i class="fa-solid fa-right-from-bracket"></i><span>Esci</span>
                 </a>
             </div>
         </div>
@@ -117,12 +127,34 @@
 
 {% block extra_scripts %}
 <script nonce="{{ request.scope.get('csp_nonce', '') }}">
-const token = localStorage.getItem("armimarket_token");
+// Lettura token con fallback su cookie (gestisce entrambi i flussi di login)
+function getAuthToken() {
+    const ls = localStorage.getItem("armimarket_token");
+    if (ls) return ls;
+    const match = document.cookie.match(/(?:^|;\s*)armimarket_token=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+}
+const token = getAuthToken();
 let currentPage = 1;
 let totalPages = 1;
 let searchTimeout = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
+    // Listener logout immediato
+    const btnOut = document.getElementById("btnAdminLogout");
+    if (btnOut) {
+        btnOut.addEventListener("click", (e) => {
+            e.preventDefault();
+            if (typeof window.logout === "function") {
+                window.logout();
+            } else {
+                localStorage.removeItem("armimarket_token");
+                localStorage.removeItem("armimarket_user");
+                window.location.replace("/logout");
+            }
+        });
+    }
+
     if (!token) { window.location.href = "/login?redirect=/admin/utenti"; return; }
 
     // Verifica ruolo admin
@@ -143,19 +175,28 @@ function debounceSearch() {
 
 async function loadStats() {
     try {
-        // Carica tutti per conteggio rapido (prima pagina grande)
-        const r = await fetch("/api/v1/admin/utenti?per_pagina=100", {
-            headers: { "Authorization": `Bearer ${token}` }
+        const authToken = getAuthToken();
+        const r = await fetch("/api/v1/admin/statistiche", {
+            headers: { "Authorization": `Bearer ${authToken}` }
         });
-        const data = await r.json();
-        const totale = data.length;
-        const privati = data.filter(u => u.ruolo === "privato").length;
-        const armerie = data.filter(u => u.ruolo === "armeria").length;
-        const disabled = data.filter(u => !u.is_active).length;
-        document.getElementById("statTotale").textContent = totale;
-        document.getElementById("statPrivati").textContent = privati;
-        document.getElementById("statArmerie").textContent = armerie;
-        document.getElementById("statDisabilitati").textContent = disabled;
+        if (r.ok) {
+            const data = await r.json();
+            const u = data.utenti || {};
+            document.getElementById("statTotale").textContent = u.totale || 0;
+            document.getElementById("statPrivati").textContent = u.privati || 0;
+            document.getElementById("statArmerie").textContent = u.armerie || 0;
+            document.getElementById("statDisabilitati").textContent = u.disabilitati || 0;
+            return;
+        }
+        // Fallback
+        const rFallback = await fetch("/api/v1/admin/utenti?per_pagina=100", {
+            headers: { "Authorization": `Bearer ${authToken}` }
+        });
+        const dataFallback = await rFallback.json();
+        document.getElementById("statTotale").textContent = dataFallback.length;
+        document.getElementById("statPrivati").textContent = dataFallback.filter(u => u.ruolo === "privato").length;
+        document.getElementById("statArmerie").textContent = dataFallback.filter(u => u.ruolo === "armeria").length;
+        document.getElementById("statDisabilitati").textContent = dataFallback.filter(u => !u.is_active).length;
     } catch(e) {}
 }
 
@@ -175,7 +216,8 @@ async function loadUtenti() {
     if (attivo !== "") url += `&attivo=${attivo}`;
 
     try {
-        const resp = await fetch(url, { headers: { "Authorization": `Bearer ${token}` } });
+        const authToken = getAuthToken();
+        const resp = await fetch(url, { headers: { "Authorization": `Bearer ${authToken}` } });
         if (!resp.ok) {
             const err = await resp.json();
             showAlert(err.detail || "Errore nel caricamento utenti.", "danger");
@@ -246,21 +288,21 @@ function renderUtenti(utenti) {
         ` : `
             <div class="flex items-center gap-1.5">
                 ${u.is_active
-                    ? `<button onclick="disabilitaUtente(${u.id})"
-                              class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all shadow-sm"
+                    ? `<button type="button" data-action="disabilita" data-uid="${u.id}"
+                              class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all shadow-sm cursor-pointer"
                               style="background:#FFF7ED;border:1px solid #FDBA74;color:#C2410C;"
                               title="Blocca accesso senza eliminare i dati">
                             <i class="fa-solid fa-ban mr-1"></i>Disabilita
                         </button>`
-                    : `<button onclick="riabilitaUtente(${u.id})"
-                              class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all shadow-sm"
+                    : `<button type="button" data-action="riabilita" data-uid="${u.id}"
+                              class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all shadow-sm cursor-pointer"
                               style="background:#ECFDF5;border:1px solid #86EFAC;color:#15803D;"
                               title="Riabilita accesso all'account">
                             <i class="fa-solid fa-circle-check mr-1"></i>Riabilita
                         </button>`
                 }
-                <button onclick="eliminaUtente(${u.id})"
-                        class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all shadow-sm"
+                <button type="button" data-action="elimina" data-uid="${u.id}"
+                        class="text-[10px] font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide transition-all shadow-sm cursor-pointer"
                         style="background:#FEF2F2;border:1px solid #FCA5A5;color:#B91C1C;"
                         title="Elimina definitivamente account e tutti i suoi annunci">
                     <i class="fa-solid fa-trash-can mr-1"></i>Elimina
@@ -299,47 +341,75 @@ function renderUtenti(utenti) {
     container.innerHTML = `<div class="space-y-2.5">${rows}</div>`;
 }
 
-async function disabilitaUtente(id) {
+// Event Delegation globale su click per data-action disabilita/riabilita/elimina
+document.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-action][data-uid]");
+    if (!btn) return;
+    const action = btn.getAttribute("data-action");
+    const uid = parseInt(btn.getAttribute("data-uid"), 10);
+    if (!uid) return;
+
+    if (action === "disabilita") {
+        e.preventDefault();
+        await window.disabilitaUtente(uid);
+    } else if (action === "riabilita") {
+        e.preventDefault();
+        await window.riabilitaUtente(uid);
+    } else if (action === "elimina") {
+        e.preventDefault();
+        await window.eliminaUtente(uid);
+    }
+});
+
+window.disabilitaUtente = async function(id) {
     const user = (window.currentUtentiList || []).find(x => x.id === id);
     const email = user ? user.email : id;
     if (!confirm(`Vuoi disabilitare l'account di "${email}"?\n\nL'utente non potrà più accedere ma i suoi dati resteranno nel database.`)) return;
     try {
+        const authToken = getAuthToken();
         const resp = await fetch(`/api/v1/admin/utenti/${id}/disabilita`, {
             method: "PATCH",
-            headers: { "Authorization": `Bearer ${token}` }
+            headers: { 
+                "Authorization": `Bearer ${authToken}`,
+                "Content-Type": "application/json"
+            }
         });
         const data = await resp.json();
         if (resp.ok) {
-            showAlert(data.message, "success");
+            showAlert(data.message || "Utente disabilitato con successo.", "success");
             await loadUtenti();
             await loadStats();
         } else {
             showAlert(data.detail || "Errore durante la disabilitazione.", "danger");
         }
     } catch(e) { showAlert("Errore di connessione.", "danger"); }
-}
+};
 
-async function riabilitaUtente(id) {
+window.riabilitaUtente = async function(id) {
     const user = (window.currentUtentiList || []).find(x => x.id === id);
     const email = user ? user.email : id;
     if (!confirm(`Vuoi riabilitare l'account di "${email}"?`)) return;
     try {
+        const authToken = getAuthToken();
         const resp = await fetch(`/api/v1/admin/utenti/${id}/riabilita`, {
             method: "PATCH",
-            headers: { "Authorization": `Bearer ${token}` }
+            headers: { 
+                "Authorization": `Bearer ${authToken}`,
+                "Content-Type": "application/json"
+            }
         });
         const data = await resp.json();
         if (resp.ok) {
-            showAlert(data.message, "success");
+            showAlert(data.message || "Utente riabilitato con successo.", "success");
             await loadUtenti();
             await loadStats();
         } else {
-            showAlert(data.detail || "Errore.", "danger");
+            showAlert(data.detail || "Errore durante la riabilitazione.", "danger");
         }
     } catch(e) { showAlert("Errore di connessione.", "danger"); }
-}
+};
 
-async function eliminaUtente(id) {
+window.eliminaUtente = async function(id) {
     const user = (window.currentUtentiList || []).find(x => x.id === id);
     const email = user ? user.email : id;
     const conferma = prompt(
@@ -350,20 +420,24 @@ async function eliminaUtente(id) {
         return;
     }
     try {
+        const authToken = getAuthToken();
         const resp = await fetch(`/api/v1/admin/utenti/${id}`, {
             method: "DELETE",
-            headers: { "Authorization": `Bearer ${token}` }
+            headers: { 
+                "Authorization": `Bearer ${authToken}`,
+                "Content-Type": "application/json"
+            }
         });
         const data = await resp.json();
         if (resp.ok) {
-            showAlert(data.message, "success");
+            showAlert(data.message || "Account eliminato definitivamente.", "success");
             document.getElementById(`user-row-${id}`)?.remove();
             await loadStats();
         } else {
             showAlert(data.detail || "Errore durante l'eliminazione.", "danger");
         }
     } catch(e) { showAlert("Errore di connessione.", "danger"); }
-}
+};
 
 function changePage(delta) {
     currentPage = Math.max(1, currentPage + delta);
@@ -384,10 +458,16 @@ function showAlert(msg, type) {
     const box = document.getElementById("adminAlert");
     if (!box) return;
     box.classList.remove("hidden");
-    const iconClass = type === "success" ? "fa-solid fa-circle-check text-base" : "fa-solid fa-triangle-exclamation text-base";
-    box.style.background = type === "success" ? "#052e16" : "#1a0808";
-    box.style.borderColor = type === "success" ? "#16a34a" : "#dc2626";
-    box.style.color = type === "success" ? "#86efac" : "#fca5a5";
+    const iconClass = type === "success" ? "fa-solid fa-circle-check text-base mr-2" : "fa-solid fa-triangle-exclamation text-base mr-2";
+    if (type === "success") {
+        box.style.background = "#ECFDF5";
+        box.style.borderColor = "#86EFAC";
+        box.style.color = "#166534";
+    } else {
+        box.style.background = "#FEF2F2";
+        box.style.borderColor = "#FCA5A5";
+        box.style.color = "#991B1B";
+    }
     box.innerHTML = `<i class="${iconClass}"></i><span></span>`;
     box.querySelector("span").textContent = String(msg);
     setTimeout(() => box.classList.add("hidden"), 5000);

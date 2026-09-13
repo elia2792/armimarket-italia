@@ -136,10 +136,9 @@ async def test_scheda_annuncio_protezione_stati(client: AsyncClient, db_session,
 
     # Test visualizzazione HTML con cookie per proprietario
     owner_raw_token = private_token_headers["Authorization"].split(" ")[1]
-    resp_view_owner = await client.get(
-        f"/scheda/{annuncio_mod.id}",
-        cookies={"armimarket_token": owner_raw_token}
-    )
+    client.cookies.set("armimarket_token", owner_raw_token)
+    resp_view_owner = await client.get(f"/scheda/{annuncio_mod.id}")
+    client.cookies.delete("armimarket_token")
     assert resp_view_owner.status_code == 200
 
     # D) Test Accesso da Amministratore (id=1)

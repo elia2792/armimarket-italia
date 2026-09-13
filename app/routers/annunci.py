@@ -1,10 +1,15 @@
+import io
 import re
 import uuid
+from pathlib import Path
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from PIL import Image, UnidentifiedImageError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+from app.core.config import settings
 
 from app.core.database import get_db
 from app.core.legal import LEGAL_DISCLAIMER_ANNUNCIO, LEGAL_DISCLAIMER_FOOTER
@@ -61,7 +66,7 @@ async def search_annunci(
     prezzo_max: Optional[float] = Query(None, ge=0, description="Prezzo massimo"),
     ordina_per: str = Query("data_desc", pattern="^(data_desc|prezzo_asc|prezzo_desc|distanza)$"),
     pagina: int = Query(1, ge=1, description="Numero di pagina"),
-    elementi_per_pagina: int = Query(20, ge=1, le=100, description="Annunci per pagina"),
+    elementi_per_pagina: int = Query(50, ge=1, le=100, description="Annunci per pagina"),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -628,4 +633,141 @@ async def list_poligoni(
             "comune": p.comune.nome if p.comune else None
         })
     return out
+
+
+MAX_ANNUNCIO_FOTO_BYTES = 5 * 1024 * 1024  # 5 MB per foto
+
+
+def _validate_annuncio_image_magic(data: bytes) -> str:
+    if len(data) < 12:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File immagine troppo piccolo o incompleto."
+        )
+    prefix_lower = data[:256].lower()
+    if (
+        b"<?xml" in prefix_lower
+        or b"<svg" in prefix_lower
+        or b"<!doctype" in prefix_lower
+        or b"<html" in prefix_lower
+        or b"<script" in prefix_lower
+        or b"<?php" in prefix_lower
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Formato non consentito: file SVG, HTML, script o contenuti attivi sono vietati."
+        )
+    if data[:3] == b"\xff\xd8\xff":
+        return "JPEG"
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "PNG"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "WEBP"
+    raise HTTPException(
+        status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        detail="Formato non supportato. Sono accettate solo immagini JPG/JPEG, PNG o WebP autentiche."
+    )
+
+
+@router.post(
+    "/upload-foto",
+    summary="Caricamento Diretto Fotografie Annuncio",
+    dependencies=[Depends(rate_limit(max_requests=10, window_seconds=60, prefix="annunci_upload_foto"))]
+)
+async def upload_foto_annuncio(
+    files: List[UploadFile] = File(..., description="Foto in formato JPG, PNG o WebP (max 5 MB ciascuna)"),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Carica, valida e salva in modo sicuro una o più fotografie per un annuncio.
+    - Dimensione massima: 5 MB per singola immagine
+    - Validazione magic bytes effettivi (blocco SVG, script mascherati)
+    - Ricodifica Pillow con rimozione metadati EXIF sensibili
+    - Generazione percorso e nome file sicuro e casuale
+    """
+    if not files:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nessun file selezionato per l'upload."
+        )
+
+    if len(files) > 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="È possibile caricare al massimo 10 fotografie per annuncio contemporaneamente."
+        )
+
+    if settings.UPLOAD_DIR and settings.UPLOAD_DIR != "./uploads":
+        upload_dir = Path(settings.UPLOAD_DIR).resolve() / "annunci"
+    else:
+        upload_dir = (Path(__file__).resolve().parents[1] / "static" / "uploads" / "annunci").resolve()
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    saved_urls: List[str] = []
+
+    for file in files:
+        contents = await file.read()
+        if len(contents) > MAX_ANNUNCIO_FOTO_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail=f"L'immagine '{file.filename}' supera il limite consentito di 5 MB."
+            )
+
+        detected_format = _validate_annuncio_image_magic(contents)
+
+        try:
+            with Image.open(io.BytesIO(contents)) as img_check:
+                img_check.verify()
+
+            with Image.open(io.BytesIO(contents)) as img:
+                real_format = (img.format or detected_format).upper()
+                if real_format not in ("JPEG", "PNG", "WEBP"):
+                    raise HTTPException(
+                        status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                        detail="Formato non supportato (ammessi solo JPEG, PNG, WebP)."
+                    )
+
+                ext_map = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp"}
+                safe_ext = ext_map.get(real_format, "jpg")
+
+                output_buffer = io.BytesIO()
+                if real_format == "JPEG":
+                    if img.mode in ("RGBA", "LA", "P"):
+                        img = img.convert("RGB")
+                    img.save(output_buffer, format="JPEG", quality=85, optimize=True)
+                elif real_format == "PNG":
+                    img.save(output_buffer, format="PNG", optimize=True)
+                elif real_format == "WEBP":
+                    img.save(output_buffer, format="WEBP", quality=85)
+
+                reencoded_bytes = output_buffer.getvalue()
+
+        except HTTPException:
+            raise
+        except (UnidentifiedImageError, OSError, ValueError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Il file '{file.filename}' non è un'immagine valida o risulta corrotto."
+            )
+
+        unique_filename = f"ad_{current_user.id}_{uuid.uuid4().hex}.{safe_ext}"
+        dest_file = (upload_dir / unique_filename).resolve()
+
+        if not dest_file.is_relative_to(upload_dir):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tentativo di path traversal non valido."
+            )
+
+        with dest_file.open("wb") as f:
+            f.write(reencoded_bytes)
+
+        saved_urls.append(f"/static/uploads/annunci/{unique_filename}")
+
+    return {
+        "success": True,
+        "urls": saved_urls,
+        "count": len(saved_urls)
+    }
+
 

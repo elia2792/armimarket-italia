@@ -293,7 +293,7 @@ async def test_csrf_review_tutti_endpoint_mutativi_rifiutano_cookie(client: Asyn
     user = (await db_session.execute(select(User).where(User.id == 2))).scalar_one()
     token = create_access_token(subject=user.id, extra_claims={"ruolo": user.ruolo.value})
 
-    cookies = {"armimarket_token": token}
+    client.cookies.set("armimarket_token", token)
 
     mutative_endpoints = [
         ("POST", "/api/v1/annunci", {
@@ -314,15 +314,18 @@ async def test_csrf_review_tutti_endpoint_mutativi_rifiutano_cookie(client: Asyn
         ("DELETE", "/api/v1/annunci/1", None),
     ]
 
-    for method, path, payload in mutative_endpoints:
-        if method == "POST":
-            resp = await client.post(path, cookies=cookies, json=payload)
-        elif method == "PUT":
-            resp = await client.put(path, cookies=cookies, json=payload)
-        elif method == "PATCH":
-            resp = await client.patch(path, cookies=cookies)
-        elif method == "DELETE":
-            resp = await client.delete(path, cookies=cookies)
+    try:
+        for method, path, payload in mutative_endpoints:
+            if method == "POST":
+                resp = await client.post(path, json=payload)
+            elif method == "PUT":
+                resp = await client.put(path, json=payload)
+            elif method == "PATCH":
+                resp = await client.patch(path)
+            elif method == "DELETE":
+                resp = await client.delete(path)
 
-        assert resp.status_code == 401, f"Endpoint mutativo {method} {path} ha accettato il cookie invece di richiedere Bearer token!"
-        assert "Token di autenticazione mancante" in resp.json()["detail"]
+            assert resp.status_code == 401, f"Endpoint mutativo {method} {path} ha accettato il cookie invece di richiedere Bearer token!"
+            assert "Token di autenticazione mancante" in resp.json()["detail"]
+    finally:
+        client.cookies.delete("armimarket_token")

@@ -224,7 +224,7 @@
                         <span>Scheda sul Sito Ufficiale dell'Armeria</span>
                     </div>
                     <p class="text-xs text-slate-300">
-                        Annuncio indicizzato dal catalogo online indipendente di <strong>{{ annuncio.utente.ragione_sociale or annuncio.utente.nome }}</strong>.
+                        Annuncio indicizzato dal catalogo online indipendente di <strong>{{ annuncio.nome_inserzionista_reale or annuncio.utente.ragione_sociale or annuncio.utente.nome }}</strong>.
                     </p>
                     <a href="{{ annuncio.link_esterno }}" target="_blank" rel="noopener noreferrer" class="w-full inline-flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm py-3 px-4 rounded-lg shadow-lg shadow-emerald-600/30 transition-all transform hover:-translate-y-0.5">
                         <span>Vai al Negozio Online dell'Armeria</span>
@@ -240,11 +240,7 @@
                     <p class="text-xs text-slate-300 font-medium mb-1 flex items-center gap-1.5">
                         <i class="fa-solid fa-user-tag text-amber-400"></i> Venditore: 
                         <strong class="text-amber-400">
-                            {% if annuncio.utente %}
-                                {{ annuncio.utente.display_name }}
-                            {% else %}
-                                Inserzionista ArmiMarket
-                            {% endif %}
+                            {{ annuncio.nome_inserzionista_reale or (annuncio.utente.display_name if annuncio.utente else 'Inserzionista ArmiMarket') }}
                         </strong>
                     </p>
                     <p class="text-xs text-slate-400 mb-2">

@@ -11,12 +11,65 @@ window.escapeHtml = function(str) {
 
 // Funzione di logout globale
 window.logout = function() {
-    localStorage.removeItem("armimarket_token");
-    localStorage.removeItem("armimarket_user");
-    // Rimozione eventuale cookie di preview se presente
-    document.cookie = "armimarket_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    window.location.href = "/";
+    try {
+        localStorage.removeItem("armimarket_token");
+        localStorage.removeItem("armimarket_user");
+        sessionStorage.clear();
+    } catch(e) {}
+
+    // Rimozione cookie di sessione/auth su tutti i possibili path e domini
+    const pastDate = "Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "armimarket_token=; path=/; expires=" + pastDate + "; SameSite=Lax";
+    document.cookie = "access_token=; path=/; expires=" + pastDate + "; SameSite=Lax";
+    document.cookie = "token=; path=/; expires=" + pastDate + "; SameSite=Lax";
+    try {
+        const h = window.location.hostname;
+        if (h) {
+            document.cookie = "armimarket_token=; path=/; domain=" + h + "; expires=" + pastDate + "; SameSite=Lax";
+            document.cookie = "armimarket_token=; path=/; domain=." + h + "; expires=" + pastDate + "; SameSite=Lax";
+        }
+    } catch(e) {}
+
+    // Reset immediato visivo navbar
+    const navAuth = document.getElementById("navAuthLinks");
+    if (navAuth) {
+        navAuth.innerHTML = `
+            <a href="/login" class="text-xs text-[#4A4E44] hover:text-[#252821] px-2.5 py-1.5 rounded transition-colors uppercase tracking-wide font-semibold">
+                Accedi
+            </a>
+            <a href="/registrati" class="text-xs px-3 py-1.5 rounded-lg font-bold transition-all uppercase tracking-wide"
+               style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
+                Registrati
+            </a>
+        `;
+    }
+
+    // Chiamata facoltativa in background al server
+    try {
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon("/api/v1/auth/logout");
+        } else {
+            fetch("/api/v1/auth/logout", { method: "POST", keepalive: true }).catch(function(){});
+        }
+    } catch(e) {}
+
+    // Reindirizzamento garantito a /logout per pulizia server e ricaricamento completo della pagina
+    try {
+        window.location.replace("/logout");
+    } catch(e) {
+        window.location.href = "/logout";
+    }
 };
+
+// Global click delegation per qualsiasi pulsante o link di logout (intercetta in capture phase)
+document.addEventListener("click", function(e) {
+    const logoutTarget = e.target.closest("[data-action='logout'], .btn-logout, #btnLogout, #btnAdminLogout, #btnAdminPostaLogout, #btnProfileLogout, a[href='/logout']");
+    if (logoutTarget) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.logout();
+    }
+}, true);
 
 // Gestione stato autenticazione in Navbar
 document.addEventListener("DOMContentLoaded", () => {
@@ -44,6 +97,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 : `<i class="fa-solid ${u.ruolo === 'armeria' ? 'fa-store' : (u.ruolo === 'admin' ? 'fa-user-gear' : 'fa-user-shield')} text-[11px]"></i>`;
 
             const adminPostaBtn = (u.ruolo === 'admin') ? `
+                <a href="/admin" class="text-xs font-bold flex items-center space-x-1.5 py-1 px-2.5 rounded-lg transition-all shadow uppercase tracking-wide"
+                   style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;" title="Dashboard Statistiche">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span class="hidden sm:inline">Statistiche</span>
+                </a>
                 <a href="/admin/posta" class="text-xs font-bold flex items-center space-x-1.5 py-1 px-2.5 rounded-lg transition-all shadow uppercase tracking-wide"
                    style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;" title="Casella Postale Amministratore">
                     <i class="fa-solid fa-envelope"></i>
@@ -63,9 +121,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     ${avatarHtml}
                     <span class="max-w-[110px] truncate">${window.escapeHtml(label)}</span>
                 </a>
-                <button onclick="logout()" class="text-xs text-stone-500 hover:text-rose-600 ml-1 p-1 transition-colors" title="Esci dall'account">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
+                <a href="/logout" id="btnLogout" data-action="logout" class="btn-logout text-xs text-stone-500 hover:text-rose-600 ml-1 p-1 transition-colors cursor-pointer flex items-center justify-center" title="Esci dall'account">
+                    <i class="fa-solid fa-right-from-bracket pointer-events-none"></i>
+                </a>
             `;
 
         } catch(e) {

@@ -506,7 +506,12 @@ async def list_utenti(
     from sqlalchemy import func as sqlfunc
     from app.models.annuncio import Annuncio
 
-    stmt = select(User)
+    SYSTEM_BOT_EMAIL = "indicizzatore.bot@armimarket.it"
+    from app.services.scraper.directory import ARMERIE_TARGETS
+    directory_emails = [a["email"].lower() for a in ARMERIE_TARGETS if a.get("email")]
+    stmt = select(User).where(User.email != SYSTEM_BOT_EMAIL)
+    if directory_emails:
+        stmt = stmt.where(~sqlfunc.lower(User.email).in_(directory_emails))
     if ruolo:
         stmt = stmt.where(User.ruolo == ruolo)
     if attivo is not None:
@@ -647,3 +652,143 @@ async def elimina_utente(
         "success": True,
         "message": f"Account '{email_rimossa}' e tutti i suoi dati sono stati rimossi definitivamente dalla piattaforma."
     }
+
+
+# =========================================================================
+# STATISTICHE GLOBALI PIATTAFORMA (solo Admin)
+# =========================================================================
+
+@router.get("/statistiche")
+async def get_piattaforma_statistiche(
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Restituisce metriche e statistiche aggregate globali del portale ArmiMarket Italia:
+    - Utenti: totali, privati, armerie, attivi, disabilitati
+    - Annunci: totali, pubblicati, in moderazione, rifiutati, venduti, bozze
+    - Visualizzazioni totali
+    - Ripartizione annunci per tipologia arma e inserzionista
+    - Log messaggi/email ed esiti
+    - Segnalazioni di conformità
+    """
+    from app.models.annuncio import Annuncio, StatoAnnuncio, TipologiaArma, TipologiaInserzionista
+    from app.models.email_log import EmailLog
+    from app.models.segnalazione import SegnalazioneAnnuncio
+    from sqlalchemy import case, func as sqlfunc
+
+    # 1. Statistiche Utenti Registrati (escluso bot tecnico di scraping ed armerie della directory)
+    SYSTEM_BOT_EMAIL = "indicizzatore.bot@armimarket.it"
+    from app.services.scraper.directory import ARMERIE_TARGETS
+    directory_emails = [a["email"].lower() for a in ARMERIE_TARGETS if a.get("email")]
+    user_cond = (User.email != SYSTEM_BOT_EMAIL)
+    if directory_emails:
+        user_cond = user_cond & (~sqlfunc.lower(User.email).in_(directory_emails))
+
+    user_stats_res = await db.execute(
+        select(
+            sqlfunc.count(User.id).label("totale"),
+            sqlfunc.sum(case((User.ruolo == RuoloUtente.PRIVATO, 1), else_=0)).label("privati"),
+            sqlfunc.sum(case((User.ruolo == RuoloUtente.ARMERIA, 1), else_=0)).label("armerie"),
+            sqlfunc.sum(case((User.ruolo == RuoloUtente.ADMIN, 1), else_=0)).label("admin"),
+            sqlfunc.sum(case((User.is_active == True, 1), else_=0)).label("attivi"),
+            sqlfunc.sum(case((User.is_active == False, 1), else_=0)).label("disabilitati"),
+        ).where(user_cond)
+    )
+    user_row = user_stats_res.one()
+
+    # 2. Statistiche Annunci per Stato e Visualizzazioni Totali
+    annunci_stats_res = await db.execute(
+        select(
+            sqlfunc.count(Annuncio.id).label("totale"),
+            sqlfunc.sum(case((Annuncio.stato == StatoAnnuncio.PUBBLICATO, 1), else_=0)).label("pubblicati"),
+            sqlfunc.sum(case((Annuncio.stato == StatoAnnuncio.IN_MODERAZIONE, 1), else_=0)).label("in_moderazione"),
+            sqlfunc.sum(case((Annuncio.stato == StatoAnnuncio.RIFIUTATO, 1), else_=0)).label("rifiutati"),
+            sqlfunc.sum(case((Annuncio.stato == StatoAnnuncio.VENDUTO, 1), else_=0)).label("venduti"),
+            sqlfunc.sum(case((Annuncio.stato == StatoAnnuncio.BOZZA, 1), else_=0)).label("bozza"),
+            sqlfunc.coalesce(sqlfunc.sum(Annuncio.visualizzazioni), 0).label("totale_visualizzazioni"),
+        )
+    )
+    annunci_row = annunci_stats_res.one()
+
+    # 3. Annunci per Tipologia Inserzionista
+    inserzionista_stats_res = await db.execute(
+        select(
+            sqlfunc.sum(case((Annuncio.tipologia_inserzionista == TipologiaInserzionista.ARMERIA, 1), else_=0)).label("armeria"),
+            sqlfunc.sum(case((Annuncio.tipologia_inserzionista == TipologiaInserzionista.PRIVATO, 1), else_=0)).label("privato"),
+        )
+    )
+    ins_row = inserzionista_stats_res.one()
+
+    # 4. Annunci per Tipologia Arma
+    armi_stats_res = await db.execute(
+        select(
+            sqlfunc.sum(case((Annuncio.tipologia_arma == TipologiaArma.ARMA_CORTA, 1), else_=0)).label("arma_corta"),
+            sqlfunc.sum(case((Annuncio.tipologia_arma == TipologiaArma.ARMA_LUNGA_RIGATA, 1), else_=0)).label("arma_lunga_rigata"),
+            sqlfunc.sum(case((Annuncio.tipologia_arma == TipologiaArma.CANNA_LISCIA, 1), else_=0)).label("canna_liscia"),
+            sqlfunc.sum(case((Annuncio.tipologia_arma == TipologiaArma.ARIA_COMPRESSA_LIBERA, 1), else_=0)).label("aria_compressa_libera"),
+            sqlfunc.sum(case((Annuncio.tipologia_arma == TipologiaArma.ACCESSORIO_OTTICA, 1), else_=0)).label("accessorio_ottica"),
+        )
+    )
+    armi_row = armi_stats_res.one()
+
+    # 5. Statistiche Email inviate dal sistema
+    email_stats_res = await db.execute(
+        select(
+            sqlfunc.count(EmailLog.id).label("totale"),
+            sqlfunc.sum(case((EmailLog.inviata == True, 1), else_=0)).label("inviate"),
+            sqlfunc.sum(case((EmailLog.inviata == False, 1), else_=0)).label("errori"),
+        )
+    )
+    email_row = email_stats_res.one()
+
+    # 6. Statistiche Segnalazioni
+    segnalazioni_stats_res = await db.execute(
+        select(
+            sqlfunc.count(SegnalazioneAnnuncio.id).label("totale"),
+            sqlfunc.sum(case((SegnalazioneAnnuncio.risolta == True, 1), else_=0)).label("risolte"),
+            sqlfunc.sum(case((SegnalazioneAnnuncio.risolta == False, 1), else_=0)).label("aperte"),
+        )
+    )
+    segnalazioni_row = segnalazioni_stats_res.one()
+
+    return {
+        "success": True,
+        "utenti": {
+            "totale": int(user_row.totale or 0),
+            "privati": int(user_row.privati or 0),
+            "armerie": int(user_row.armerie or 0),
+            "admin": int(user_row.admin or 0),
+            "attivi": int(user_row.attivi or 0),
+            "disabilitati": int(user_row.disabilitati or 0),
+        },
+        "annunci": {
+            "totale": int(annunci_row.totale or 0),
+            "pubblicati": int(annunci_row.pubblicati or 0),
+            "in_moderazione": int(annunci_row.in_moderazione or 0),
+            "rifiutati": int(annunci_row.rifiutati or 0),
+            "venduti": int(annunci_row.venduti or 0),
+            "bozza": int(annunci_row.bozza or 0),
+            "totale_visualizzazioni": int(annunci_row.totale_visualizzazioni or 0),
+        },
+        "inserzionisti": {
+            "armeria": int(ins_row.armeria or 0),
+            "privato": int(ins_row.privato or 0),
+        },
+        "tipologie_arma": {
+            "arma_corta": int(armi_row.arma_corta or 0),
+            "arma_lunga_rigata": int(armi_row.arma_lunga_rigata or 0),
+            "canna_liscia": int(armi_row.canna_liscia or 0),
+            "aria_compressa_libera": int(armi_row.aria_compressa_libera or 0),
+            "accessorio_ottica": int(armi_row.accessorio_ottica or 0),
+        },
+        "comunicazioni": {
+            "email_totali": int(email_row.totale or 0),
+            "email_inviate": int(email_row.inviate or 0),
+            "email_errori": int(email_row.errori or 0),
+            "segnalazioni_totali": int(segnalazioni_row.totale or 0),
+            "segnalazioni_aperte": int(segnalazioni_row.aperte or 0),
+            "segnalazioni_risolte": int(segnalazioni_row.risolte or 0),
+        }
+    }
+

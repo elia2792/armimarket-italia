@@ -92,35 +92,37 @@ async def test_csrf_api_mutative_immuni_a_cookie(client, db_session):
     user_a = (await db_session.execute(select(User).where(User.id == 2))).scalar_one()
     token = create_access_token(subject=user_a.id, extra_claims={"ruolo": user_a.ruolo.value})
 
-    # 1. Chiamata mutativa POST /api/v1/annunci fornendo SOLO il cookie e NESSUN Bearer header
-    resp = await client.post(
-        "/api/v1/annunci",
-        cookies={"armimarket_token": token},
-        json={
-            "titolo": "Tentativo CSRF Senza Header",
-            "descrizione": "Questo annuncio non deve essere creato",
-            "prezzo": 500.0,
-            "tipologia_arma": "arma_corta",
-            "marca": "Glock",
-            "modello": "17",
-            "calibro": "9x21",
-            "classificazione": "sportiva",
-            "condizione": "usato_ottimo",
-            "comune_id": 1,
-            "email_contatto": "csrf@example.com"
-        }
-    )
-    # Deve essere respinto con 401 Unauthorized perché il cookie non è considerato da get_current_user
-    assert resp.status_code == 401
-    assert "Token di autenticazione mancante" in resp.json()["detail"]
+    client.cookies.set("armimarket_token", token)
+    try:
+        # 1. Chiamata mutativa POST /api/v1/annunci fornendo SOLO il cookie e NESSUN Bearer header
+        resp = await client.post(
+            "/api/v1/annunci",
+            json={
+                "titolo": "Tentativo CSRF Senza Header",
+                "descrizione": "Questo annuncio non deve essere creato",
+                "prezzo": 500.0,
+                "tipologia_arma": "arma_corta",
+                "marca": "Glock",
+                "modello": "17",
+                "calibro": "9x21",
+                "classificazione": "sportiva",
+                "condizione": "usato_ottimo",
+                "comune_id": 1,
+                "email_contatto": "csrf@example.com"
+            }
+        )
+        # Deve essere respinto con 401 Unauthorized perché il cookie non è considerato da get_current_user
+        assert resp.status_code == 401
+        assert "Token di autenticazione mancante" in resp.json()["detail"]
 
-    # 2. Chiamata mutativa PUT /api/v1/auth/me fornendo SOLO il cookie
-    resp_profile = await client.put(
-        "/api/v1/auth/me",
-        cookies={"armimarket_token": token},
-        json={"nickname": "CsrfHacker"}
-    )
-    assert resp_profile.status_code == 401
+        # 2. Chiamata mutativa PUT /api/v1/auth/me fornendo SOLO il cookie
+        resp_profile = await client.put(
+            "/api/v1/auth/me",
+            json={"nickname": "CsrfHacker"}
+        )
+        assert resp_profile.status_code == 401
+    finally:
+        client.cookies.delete("armimarket_token")
 
 
 @pytest.mark.asyncio
@@ -141,8 +143,8 @@ async def test_jwt_alg_confusion_e_manomissione_signature(client, db_session):
     )
     assert resp_none.status_code == 401
 
-    # 2. Token con firma valida ma chiave segreta diversa
-    token_fake_key = jwt.encode({"sub": str(user_a.id)}, key="chiave-falsa-attaccante", algorithm="HS256")
+    # 2. Token con firma valida ma chiave segreta diversa (>= 32 bytes per HS256)
+    token_fake_key = jwt.encode({"sub": str(user_a.id)}, key="chiave-falsa-attaccante-lunga-32b!", algorithm="HS256")
     resp_fake = await client.get(
         "/api/v1/auth/me",
         headers={"Authorization": f"Bearer {token_fake_key}"}

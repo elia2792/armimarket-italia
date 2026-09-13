@@ -4,7 +4,7 @@ from typing import Optional
 import shutil
 import uuid
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException, Security, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, Response, Security, UploadFile, File, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from PIL import Image, UnidentifiedImageError
 from sqlalchemy import func, select
@@ -562,3 +562,17 @@ async def upload_foto_profilo(
     await db.refresh(current_user)
 
     return current_user
+
+
+@router.post(
+    "/logout",
+    summary="Logout utente e cancellazione cookie"
+)
+async def api_logout(response: Response):
+    """Cancella i cookie di autenticazione lato server."""
+    response.headers["Clear-Site-Data"] = '"cache", "cookies", "storage"'
+    response.delete_cookie(key="armimarket_token", path="/")
+    response.delete_cookie(key="access_token", path="/")
+    response.delete_cookie(key="token", path="/")
+    return {"success": True, "message": "Logout completato con successo."}
+

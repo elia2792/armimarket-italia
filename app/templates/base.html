@@ -124,8 +124,63 @@
         </div>
     </footer>
 
+    <!-- Script Globale di Sicurezza e Logout Infallibile -->
+    <script nonce="{{ request.scope.get('csp_nonce', '') }}">
+    window.logout = function() {
+        try {
+            localStorage.removeItem("armimarket_token");
+            localStorage.removeItem("armimarket_user");
+            sessionStorage.clear();
+        } catch(e) {}
+
+        const pastDate = "Thu, 01 Jan 1970 00:00:00 GMT";
+        document.cookie = "armimarket_token=; path=/; expires=" + pastDate + "; SameSite=Lax";
+        document.cookie = "access_token=; path=/; expires=" + pastDate + "; SameSite=Lax";
+        document.cookie = "token=; path=/; expires=" + pastDate + "; SameSite=Lax";
+        try {
+            const h = window.location.hostname;
+            if (h) {
+                document.cookie = "armimarket_token=; path=/; domain=" + h + "; expires=" + pastDate + "; SameSite=Lax";
+                document.cookie = "armimarket_token=; path=/; domain=." + h + "; expires=" + pastDate + "; SameSite=Lax";
+            }
+        } catch(e) {}
+
+        const navAuth = document.getElementById("navAuthLinks");
+        if (navAuth) {
+            navAuth.innerHTML = `
+                <a href="/login" class="text-xs text-[#4A4E44] hover:text-[#252821] px-2.5 py-1.5 rounded transition-colors uppercase tracking-wide font-semibold">Accedi</a>
+                <a href="/registrati" class="text-xs px-3 py-1.5 rounded-lg font-bold transition-all uppercase tracking-wide" style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">Registrati</a>
+            `;
+        }
+
+        try {
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon("/api/v1/auth/logout");
+            } else {
+                fetch("/api/v1/auth/logout", { method: "POST", keepalive: true }).catch(function(){});
+            }
+        } catch(e) {}
+
+        try {
+            window.location.replace("/logout");
+        } catch(e) {
+            window.location.href = "/logout";
+        }
+    };
+
+    // Global click listener per logout in capture phase (intercetta prima di qualsiasi altro gestore)
+    document.addEventListener("click", function(e) {
+        const btn = e.target.closest("#btnAdminLogout, #btnAdminPostaLogout, #btnLogout, #btnProfileLogout, [data-action='logout'], .btn-logout, a[href='/logout']");
+        if (btn) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.logout();
+        }
+    }, true);
+    </script>
+
     <!-- Script Applicativo Globale -->
-    <script src="/static/js/app.js?v=1.0.2" defer></script>
+    <script src="/static/js/app.js?v=1.0.5" defer></script>
 
     {% block extra_scripts %}{% endblock %}
 </body>
