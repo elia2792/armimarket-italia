@@ -64,22 +64,8 @@
         </div>
     </div>
 
-    <!-- Alert Non-Admin se non loggato -->
-    <div id="unauthAlert" class="hidden my-8 p-6 bg-white border border-rose-300 text-rose-800 rounded-2xl text-center space-y-3 max-w-xl mx-auto shadow-md">
-        <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center mx-auto text-xl">
-            <i class="fa-solid fa-lock"></i>
-        </div>
-        <h3 class="text-base font-bold text-[#252821]">Accesso Riservato all'Amministratore</h3>
-        <p class="text-xs text-[#4A4E44] leading-relaxed">
-            La casella postale del sito è protetta. Effettua l'accesso con le credenziali del tuo account amministratore (<code class="bg-[#F1EFE7] px-1 py-0.5 rounded text-[#252821] font-bold">Admin</code>) per visualizzare e gestire i messaggi.
-        </p>
-        <a href="/login?redirect=/admin/posta" class="inline-block font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow text-white" style="background:#68733F;">
-            Accedi come Amministratore
-        </a>
-    </div>
-
-    <!-- Webmail App Grid (Visibile solo se admin) -->
-    <div id="webmailContainer" class="hidden mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Webmail App Grid -->
+    <div id="webmailContainer" class="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
         <!-- Sidebar Cartelle & Filtri (3 col) -->
         <div class="lg:col-span-3 space-y-4">
@@ -371,41 +357,58 @@
 
 {% block extra_scripts %}
 <script nonce="{{ request.scope.get('csp_nonce', '') }}">
-    let token = localStorage.getItem("armimarket_token");
-    let currentUser = null;
+function getAuthToken() {
+    const ls = localStorage.getItem("armimarket_token");
+    if (ls) return ls;
+    const match = document.cookie.match(/(?:^|;\s*)armimarket_token=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+}
+
+let token = getAuthToken();
+let currentPagina = 1;
+let currentTipologia = "";
+let currentSearch = "";
+let debounceTimer = null;
+let emailCorrenteId = null;
+let listaSegnalazioni = [];
+let segnalazioneCorrente = null;
+
+document.addEventListener("DOMContentLoaded", async () => {
+    token = getAuthToken();
+    const btnPostaOut = document.getElementById("btnAdminPostaLogout");
+    if (btnPostaOut) {
+        btnPostaOut.addEventListener("click", (e) => {
+            e.preventDefault();
+            if (typeof window.logout === "function") {
+                window.logout();
+            } else {
+                localStorage.removeItem("armimarket_token");
+                localStorage.removeItem("armimarket_user");
+                window.location.replace("/logout");
+            }
+        });
+    }
+
+    if (!token) {
+        window.location.href = "/login?redirect=/admin/posta";
+        return;
+    }
+
+    // Verifica ruolo admin tramite endpoint protetto
     try {
-        currentUser = JSON.parse(localStorage.getItem("armimarket_user") || "null");
-    } catch(e){}
-
-    let currentPagina = 1;
-    let currentTipologia = "";
-    let currentSearch = "";
-    let debounceTimer = null;
-    let emailCorrenteId = null;
-    let listaSegnalazioni = [];
-    let segnalazioneCorrente = null;
-
-    document.addEventListener("DOMContentLoaded", () => {
-        const btnPostaOut = document.getElementById("btnAdminPostaLogout");
-        if (btnPostaOut) {
-            btnPostaOut.addEventListener("click", (e) => {
-                e.preventDefault();
-                if (typeof window.logout === "function") {
-                    window.logout();
-                } else {
-                    localStorage.removeItem("armimarket_token");
-                    localStorage.removeItem("armimarket_user");
-                    window.location.href = "/";
-                }
-            });
-        }
-
-        if (!token || !currentUser || currentUser.ruolo !== "admin") {
-            document.getElementById("unauthAlert").classList.remove("hidden");
+        const meResp = await fetch("/api/v1/auth/me", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!meResp.ok) throw new Error("Auth failed");
+        const me = await meResp.json();
+        if (me.ruolo !== "admin") {
+            window.location.href = "/";
             return;
         }
-
-        document.getElementById("webmailContainer").classList.remove("hidden");
+    } catch(e) {
+        window.location.href = "/login?redirect=/admin/posta";
+        return;
+    }
 
         // Cartelle / Categorie
         document.querySelectorAll(".folder-tab").forEach(btn => {
@@ -505,8 +508,7 @@
             });
 
             if (resp.status === 401 || resp.status === 403) {
-                document.getElementById("webmailContainer").classList.add("hidden");
-                document.getElementById("unauthAlert").classList.remove("hidden");
+                window.location.href = "/login?redirect=/admin/posta";
                 return;
             }
 
