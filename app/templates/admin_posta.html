@@ -5,56 +5,75 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-    <!-- Header Sezione -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-800 gap-4">
-        <div>
-            <div class="flex items-center space-x-2 text-amber-500 font-bold text-xs uppercase tracking-wider mb-1">
-                <i class="fa-solid fa-envelope-open-text"></i>
-                <span>Gestione Posta Elettronica & Notifiche</span>
-            </div>
-            <h1 class="text-2xl font-black text-white flex items-center gap-2">
-                Casella Postale del Sito
-                <span class="text-xs bg-amber-500/20 text-amber-400 font-mono font-bold px-2 py-0.5 rounded border border-amber-500/30">Admin Only</span>
-            </h1>
-            <p class="text-xs text-slate-400 mt-1">
-                Consulta in tempo reale tutte le email generate dal portale (link crittografici di recupero password, richieste contatto, notifiche di moderazione).
-            </p>
+    <!-- Header Sezione Stile Tattico Chiaro -->
+    <div class="mb-8 p-6 rounded-2xl shadow relative overflow-hidden bg-white border border-[#DDD9CD]"
+         style="background:linear-gradient(135deg,#FFFFFF 0%,#F7F5EF 100%);">
+        <div class="absolute -right-8 -bottom-8 opacity-5 pointer-events-none text-[180px] text-[#4F5A30]">
+            <i class="fa-solid fa-envelope-open-text"></i>
         </div>
+        <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-3 mb-1">
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+                         style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
+                        <i class="fa-solid fa-envelope-open-text"></i>
+                    </div>
+                    <h1 class="mil-brand text-2xl font-bold text-[#252821] tracking-wide flex items-center gap-2">
+                        CASELLA POSTALE & NOTIFICHE
+                        <span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded border"
+                              style="background:#EBEFE0;color:#27471E;border-color:#A4B882;">ADMIN ONLY</span>
+                    </h1>
+                </div>
+                <p class="text-xs font-mono text-[#68733F]">
+                    ◆ Consulta in tempo reale tutte le email generate dal portale (recupero password, contatti annunci, segnalazioni).
+                </p>
+            </div>
 
-        <div class="flex items-center space-x-2">
-            <button onclick="caricaEmail(1)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition-all flex items-center space-x-1.5 shadow">
-                <i class="fa-solid fa-arrows-rotate" id="refreshIcon"></i>
-                <span class="hidden sm:inline">Aggiorna</span>
-            </button>
-            <button onclick="apriModalTest()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 text-xs font-black px-3.5 py-2 rounded-lg transition-all flex items-center space-x-1.5 shadow-lg shadow-amber-600/20">
-                <i class="fa-solid fa-paper-plane"></i>
-                <span class="hidden sm:inline">Invia Test</span>
-            </button>
-            <a href="/admin" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition-all flex items-center space-x-1.5 shadow" title="Dashboard Statistiche">
-                <i class="fa-solid fa-chart-pie"></i>
-                <span class="hidden sm:inline">Statistiche</span>
-            </a>
-            <a href="/admin/utenti" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-3 py-2 rounded-lg transition-all flex items-center space-x-1.5 shadow" title="Gestione Account Utenti">
-                <i class="fa-solid fa-users-gear"></i>
-                <span class="hidden sm:inline">Utenti</span>
-            </a>
-            <a href="/logout" id="btnAdminPostaLogout" data-action="logout" class="bg-rose-950/80 hover:bg-rose-900 text-rose-200 border border-rose-800 text-xs font-bold px-3 py-2 rounded-lg transition-all flex items-center space-x-1.5 shadow cursor-pointer" title="Esci dall'account amministratore">
-                <i class="fa-solid fa-right-from-bracket"></i>
-                <span>Esci</span>
-            </a>
+            <div class="flex items-center flex-wrap gap-2">
+                <button type="button" id="btnRefreshMail"
+                        class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm cursor-pointer"
+                        style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
+                    <i class="fa-solid fa-arrows-rotate" id="refreshIcon"></i>
+                    <span class="hidden sm:inline">Aggiorna</span>
+                </button>
+                <button type="button" id="btnOpenTestModal"
+                        class="text-xs font-bold px-3.5 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm cursor-pointer"
+                        style="background:#B59A68;border:1px solid #8C734B;color:#FFFFFF;">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span class="hidden sm:inline">Invia Test</span>
+                </button>
+                <a href="/admin"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
+                   style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;" title="Dashboard Statistiche">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span class="hidden sm:inline">Statistiche</span>
+                </a>
+                <a href="/admin/utenti"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
+                   style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;" title="Gestione Account Utenti">
+                    <i class="fa-solid fa-users-gear"></i>
+                    <span class="hidden sm:inline">Utenti</span>
+                </a>
+                <a href="/logout" id="btnAdminPostaLogout" data-action="logout"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 cursor-pointer"
+                   title="Esci dall'account amministratore">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Esci</span>
+                </a>
+            </div>
         </div>
     </div>
 
     <!-- Alert Non-Admin se non loggato -->
-    <div id="unauthAlert" class="hidden my-8 p-6 bg-rose-950/70 border border-rose-800 text-rose-200 rounded-2xl text-center space-y-3 max-w-xl mx-auto shadow-2xl">
-        <div class="w-12 h-12 rounded-full bg-rose-900/60 text-rose-400 flex items-center justify-center mx-auto text-xl">
+    <div id="unauthAlert" class="hidden my-8 p-6 bg-white border border-rose-300 text-rose-800 rounded-2xl text-center space-y-3 max-w-xl mx-auto shadow-md">
+        <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center mx-auto text-xl">
             <i class="fa-solid fa-lock"></i>
         </div>
-        <h3 class="text-base font-bold text-white">Accesso Riservato all'Amministratore</h3>
-        <p class="text-xs text-rose-300 leading-relaxed">
-            La casella postale del sito è protetta. Effettua l'accesso con le credenziali del tuo account amministratore (<code class="bg-rose-900/50 px-1 py-0.5 rounded text-white">Admin</code>) per visualizzare e gestire i messaggi.
+        <h3 class="text-base font-bold text-[#252821]">Accesso Riservato all'Amministratore</h3>
+        <p class="text-xs text-[#4A4E44] leading-relaxed">
+            La casella postale del sito è protetta. Effettua l'accesso con le credenziali del tuo account amministratore (<code class="bg-[#F1EFE7] px-1 py-0.5 rounded text-[#252821] font-bold">Admin</code>) per visualizzare e gestire i messaggi.
         </p>
-        <a href="/login?redirect=/admin/posta" class="inline-block bg-white hover:bg-slate-200 text-slate-950 font-extrabold text-xs px-5 py-2.5 rounded-xl transition-all shadow">
+        <a href="/login?redirect=/admin/posta" class="inline-block font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow text-white" style="background:#68733F;">
             Accedi come Amministratore
         </a>
     </div>
@@ -66,189 +85,200 @@
         <div class="lg:col-span-3 space-y-4">
             
             <!-- Box Account Mittente -->
-            <div class="p-4 bg-slate-950 border border-slate-800 rounded-2xl shadow-xl space-y-3">
+            <div class="p-4 bg-white border border-[#DDD9CD] rounded-2xl shadow-sm space-y-3">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center text-white font-black text-base shadow-md">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-base shadow-sm"
+                         style="background:#68733F;">
                         <i class="fa-solid fa-user-shield"></i>
                     </div>
                     <div class="overflow-hidden">
-                        <div class="text-xs font-bold text-white truncate">Admin &bull; ArmiMarket</div>
-                        <div class="text-[11px] text-slate-400">Posta Uscita & Recuperi</div>
+                        <div class="text-xs font-bold text-[#252821] truncate">Admin &bull; ArmiMarket</div>
+                        <div class="text-[11px] text-[#6B7064]">Posta Notifiche & Recuperi</div>
                     </div>
                 </div>
 
-                <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
-                    <span class="text-slate-400">Stato Server SMTP:</span>
-                    <span id="smtpBadge" class="font-bold text-amber-400 flex items-center gap-1">
-                        <span class="w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse"></span>
+                <div class="pt-2 border-t border-[#E8E5DB] flex items-center justify-between text-[11px]">
+                    <span class="text-[#6B7064]">Stato Server SMTP:</span>
+                    <span id="smtpBadge" class="font-bold flex items-center gap-1.5" style="color:#27471E;">
+                        <span class="w-2 h-2 rounded-full inline-block animate-pulse" style="background:#68733F;"></span>
                         Locale / DB
                     </span>
                 </div>
             </div>
 
             <!-- Cartelle / Categorie -->
-            <div class="p-2 bg-slate-950 border border-slate-800 rounded-2xl shadow-xl space-y-1">
-                <button onclick="selezionaCartella('')" id="tabAll" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-slate-800/90 transition-all text-left">
+            <div class="p-2 bg-white border border-[#DDD9CD] rounded-2xl shadow-sm space-y-1">
+                <button type="button" data-folder="" id="tabAll"
+                        class="folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer border"
+                        style="background:#68733F;color:#FFFFFF;border-color:#4F5A30;">
                     <div class="flex items-center space-x-2.5">
-                        <i class="fa-solid fa-inbox text-slate-400"></i>
+                        <i class="fa-solid fa-inbox text-white"></i>
                         <span>Tutti i Messaggi</span>
                     </div>
-                    <span id="badgeTotal" class="text-[10px] bg-slate-700 text-slate-200 px-2 py-0.5 rounded-full font-mono">0</span>
+                    <span id="badgeTotal" class="text-[10px] bg-white text-[#252821] px-2 py-0.5 rounded-full font-mono font-bold shadow-xs">0</span>
                 </button>
 
-                <button onclick="selezionaCartella('recupero_password')" id="tabRecupero" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all text-left">
+                <button type="button" data-folder="recupero_password" id="tabRecupero"
+                        class="folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] transition-all text-left cursor-pointer border border-transparent">
                     <div class="flex items-center space-x-2.5">
-                        <i class="fa-solid fa-key text-amber-400"></i>
+                        <i class="fa-solid fa-key text-[#8C734B]"></i>
                         <span>Recupero Password</span>
                     </div>
-                    <span id="badgeRecupero" class="text-[10px] bg-amber-950 text-amber-400 border border-amber-800/60 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+                    <span id="badgeRecupero" class="text-[10px] bg-[#F7F3EA] text-[#8C734B] border border-[#D4C29B] px-2 py-0.5 rounded-full font-mono font-bold">0</span>
                 </button>
 
-                <button onclick="selezionaCartella('richiesta_contatto')" id="tabContatti" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all text-left">
+                <button type="button" data-folder="richiesta_contatto" id="tabContatti"
+                        class="folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] transition-all text-left cursor-pointer border border-transparent">
                     <div class="flex items-center space-x-2.5">
-                        <i class="fa-solid fa-comments text-emerald-400"></i>
+                        <i class="fa-solid fa-comments text-[#68733F]"></i>
                         <span>Richieste Contatto</span>
                     </div>
-                    <span id="badgeContatti" class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800/60 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+                    <span id="badgeContatti" class="text-[10px] bg-[#EBEFE0] text-[#27471E] border border-[#A4B882] px-2 py-0.5 rounded-full font-mono font-bold">0</span>
                 </button>
 
-                <button onclick="selezionaCartella('altre')" id="tabAltre" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all text-left">
+                <button type="button" data-folder="altre" id="tabAltre"
+                        class="folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] transition-all text-left cursor-pointer border border-transparent">
                     <div class="flex items-center space-x-2.5">
-                        <i class="fa-solid fa-circle-nodes text-blue-400"></i>
+                        <i class="fa-solid fa-circle-nodes text-[#1E3A8A]"></i>
                         <span>Sistema & Test</span>
                     </div>
-                    <span id="badgeAltre" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-mono">0</span>
+                    <span id="badgeAltre" class="text-[10px] bg-[#EFF6FF] text-[#1E3A8A] border border-[#BFDBFE] px-2 py-0.5 rounded-full font-mono font-bold">0</span>
                 </button>
 
-                <button onclick="selezionaCartella('segnalazioni')" id="tabSegnalazioni" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all text-left border-t border-slate-800/80 pt-2">
+                <button type="button" data-folder="segnalazioni" id="tabSegnalazioni"
+                        class="folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] transition-all text-left cursor-pointer border-t border-[#E8E5DB] pt-2">
                     <div class="flex items-center space-x-2.5">
-                        <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
-                        <span class="text-rose-300 font-semibold">Segnalazioni Annunci</span>
+                        <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
+                        <span class="text-rose-700 font-semibold">Segnalazioni Annunci</span>
                     </div>
-                    <span id="badgeSegnalazioni" class="text-[10px] bg-rose-950 text-rose-400 border border-rose-800/60 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+                    <span id="badgeSegnalazioni" class="text-[10px] bg-rose-50 text-rose-700 border border-rose-300 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
                 </button>
             </div>
 
             <!-- Ricerca per Email o Oggetto -->
-            <div class="p-3 bg-slate-950 border border-slate-800 rounded-2xl shadow-xl">
+            <div class="p-3 bg-white border border-[#DDD9CD] rounded-2xl shadow-sm">
                 <div class="relative">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
-                    <input type="text" id="inputSearchEmail" onkeyup="cercaDebounced(event)" placeholder="Cerca email, destinatario..." class="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-[#6B7064] text-xs"></i>
+                    <input type="text" id="inputSearchEmail" placeholder="Cerca email, destinatario..."
+                           class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-xl pl-9 pr-3 py-2 text-xs text-[#252821] placeholder-[#6B7064] focus:outline-none focus:border-[#68733F] transition-colors">
                 </div>
             </div>
 
         </div>
 
         <!-- Elenco Messaggi (4 col) -->
-        <div class="lg:col-span-4 bg-slate-950 border border-slate-800 rounded-2xl shadow-xl flex flex-col h-[700px] overflow-hidden">
-            <div class="p-3.5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/40">
-                <span class="text-xs font-bold text-slate-300" id="currentFolderTitle">Tutti i messaggi</span>
-                <span class="text-[11px] text-slate-500 font-mono" id="msgCounterText">0 elementi</span>
+        <div class="lg:col-span-4 bg-white border border-[#DDD9CD] rounded-2xl shadow-sm flex flex-col h-[700px] overflow-hidden">
+            <div class="p-3.5 border-b border-[#DDD9CD] flex items-center justify-between bg-[#F7F5EF]">
+                <span class="text-xs font-bold text-[#252821]" id="currentFolderTitle">Tutti i messaggi</span>
+                <span class="text-[11px] text-[#6B7064] font-mono" id="msgCounterText">0 elementi</span>
             </div>
 
-            <div id="emailList" class="flex-grow overflow-y-auto divide-y divide-slate-800/60 custom-scrollbar">
-                <div class="p-8 text-center text-slate-500 text-xs">
-                    <i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-amber-500"></i>
+            <div id="emailList" class="flex-grow overflow-y-auto divide-y divide-[#E8E5DB] custom-scrollbar">
+                <div class="p-8 text-center text-[#6B7064] text-xs">
+                    <i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-[#68733F]"></i>
                     <p>Caricamento messaggi in corso...</p>
                 </div>
             </div>
 
             <!-- Paginazione Compatta -->
-            <div class="p-3 border-t border-slate-800 flex items-center justify-between bg-slate-900/50 text-xs">
-                <button id="btnPrevPage" onclick="cambiaPagina(-1)" disabled class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-300 rounded font-semibold transition-all">
+            <div class="p-3 border-t border-[#DDD9CD] flex items-center justify-between bg-[#F7F5EF] text-xs">
+                <button type="button" id="btnPrevPage" disabled
+                        class="px-2.5 py-1 bg-white hover:bg-[#F1EFE7] disabled:opacity-40 border border-[#DDD9CD] text-[#252821] rounded font-semibold transition-all cursor-pointer">
                     <i class="fa-solid fa-chevron-left text-[10px]"></i> Prec
                 </button>
-                <span id="pageIndicator" class="text-[11px] text-slate-400 font-mono">Pag. 1</span>
-                <button id="btnNextPage" onclick="cambiaPagina(1)" disabled class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-slate-300 rounded font-semibold transition-all">
+                <span id="pageIndicator" class="text-[11px] text-[#6B7064] font-mono">Pag. 1</span>
+                <button type="button" id="btnNextPage" disabled
+                        class="px-2.5 py-1 bg-white hover:bg-[#F1EFE7] disabled:opacity-40 border border-[#DDD9CD] text-[#252821] rounded font-semibold transition-all cursor-pointer">
                     Succ <i class="fa-solid fa-chevron-right text-[10px]"></i>
                 </button>
             </div>
         </div>
 
         <!-- Lettore Email / Anteprima Rendering (5 col) -->
-        <div class="lg:col-span-5 bg-slate-950 border border-slate-800 rounded-2xl shadow-xl flex flex-col h-[700px] overflow-hidden">
+        <div class="lg:col-span-5 bg-white border border-[#DDD9CD] rounded-2xl shadow-sm flex flex-col h-[700px] overflow-hidden">
             
             <div id="emptyReaderState" class="m-auto text-center p-8 space-y-3">
-                <div class="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-2xl text-slate-600 mx-auto">
+                <div class="w-16 h-16 rounded-full bg-[#F1EFE7] border border-[#DDD9CD] flex items-center justify-center text-2xl text-[#68733F] mx-auto">
                     <i class="fa-regular fa-envelope-open"></i>
                 </div>
-                <h4 class="text-sm font-bold text-slate-300">Nessun messaggio selezionato</h4>
-                <p class="text-xs text-slate-500 max-w-xs">
-                    Seleziona un'email dall'elenco a sinistra per visualizzare i dettagli di recapito, il testo formattato e l'anteprima grafica.
+                <h4 class="text-sm font-bold text-[#252821]">Nessun messaggio selezionato</h4>
+                <p class="text-xs text-[#6B7064] max-w-xs">
+                    Seleziona un'email o una segnalazione dall'elenco per visualizzarne dettagli e contenuto.
                 </p>
             </div>
 
             <div id="activeReader" class="hidden flex flex-col h-full">
                 <!-- Header Email -->
-                <div class="p-4 border-b border-slate-800 bg-slate-900/60 space-y-3">
+                <div class="p-4 border-b border-[#DDD9CD] bg-[#F7F5EF] space-y-3">
                     <div class="flex items-start justify-between gap-2">
-                        <h3 id="readOggetto" class="text-sm font-black text-white leading-snug"></h3>
+                        <h3 id="readOggetto" class="text-sm font-black text-[#252821] leading-snug"></h3>
                         <div class="flex items-center space-x-1.5 shrink-0">
-                            <button onclick="eliminaEmailCorrente()" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors" title="Elimina email">
+                            <button type="button" id="btnDeleteEmail" class="p-1.5 text-[#6B7064] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer" title="Elimina email">
                                 <i class="fa-regular fa-trash-can text-xs"></i>
                             </button>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                    <div class="grid grid-cols-2 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-[#DDD9CD]">
                         <div>
-                            <span class="text-slate-500">Da:</span>
-                            <span id="readMittente" class="text-slate-200 font-mono ml-1 font-semibold"></span>
+                            <span class="text-[#6B7064]">Da:</span>
+                            <span id="readMittente" class="text-[#252821] font-mono ml-1 font-semibold"></span>
                         </div>
                         <div>
-                            <span class="text-slate-500">A:</span>
-                            <span id="readDestinatario" class="text-amber-400 font-mono ml-1 font-bold"></span>
+                            <span class="text-[#6B7064]">A:</span>
+                            <span id="readDestinatario" class="text-[#4F5A30] font-mono ml-1 font-bold"></span>
                         </div>
                         <div>
-                            <span class="text-slate-500">Data/Ora:</span>
-                            <span id="readData" class="text-slate-300 ml-1"></span>
+                            <span class="text-[#6B7064]">Data/Ora:</span>
+                            <span id="readData" class="text-[#252821] ml-1"></span>
                         </div>
                         <div class="flex items-center">
-                            <span class="text-slate-500 mr-1">Stato:</span>
+                            <span class="text-[#6B7064] mr-1">Stato:</span>
                             <span id="readStatoBadge"></span>
                         </div>
                     </div>
 
                     <!-- Box Azione Rapida (Link Recupero Password) -->
-                    <div id="boxLinkAzione" class="hidden p-2.5 bg-amber-950/60 border border-amber-800/80 rounded-xl flex items-center justify-between gap-2">
+                    <div id="boxLinkAzione" class="hidden p-2.5 bg-[#F7F3EA] border border-[#D4C29B] rounded-xl flex items-center justify-between gap-2">
                         <div class="truncate text-xs">
-                            <span class="text-amber-400 font-bold flex items-center gap-1">
+                            <span class="text-[#8C734B] font-bold flex items-center gap-1">
                                 <i class="fa-solid fa-link text-[10px]"></i> Link di Reset Password:
                             </span>
-                            <a id="linkAzioneHref" href="#" target="_blank" class="text-slate-200 hover:underline font-mono text-[11px] truncate block"></a>
+                            <a id="linkAzioneHref" href="#" target="_blank" class="text-[#252821] hover:underline font-mono text-[11px] truncate block"></a>
                         </div>
-                        <button onclick="copiaLinkAzione()" class="shrink-0 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[10px] px-2.5 py-1 rounded transition-colors shadow">
+                        <button type="button" id="btnCopyLinkAzione" class="shrink-0 bg-[#B59A68] hover:bg-[#8C734B] text-white font-bold text-[10px] px-2.5 py-1 rounded transition-colors shadow-xs cursor-pointer">
                             Copia Link
                         </button>
                     </div>
                 </div>
 
                 <!-- Schede Visualizzazione (HTML o Testo Piano) -->
-                <div class="px-4 pt-2 border-b border-slate-800 flex items-center space-x-3 text-xs">
-                    <button onclick="mostraTabCorpo('html')" id="tabHtmlBtn" class="pb-2 border-b-2 border-amber-500 text-white font-bold">Anteprima Grafica (HTML)</button>
-                    <button onclick="mostraTabCorpo('text')" id="tabTextBtn" class="pb-2 border-b-2 border-transparent text-slate-400 hover:text-white">Testo Diretto</button>
+                <div class="px-4 pt-2 border-b border-[#DDD9CD] bg-white flex items-center space-x-3 text-xs">
+                    <button type="button" id="tabHtmlBtn" class="pb-2 border-b-2 border-[#68733F] text-[#252821] font-bold cursor-pointer">Anteprima Grafica (HTML)</button>
+                    <button type="button" id="tabTextBtn" class="pb-2 border-b-2 border-transparent text-[#6B7064] hover:text-[#252821] cursor-pointer">Testo Diretto</button>
                 </div>
 
                 <!-- Corpo Email -->
-                <div class="flex-grow p-4 overflow-y-auto bg-slate-900/30">
-                    <div id="readCorpoHtml" class="bg-slate-950 rounded-xl p-3 border border-slate-800">
-                        <iframe id="htmlIframe" class="w-full h-[300px] rounded-lg border-0 bg-slate-950" sandbox=""></iframe>
+                <div class="flex-grow p-4 overflow-y-auto bg-[#F7F5EF]">
+                    <div id="readCorpoHtml" class="bg-white rounded-xl p-3 border border-[#DDD9CD]">
+                        <iframe id="htmlIframe" class="w-full h-[300px] rounded-lg border-0 bg-white" sandbox=""></iframe>
                     </div>
-                    <pre id="readCorpoTesto" class="hidden whitespace-pre-wrap font-mono text-xs text-slate-300 p-4 bg-slate-950 border border-slate-800 rounded-xl leading-relaxed"></pre>
+                    <pre id="readCorpoTesto" class="hidden whitespace-pre-wrap font-mono text-xs text-[#252821] p-4 bg-white border border-[#DDD9CD] rounded-xl leading-relaxed"></pre>
                 </div>
 
                 <!-- Box Risposta Diretta dall'Amministratore -->
-                <div id="replySection" class="p-3.5 border-t border-slate-800 bg-slate-900/80 space-y-2">
+                <div id="replySection" class="p-3.5 border-t border-[#DDD9CD] bg-white space-y-2">
                     <div class="flex items-center justify-between text-xs">
-                        <span class="font-bold text-amber-400 flex items-center gap-1.5">
+                        <span class="font-bold text-[#4F5A30] flex items-center gap-1.5">
                             <i class="fa-solid fa-reply"></i> Rispondi al Mittente come Admin
                         </span>
-                        <span class="text-[10px] text-slate-400 font-mono">Mittente anonimo: Admin ArmiMarket</span>
+                        <span class="text-[10px] text-[#6B7064] font-mono">Mittente: Admin ArmiMarket</span>
                     </div>
-                    <textarea id="replyMessageText" rows="2" placeholder="Scrivi qui la tua risposta per l'utente..." class="w-full bg-slate-950 border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500 resize-none"></textarea>
+                    <textarea id="replyMessageText" rows="2" placeholder="Scrivi qui la tua risposta per l'utente..."
+                              class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-xl p-2.5 text-xs text-[#252821] placeholder-[#6B7064] focus:outline-none focus:border-[#68733F] resize-none"></textarea>
                     <div class="flex items-center justify-between">
-                        <span id="replyStatus" class="text-[11px] text-slate-400"></span>
-                        <button onclick="inviaRispostaAdmin()" id="btnSendReply" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-lg shadow flex items-center gap-1">
+                        <span id="replyStatus" class="text-[11px] text-[#6B7064]"></span>
+                        <button type="button" id="btnSendReply" class="px-3.5 py-1.5 bg-[#68733F] hover:bg-[#4F5A30] text-white font-bold text-xs rounded-lg shadow-xs flex items-center gap-1 cursor-pointer">
                             <i class="fa-regular fa-paper-plane"></i> Invia Risposta
                         </button>
                     </div>
@@ -256,47 +286,49 @@
             </div>
 
             <!-- Dettaglio Segnalazione Annuncio (Visibile quando si seleziona una segnalazione) -->
-            <div id="segnalazioneReader" class="hidden flex flex-col h-full overflow-y-auto p-6 space-y-5">
-                <div class="flex items-start justify-between border-b border-slate-800 pb-4">
+            <div id="segnalazioneReader" class="hidden flex flex-col h-full overflow-y-auto p-6 space-y-5 bg-white">
+                <div class="flex items-start justify-between border-b border-[#DDD9CD] pb-4">
                     <div>
-                        <span class="text-xs bg-rose-950 text-rose-400 border border-rose-800/80 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                        <span class="text-xs bg-rose-50 text-rose-700 border border-rose-300 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
                             Segnalazione Utente
                         </span>
-                        <h3 id="segTitolo" class="text-base font-extrabold text-white mt-1"></h3>
-                        <p id="segPrezzo" class="text-sm font-black text-amber-400 mt-0.5"></p>
+                        <h3 id="segTitolo" class="text-base font-extrabold text-[#252821] mt-1"></h3>
+                        <p id="segPrezzo" class="text-sm font-black text-[#8C734B] mt-0.5"></p>
                     </div>
                     <div id="segStatusBadge"></div>
                 </div>
 
-                <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 space-y-2 text-xs">
-                    <div><span class="text-slate-400">Motivo Segnalato:</span> <strong id="segMotivo" class="text-rose-400 ml-1"></strong></div>
-                    <div><span class="text-slate-400">Segnalatore:</span> <span id="segEmail" class="text-slate-200 ml-1 font-mono"></span></div>
-                    <div><span class="text-slate-400">Data Ricezione:</span> <span id="segData" class="text-slate-300 ml-1"></span></div>
+                <div class="bg-[#F7F5EF] p-4 rounded-xl border border-[#DDD9CD] space-y-2 text-xs">
+                    <div><span class="text-[#6B7064]">Motivo Segnalato:</span> <strong id="segMotivo" class="text-rose-700 ml-1"></strong></div>
+                    <div><span class="text-[#6B7064]">Segnalatore:</span> <span id="segEmail" class="text-[#252821] ml-1 font-mono"></span></div>
+                    <div><span class="text-[#6B7064]">Data Ricezione:</span> <span id="segData" class="text-[#4A4E44] ml-1"></span></div>
                 </div>
 
                 <div class="space-y-1.5">
-                    <label class="text-xs font-bold text-slate-300">Dettagli / Motivazione della Segnalazione:</label>
-                    <div id="segDettagli" class="p-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 whitespace-pre-wrap leading-relaxed"></div>
+                    <label class="text-xs font-bold text-[#252821]">Dettagli / Motivazione della Segnalazione:</label>
+                    <div id="segDettagli" class="p-4 bg-[#F7F5EF] border border-[#DDD9CD] rounded-xl text-xs text-[#252821] whitespace-pre-wrap leading-relaxed"></div>
                 </div>
 
-                <div class="pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
-                    <a id="segLinkScheda" href="#" target="_blank" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors">
+                <div class="pt-4 border-t border-[#DDD9CD] flex flex-wrap items-center justify-between gap-3">
+                    <a id="segLinkScheda" href="#" target="_blank"
+                       class="px-3.5 py-2 bg-[#F1EFE7] hover:bg-[#E8E5DC] text-[#252821] border border-[#DDD9CD] font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors">
                         <i class="fa-solid fa-arrow-up-right-from-square text-[11px]"></i>
                         <span>Vedi Scheda Annuncio</span>
                     </a>
 
                     <div class="flex items-center space-x-2">
-                        <button onclick="risolviSegnalazioneCorrente('archiviata')" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl transition-colors">
+                        <button type="button" id="btnArchiviaSegnalazione"
+                                class="px-3.5 py-2 bg-[#F1EFE7] hover:bg-[#E8E5DC] border border-[#DDD9CD] text-[#4A4E44] font-semibold text-xs rounded-xl transition-colors cursor-pointer">
                             Archivia
                         </button>
-                        <button onclick="eliminaAnnuncioSegnalatoCorrente()" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-rose-900/30 flex items-center gap-1.5 transition-colors">
+                        <button type="button" id="btnDeleteAnnuncioSegnalato"
+                                class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors cursor-pointer">
                             <i class="fa-solid fa-trash-can"></i>
                             <span>Rimuovi Annuncio dal Sito</span>
                         </button>
                     </div>
                 </div>
             </div>
-
 
         </div>
 
@@ -305,30 +337,31 @@
 </div>
 
 <!-- Modal Invio Email di Test -->
-<div id="modalTestEmail" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-            <h3 class="text-sm font-black text-white flex items-center gap-2">
-                <i class="fa-solid fa-paper-plane text-amber-500"></i>
+<div id="modalTestEmail" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white border border-[#DDD9CD] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-[#DDD9CD]">
+            <h3 class="text-sm font-black text-[#252821] flex items-center gap-2">
+                <i class="fa-solid fa-paper-plane text-[#8C734B]"></i>
                 Invia Email di Test
             </h3>
-            <button onclick="chiudiModalTest()" class="text-slate-400 hover:text-white text-base">
+            <button type="button" id="btnCloseTestModalX" class="text-[#6B7064] hover:text-[#252821] text-base cursor-pointer">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
-        <p class="text-xs text-slate-400">
+        <p class="text-xs text-[#4A4E44]">
             Invia un messaggio per verificare la connessione al server SMTP e la visualizzazione nella casella postale.
         </p>
         <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">Email Destinatario *</label>
-            <input type="email" id="testEmailDest" placeholder="es. tua.email@dominio.it" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+            <label class="block text-xs font-semibold text-[#252821] mb-1">Email Destinatario *</label>
+            <input type="email" id="testEmailDest" placeholder="es. tua.email@dominio.it"
+                   class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-xl px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
         </div>
         <div id="testEmailFeedback" class="hidden text-xs p-3 rounded-lg"></div>
         <div class="flex justify-end space-x-2 pt-2">
-            <button onclick="chiudiModalTest()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all">
+            <button type="button" id="btnCloseTestModalBtn" class="px-4 py-2 bg-[#F1EFE7] hover:bg-[#E8E5DC] border border-[#DDD9CD] text-[#4A4E44] text-xs font-bold rounded-xl transition-all cursor-pointer">
                 Annulla
             </button>
-            <button onclick="eseguiInvioTest()" id="btnInviaTest" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-xl transition-all shadow-lg shadow-amber-500/20">
+            <button type="button" id="btnInviaTest" class="px-4 py-2 bg-[#68733F] hover:bg-[#4F5A30] text-white text-xs font-black rounded-xl transition-all shadow-sm cursor-pointer">
                 Invia Adesso
             </button>
         </div>
@@ -349,6 +382,8 @@
     let currentSearch = "";
     let debounceTimer = null;
     let emailCorrenteId = null;
+    let listaSegnalazioni = [];
+    let segnalazioneCorrente = null;
 
     document.addEventListener("DOMContentLoaded", () => {
         const btnPostaOut = document.getElementById("btnAdminPostaLogout");
@@ -371,6 +406,86 @@
         }
 
         document.getElementById("webmailContainer").classList.remove("hidden");
+
+        // Cartelle / Categorie
+        document.querySelectorAll(".folder-tab").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const folder = btn.getAttribute("data-folder") || "";
+                selezionaCartella(folder);
+            });
+        });
+
+        // Ricerca
+        const inputSearch = document.getElementById("inputSearchEmail");
+        if (inputSearch) {
+            inputSearch.addEventListener("input", cercaDebounced);
+        }
+
+        // Paginazione
+        const btnPrev = document.getElementById("btnPrevPage");
+        if (btnPrev) btnPrev.addEventListener("click", () => cambiaPagina(-1));
+        const btnNext = document.getElementById("btnNextPage");
+        if (btnNext) btnNext.addEventListener("click", () => cambiaPagina(1));
+
+        // Refresh
+        const btnRefresh = document.getElementById("btnRefreshMail");
+        if (btnRefresh) {
+            btnRefresh.addEventListener("click", () => {
+                if (currentTipologia === "segnalazioni") {
+                    caricaSegnalazioni();
+                } else {
+                    caricaEmail(1);
+                }
+            });
+        }
+
+        // Modal Test
+        const btnOpenModal = document.getElementById("btnOpenTestModal");
+        if (btnOpenModal) btnOpenModal.addEventListener("click", apriModalTest);
+        const btnCloseModalX = document.getElementById("btnCloseTestModalX");
+        if (btnCloseModalX) btnCloseModalX.addEventListener("click", chiudiModalTest);
+        const btnCloseModalBtn = document.getElementById("btnCloseTestModalBtn");
+        if (btnCloseModalBtn) btnCloseModalBtn.addEventListener("click", chiudiModalTest);
+        const btnSendTest = document.getElementById("btnInviaTest");
+        if (btnSendTest) btnSendTest.addEventListener("click", eseguiInvioTest);
+
+        // Reader Email Azioni
+        const btnDeleteMail = document.getElementById("btnDeleteEmail");
+        if (btnDeleteMail) btnDeleteMail.addEventListener("click", eliminaEmailCorrente);
+        const btnCopyLink = document.getElementById("btnCopyLinkAzione");
+        if (btnCopyLink) btnCopyLink.addEventListener("click", copiaLinkAzione);
+        const btnTabHtml = document.getElementById("tabHtmlBtn");
+        if (btnTabHtml) btnTabHtml.addEventListener("click", () => mostraTabCorpo("html"));
+        const btnTabText = document.getElementById("tabTextBtn");
+        if (btnTabText) btnTabText.addEventListener("click", () => mostraTabCorpo("text"));
+        const btnSendRep = document.getElementById("btnSendReply");
+        if (btnSendRep) btnSendRep.addEventListener("click", inviaRispostaAdmin);
+
+        // Segnalazioni Azioni
+        const btnArchivia = document.getElementById("btnArchiviaSegnalazione");
+        if (btnArchivia) btnArchivia.addEventListener("click", () => risolviSegnalazioneCorrente("archiviata"));
+        const btnDeleteAnn = document.getElementById("btnDeleteAnnuncioSegnalato");
+        if (btnDeleteAnn) btnDeleteAnn.addEventListener("click", eliminaAnnuncioSegnalatoCorrente);
+
+        // Delegazione click per lista email e segnalazioni
+        const listContainer = document.getElementById("emailList");
+        if (listContainer) {
+            listContainer.addEventListener("click", (e) => {
+                const mailItem = e.target.closest("[data-email-id]");
+                if (mailItem) {
+                    const id = parseInt(mailItem.getAttribute("data-email-id"), 10);
+                    if (id) apriDettaglioEmail(id);
+                    return;
+                }
+                const segItem = e.target.closest("[data-segnalazione-id]");
+                if (segItem) {
+                    const id = parseInt(segItem.getAttribute("data-segnalazione-id"), 10);
+                    if (id) apriDettaglioSegnalazione(id);
+                    return;
+                }
+            });
+        }
+
         caricaEmail(1);
     });
 
@@ -445,31 +560,33 @@
 
         listDiv.innerHTML = emails.map(e => {
             const isSelected = (e.id === emailCorrenteId);
-            const activeClass = isSelected ? "bg-amber-950/40 border-l-4 border-amber-500" : "hover:bg-slate-900/70";
+            const activeClass = isSelected
+                ? "bg-[#EBEFE0] border-l-4 border-[#68733F]"
+                : "hover:bg-[#F7F5EF]";
             
-            let typeBadge = `<span class="text-[9px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-mono">Sistema</span>`;
+            let typeBadge = `<span class="text-[9px] bg-[#EFF6FF] text-[#1E3A8A] border border-[#BFDBFE] px-1.5 py-0.5 rounded font-mono font-bold">Sistema</span>`;
             if (e.tipologia === "recupero_password") {
-                typeBadge = `<span class="text-[9px] bg-amber-950 text-amber-400 border border-amber-800/80 px-1.5 py-0.5 rounded font-bold">Recupero Password</span>`;
+                typeBadge = `<span class="text-[9px] bg-[#F7F3EA] text-[#8C734B] border border-[#D4C29B] px-1.5 py-0.5 rounded font-bold">Recupero Password</span>`;
             } else if (e.tipologia === "richiesta_contatto") {
-                typeBadge = `<span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-800/80 px-1.5 py-0.5 rounded font-bold">Richiesta Contatto</span>`;
+                typeBadge = `<span class="text-[9px] bg-[#EBEFE0] text-[#27471E] border border-[#A4B882] px-1.5 py-0.5 rounded font-bold">Richiesta Contatto</span>`;
             } else if (e.tipologia === "test") {
-                typeBadge = `<span class="text-[9px] bg-blue-950 text-blue-400 border border-blue-800/80 px-1.5 py-0.5 rounded font-bold">Test</span>`;
+                typeBadge = `<span class="text-[9px] bg-[#EFF6FF] text-[#1E3A8A] border border-[#BFDBFE] px-1.5 py-0.5 rounded font-bold">Test</span>`;
             }
 
             const statusIcon = e.inviata
-                ? `<span class="text-[10px] text-emerald-400 font-bold" title="Inviata tramite SMTP"><i class="fa-solid fa-check"></i> Inviata</span>`
-                : `<span class="text-[10px] text-amber-400 font-bold" title="Registrata in locale (SMTP disattivato)"><i class="fa-solid fa-inbox"></i> Locale</span>`;
+                ? `<span class="text-[10px] font-bold" style="color:#27471E;" title="Inviata tramite SMTP"><i class="fa-solid fa-check"></i> Inviata</span>`
+                : `<span class="text-[10px] font-bold" style="color:#8C734B;" title="Registrata in locale"><i class="fa-solid fa-inbox"></i> Locale</span>`;
 
             const d = new Date(e.data_invio);
             const timeStr = d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
 
             return `
-                <div onclick="apriDettaglioEmail(${e.id})" class="p-3 cursor-pointer transition-all ${activeClass}">
+                <div data-email-id="${e.id}" class="p-3 cursor-pointer transition-all ${activeClass}">
                     <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs font-bold text-white truncate max-w-[170px]">${escapeHtml(e.destinatario)}</span>
-                        <span class="text-[10px] text-slate-500 font-mono">${timeStr}</span>
+                        <span class="text-xs font-bold text-[#252821] truncate max-w-[170px]">${escapeHtml(e.destinatario)}</span>
+                        <span class="text-[10px] text-[#6B7064] font-mono">${timeStr}</span>
                     </div>
-                    <div class="text-xs text-slate-300 font-medium truncate mb-1.5">
+                    <div class="text-xs text-[#4A4E44] font-medium truncate mb-1.5">
                         ${escapeHtml(e.oggetto)}
                     </div>
                     <div class="flex items-center justify-between">
@@ -503,9 +620,9 @@
 
             const badgeDiv = document.getElementById("readStatoBadge");
             if (email.inviata) {
-                badgeDiv.innerHTML = `<span class="text-emerald-400 font-bold bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800 text-[10px]"><i class="fa-solid fa-circle-check"></i> Inviata via SMTP</span>`;
+                badgeDiv.innerHTML = `<span class="text-[#27471E] font-bold bg-[#EBEFE0] px-2 py-0.5 rounded border border-[#A4B882] text-[10px]"><i class="fa-solid fa-circle-check"></i> Inviata via SMTP</span>`;
             } else {
-                badgeDiv.innerHTML = `<span class="text-amber-400 font-bold bg-amber-950 px-2 py-0.5 rounded border border-amber-800 text-[10px]"><i class="fa-solid fa-database"></i> Registrata in locale</span>`;
+                badgeDiv.innerHTML = `<span class="text-[#8C734B] font-bold bg-[#F7F3EA] px-2 py-0.5 rounded border border-[#D4C29B] text-[10px]"><i class="fa-solid fa-database"></i> Registrata in locale</span>`;
             }
 
             const boxLink = document.getElementById("boxLinkAzione");
@@ -519,10 +636,19 @@
             }
 
             const iframe = document.getElementById("htmlIframe");
-            iframe.srcdoc = email.corpo_html;
+            iframe.srcdoc = email.corpo_html || "";
 
-            document.getElementById("readCorpoTesto").innerText = email.corpo_testo;
-            caricaEmail(currentPagina);
+            document.getElementById("readCorpoTesto").innerText = email.corpo_testo || "";
+
+            // Highlight selezione
+            document.querySelectorAll("#emailList [data-email-id]").forEach(el => {
+                const elId = parseInt(el.getAttribute("data-email-id"), 10);
+                if (elId === id) {
+                    el.className = "p-3 cursor-pointer transition-all bg-[#EBEFE0] border-l-4 border-[#68733F]";
+                } else {
+                    el.className = "p-3 cursor-pointer transition-all hover:bg-[#F7F5EF]";
+                }
+            });
 
         } catch (e) {
             console.error("Errore lettura email:", e);
@@ -536,13 +662,13 @@
         const corpoText = document.getElementById("readCorpoTesto");
 
         if (tipo === "html") {
-            tabHtmlBtn.className = "pb-2 border-b-2 border-amber-500 text-white font-bold";
-            tabTextBtn.className = "pb-2 border-b-2 border-transparent text-slate-400 hover:text-white";
+            tabHtmlBtn.className = "pb-2 border-b-2 border-[#68733F] text-[#252821] font-bold cursor-pointer";
+            tabTextBtn.className = "pb-2 border-b-2 border-transparent text-[#6B7064] hover:text-[#252821] cursor-pointer";
             corpoHtml.classList.remove("hidden");
             corpoText.classList.add("hidden");
         } else {
-            tabTextBtn.className = "pb-2 border-b-2 border-amber-500 text-white font-bold";
-            tabHtmlBtn.className = "pb-2 border-b-2 border-transparent text-slate-400 hover:text-white";
+            tabTextBtn.className = "pb-2 border-b-2 border-[#68733F] text-[#252821] font-bold cursor-pointer";
+            tabHtmlBtn.className = "pb-2 border-b-2 border-transparent text-[#6B7064] hover:text-[#252821] cursor-pointer";
             corpoText.classList.remove("hidden");
             corpoHtml.classList.add("hidden");
         }
@@ -576,16 +702,16 @@
             const data = await resp.json();
 
             if (resp.ok) {
-                statusSpan.className = "text-[11px] text-emerald-400 font-bold";
+                statusSpan.className = "text-[11px] text-[#27471E] font-bold";
                 statusSpan.innerHTML = `<i class="fa-solid fa-check mr-1"></i> Risposta inviata a ${escapeHtml(data.destinatario || "")}!`;
                 msgInput.value = "";
                 setTimeout(() => { statusSpan.innerText = ""; }, 4000);
             } else {
-                statusSpan.className = "text-[11px] text-rose-400 font-bold";
+                statusSpan.className = "text-[11px] text-rose-700 font-bold";
                 statusSpan.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${escapeHtml(data.detail || "Errore invio")}`;
             }
         } catch(e) {
-            statusSpan.className = "text-[11px] text-rose-400 font-bold";
+            statusSpan.className = "text-[11px] text-rose-700 font-bold";
             statusSpan.innerText = "Impossibile contattare il server.";
         } finally {
             btn.disabled = false;
@@ -598,7 +724,7 @@
 
     async function caricaSegnalazioni() {
         const listDiv = document.getElementById("emailList");
-        listDiv.innerHTML = `<div class="p-8 text-center text-slate-500 text-xs"><i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-rose-500"></i><p>Caricamento segnalazioni...</p></div>`;
+        listDiv.innerHTML = `<div class="p-8 text-center text-[#6B7064] text-xs"><i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-rose-600"></i><p>Caricamento segnalazioni...</p></div>`;
 
         try {
             const resp = await fetch("/api/v1/admin/segnalazioni?solo_aperte=false", {
@@ -613,8 +739,8 @@
 
             if (listaSegnalazioni.length === 0) {
                 listDiv.innerHTML = `
-                    <div class="p-8 text-center text-slate-500 text-xs space-y-2">
-                        <i class="fa-regular fa-circle-check text-2xl text-emerald-500"></i>
+                    <div class="p-8 text-center text-[#6B7064] text-xs space-y-2">
+                        <i class="fa-regular fa-circle-check text-2xl text-[#68733F]"></i>
                         <p>Nessun annuncio segnalato dagli utenti.</p>
                     </div>
                 `;
@@ -623,29 +749,29 @@
 
             listDiv.innerHTML = listaSegnalazioni.map(s => {
                 const isSelected = (segnalazioneCorrente && segnalazioneCorrente.id === s.id);
-                const activeClass = isSelected ? "bg-rose-950/50 border-l-4 border-rose-500" : "hover:bg-slate-900/70";
+                const activeClass = isSelected ? "bg-rose-50 border-l-4 border-rose-600" : "hover:bg-[#F7F5EF]";
                 const d = new Date(s.data_creazione);
                 const timeStr = d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
 
                 const badgeStato = s.risolta
-                    ? `<span class="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono">Risolta (${escapeHtml(s.azione_intrapresa || '')})</span>`
-                    : `<span class="text-[9px] bg-rose-950 text-rose-400 border border-rose-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Aperta</span>`;
+                    ? `<span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">Risolta (${escapeHtml(s.azione_intrapresa || '')})</span>`
+                    : `<span class="text-[9px] bg-rose-100 text-rose-700 border border-rose-300 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Aperta</span>`;
 
                 return `
-                    <div onclick="apriDettaglioSegnalazione(${s.id})" class="p-3 cursor-pointer transition-all ${activeClass}">
+                    <div data-segnalazione-id="${s.id}" class="p-3 cursor-pointer transition-all ${activeClass}">
                         <div class="flex items-center justify-between mb-1">
-                            <span class="text-xs font-bold text-rose-300 truncate max-w-[180px]">⚠️ Annuncio #${s.annuncio_id}</span>
-                            <span class="text-[10px] text-slate-500 font-mono">${timeStr}</span>
+                            <span class="text-xs font-bold text-rose-700 truncate max-w-[180px]">⚠️ Annuncio #${s.annuncio_id}</span>
+                            <span class="text-[10px] text-[#6B7064] font-mono">${timeStr}</span>
                         </div>
-                        <div class="text-xs text-white font-medium truncate mb-1">
+                        <div class="text-xs text-[#252821] font-medium truncate mb-1">
                             ${escapeHtml(s.annuncio_titolo || 'Annuncio')}
                         </div>
-                        <div class="text-[11px] text-slate-400 truncate mb-1.5">
-                            Motivo: <strong class="text-amber-400">${escapeHtml(s.motivo)}</strong>
+                        <div class="text-[11px] text-[#4A4E44] truncate mb-1.5">
+                            Motivo: <strong class="text-[#8C734B]">${escapeHtml(s.motivo)}</strong>
                         </div>
                         <div class="flex items-center justify-between">
                             ${badgeStato}
-                            <span class="text-[10px] text-slate-500 truncate max-w-[120px]">${escapeHtml(s.email_segnalatore || 'Anonimo')}</span>
+                            <span class="text-[10px] text-[#6B7064] truncate max-w-[120px]">${escapeHtml(s.email_segnalatore || 'Anonimo')}</span>
                         </div>
                     </div>
                 `;
@@ -653,7 +779,7 @@
 
         } catch(e) {
             console.error("Errore segnalazioni:", e);
-            listDiv.innerHTML = `<div class="p-6 text-center text-rose-400 text-xs">Errore nel caricamento delle segnalazioni.</div>`;
+            listDiv.innerHTML = `<div class="p-6 text-center text-rose-600 text-xs">Errore nel caricamento delle segnalazioni.</div>`;
         }
     }
 
@@ -676,12 +802,20 @@
 
         const badgeDiv = document.getElementById("segStatusBadge");
         if (s.risolta) {
-            badgeDiv.innerHTML = `<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-xs px-2.5 py-1 rounded-full font-bold">Risolta (${escapeHtml(s.azione_intrapresa || '')})</span>`;
+            badgeDiv.innerHTML = `<span class="bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs px-2.5 py-1 rounded-full font-bold">Risolta (${escapeHtml(s.azione_intrapresa || '')})</span>`;
         } else {
-            badgeDiv.innerHTML = `<span class="bg-rose-950 text-rose-400 border border-rose-800 text-xs px-2.5 py-1 rounded-full font-bold">In attesa di verifica</span>`;
+            badgeDiv.innerHTML = `<span class="bg-rose-50 text-rose-700 border border-rose-300 text-xs px-2.5 py-1 rounded-full font-bold">In attesa di verifica</span>`;
         }
 
-        caricaSegnalazioni();
+        // Highlight elemento nella lista
+        document.querySelectorAll("#emailList [data-segnalazione-id]").forEach(el => {
+            const elId = parseInt(el.getAttribute("data-segnalazione-id"), 10);
+            if (elId === id) {
+                el.className = "p-3 cursor-pointer transition-all bg-rose-50 border-l-4 border-rose-600";
+            } else {
+                el.className = "p-3 cursor-pointer transition-all hover:bg-[#F7F5EF]";
+            }
+        });
     }
 
     async function eliminaAnnuncioSegnalatoCorrente() {
@@ -729,9 +863,14 @@
 
     function selezionaCartella(tipologia) {
         currentTipologia = tipologia;
-        ["tabAll", "tabRecupero", "tabContatti", "tabAltre", "tabSegnalazioni"].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.className = "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-all text-left";
+        emailCorrenteId = null;
+
+        // Reset classi su tutti i tab
+        document.querySelectorAll(".folder-tab").forEach(tab => {
+            tab.className = "folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] transition-all text-left cursor-pointer border border-transparent";
+            tab.style.backgroundColor = "";
+            tab.style.color = "";
+            tab.style.borderColor = "";
         });
 
         document.getElementById("activeReader").classList.add("hidden");
@@ -755,7 +894,12 @@
         }
 
         const activeEl = document.getElementById(targetId);
-        if (activeEl) activeEl.className = "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-white bg-slate-800/90 transition-all text-left";
+        if (activeEl) {
+            activeEl.className = "folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer border";
+            activeEl.style.backgroundColor = "#68733F";
+            activeEl.style.color = "#FFFFFF";
+            activeEl.style.borderColor = "#4F5A30";
+        }
         document.getElementById("currentFolderTitle").innerText = title;
 
         if (tipologia === "segnalazioni") {
@@ -765,10 +909,10 @@
         }
     }
 
-    function cercaDebounced(e) {
+    function cercaDebounced() {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
-            currentSearch = document.getElementById("inputSearchEmail").value;
+            currentSearch = (document.getElementById("inputSearchEmail").value || "").trim();
             if (currentTipologia === "segnalazioni") {
                 caricaSegnalazioni();
             } else {
@@ -809,14 +953,16 @@
     }
 
     function apriModalTest() {
-        document.getElementById("modalTestEmail").classList.remove("hidden");
-        document.getElementById("modalTestEmail").classList.add("flex");
+        const modal = document.getElementById("modalTestEmail");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
         document.getElementById("testEmailFeedback").classList.add("hidden");
     }
 
     function chiudiModalTest() {
-        document.getElementById("modalTestEmail").classList.add("hidden");
-        document.getElementById("modalTestEmail").classList.remove("flex");
+        const modal = document.getElementById("modalTestEmail");
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
     }
 
     async function eseguiInvioTest() {
@@ -845,20 +991,20 @@
 
             feedback.classList.remove("hidden");
             if (resp.ok) {
-                feedback.className = "text-xs p-3 rounded-lg bg-emerald-950 border border-emerald-700 text-emerald-200";
+                feedback.className = "text-xs p-3 rounded-lg bg-[#EBEFE0] border border-[#A4B882] text-[#27471E]";
                 feedback.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> ${escapeHtml(data.message || "")}`;
                 setTimeout(() => {
                     chiudiModalTest();
                     caricaEmail(1);
                 }, 1800);
             } else {
-                feedback.className = "text-xs p-3 rounded-lg bg-rose-950 border border-rose-700 text-rose-200";
+                feedback.className = "text-xs p-3 rounded-lg bg-rose-50 border border-rose-300 text-rose-800";
                 feedback.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Errore: ${escapeHtml(data.detail || "Impossibile inviare")}`;
             }
         } catch (e) {
             feedback.classList.remove("hidden");
-            feedback.className = "text-xs p-3 rounded-lg bg-rose-950 border border-rose-700 text-rose-200";
-            feedback.innerText = "Errore durante l invio della richiesta.";
+            feedback.className = "text-xs p-3 rounded-lg bg-rose-50 border border-rose-300 text-rose-800";
+            feedback.innerText = "Errore durante l'invio della richiesta.";
         } finally {
             btn.disabled = false;
             btn.innerText = "Invia Adesso";
