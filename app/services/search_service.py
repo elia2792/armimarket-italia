@@ -200,6 +200,7 @@ class SearchService:
                 id=a.id,
                 titolo=a.titolo,
                 slug=a.slug,
+                url_seo=f"/annuncio/{a.slug}-{a.id}",
                 descrizione=a.descrizione,
                 prezzo=a.prezzo,
                 stato=a.stato,

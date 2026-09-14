@@ -11,6 +11,7 @@ from app.models.annuncio import (
 )
 from app.models.user import User, RuoloUtente
 from app.models.geo import Regione, Provincia, Comune
+from app.core.seo import CATEGORIE_SEO, REGIONI_SEO
 
 
 @pytest.mark.asyncio
@@ -127,25 +128,125 @@ async def test_seo_wrong_slug_canonical_redirect(client: AsyncClient, db_session
 
 
 @pytest.mark.asyncio
-async def test_seo_category_pages(client: AsyncClient, db_session):
-    """Verifica la pagina dedicata di categoria /annunci/{categoria_slug}."""
+async def test_seo_category_pages_with_ads(client: AsyncClient, db_session):
+    """
+    Verifica che le pagine di categoria /annunci/{categoria_slug} funzionino
+    in presenza di annunci reali nel database e renderizzino correttamente:
+    - Status 200 OK
+    - H1 e intro
+    - Canonical
+    - BreadcrumbList Schema.org
+    - Link SEO agli annunci nel formato /annuncio/{slug}-{id}
+    - Tutte le 5 categorie SEO configurate rispondano 200 OK
+    """
+    privato = (await db_session.execute(select(User).where(User.ruolo == RuoloUtente.PRIVATO))).scalar_one()
+
+    # Inserisci un annuncio per ciascuna categoria
+    ad_corta = Annuncio(
+        titolo="Glock 17 Gen 5 Calibro 9x19",
+        slug="glock-17-gen-5-calibro-9x19",
+        descrizione="Pistola semiautomatica Glock 17 Gen 5 in perfette condizioni.",
+        prezzo=620.0,
+        stato=StatoAnnuncio.PUBBLICATO,
+        tipologia_inserzionista=TipologiaInserzionista.PRIVATO,
+        tipologia_arma=TipologiaArma.ARMA_CORTA,
+        classificazione=ClassificazioneArma.SPORTIVA,
+        condizione=CondizioneArma.USATO_OTTIMO,
+        marca="Glock",
+        modello="17 Gen 5",
+        calibro="9x19",
+        matricola_riservata="GLK17TEST",
+        comune_id=1,
+        utente_id=privato.id,
+        email_contatto=privato.email
+    )
+    db_session.add(ad_corta)
+    await db_session.commit()
+    await db_session.refresh(ad_corta)
+
+    # Test specifico sulla categoria armi-corte
     resp = await client.get("/annunci/armi-corte")
     assert resp.status_code == 200
     html = resp.text
-    assert "Pistole" in html or "Armi Corte" in html
+
+    # Verifica metadati e tag SEO
+    assert "Bacheca Armi Corte" in html
     assert "BreadcrumbList" in html
+    assert '<link rel="canonical" href="' in html
     assert "/annunci/armi-corte" in html
+    # Verifica che il link all'annuncio sia presente e nel formato corretto
+    assert f"/annuncio/glock-17-gen-5-calibro-9x19-{ad_corta.id}" in html
+
+    # Test di verifica su TUTTE le 5 categorie SEO configurate
+    for cat_slug, cat_data in CATEGORIE_SEO.items():
+        r = await client.get(f"/annunci/{cat_slug}")
+        assert r.status_code == 200, f"Categoria {cat_slug} ha restituito {r.status_code}"
+        assert cat_data["h1"] in r.text or cat_data["nome"] in r.text
+        assert f"/annunci/{cat_slug}" in r.text
 
 
 @pytest.mark.asyncio
-async def test_seo_regional_pages(client: AsyncClient, db_session):
-    """Verifica la pagina dedicata territoriale /annunci/regione/{regione_slug}."""
-    resp = await client.get("/annunci/regione/lombardia")
+async def test_seo_regional_pages_with_ads(client: AsyncClient, db_session):
+    """
+    Verifica che le pagine territoriali /annunci/regione/{regione_slug} funzionino
+    in presenza di annunci nel database e renderizzino correttamente:
+    - Status 200 OK
+    - H1 e intro
+    - Canonical
+    - Breadcrumbs
+    - Tutte le 20 regioni d'Italia rispondano 200 OK
+    """
+    privato = (await db_session.execute(select(User).where(User.ruolo == RuoloUtente.PRIVATO))).scalar_one()
+
+    # Comune 1 è in Piemonte (id=1)
+    ad_geo = Annuncio(
+        titolo="Carabina Tikka T3x Superlite 308",
+        slug="carabina-tikka-t3x-superlite-308",
+        descrizione="Carabina da caccia di precisione bolt action calibro 308 Winchester.",
+        prezzo=1250.0,
+        stato=StatoAnnuncio.PUBBLICATO,
+        tipologia_inserzionista=TipologiaInserzionista.PRIVATO,
+        tipologia_arma=TipologiaArma.ARMA_LUNGA_RIGATA,
+        classificazione=ClassificazioneArma.CACCIA,
+        condizione=CondizioneArma.NUOVO,
+        marca="Tikka",
+        modello="T3x Superlite",
+        calibro=".308 Win",
+        matricola_riservata="TK3X001",
+        comune_id=1,
+        utente_id=privato.id,
+        email_contatto=privato.email
+    )
+    db_session.add(ad_geo)
+    await db_session.commit()
+    await db_session.refresh(ad_geo)
+
+    # Test specifico sulla regione piemonte (dove si trova comune_id=1)
+    resp = await client.get("/annunci/regione/piemonte")
     assert resp.status_code == 200
     html = resp.text
-    assert "Lombardia" in html
+    assert "Piemonte" in html
     assert "BreadcrumbList" in html
-    assert "/annunci/regione/lombardia" in html
+    assert '<link rel="canonical" href="' in html
+    assert "/annunci/regione/piemonte" in html
+    assert f"/annuncio/carabina-tikka-t3x-superlite-308-{ad_geo.id}" in html
+
+    # Test specifico sulla regione lombardia
+    resp_lom = await client.get("/annunci/regione/lombardia")
+    assert resp_lom.status_code == 200
+    assert "Lombardia" in resp_lom.text
+    assert "/annunci/regione/lombardia" in resp_lom.text
+
+    # Test di verifica su TUTTE le 20 regioni d'Italia
+    for reg_slug, reg_data in REGIONI_SEO.items():
+        r = await client.get(f"/annunci/regione/{reg_slug}")
+        assert r.status_code == 200, f"Regione {reg_slug} ha restituito {r.status_code}"
+        assert (
+            reg_data["nome"] in r.text
+            or reg_data["nome"].replace("'", "&#39;") in r.text
+            or reg_data["slug"] in r.text
+        )
+        assert f"/annunci/regione/{reg_slug}" in r.text
 
 
 @pytest.mark.asyncio

@@ -133,5 +133,10 @@ class Annuncio(Base):
     utente = relationship("User", back_populates="annunci")
     preferiti = relationship("Preferito", back_populates="annuncio", cascade="all, delete-orphan")
 
+    @property
+    def url_seo(self) -> str:
+        s = self.slug or "annuncio"
+        return f"/annuncio/{s}-{self.id}"
+
     def __repr__(self) -> str:
         return f"<Annuncio id={self.id} titolo='{self.titolo}' stato='{self.stato}'>"

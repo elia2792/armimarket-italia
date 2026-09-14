@@ -155,10 +155,6 @@ async def index_view(
     totale_pagine = max(1, (totale + 49) // 50) if totale > 0 else 1
     base_url = _get_base_url(request)
 
-    # Popola url_seo per ogni annuncio nella lista
-    for a in annunci:
-        setattr(a, "url_seo", genera_url_annuncio(a.id, a.titolo))
-
     # Strategia indicizzazione filtri:
     # Se ci sono filtri di ricerca secondari o parametri liberi, imposta noindex per evitare crawl budget sprecato
     ha_filtri_complessi = bool(q or marca or modello or calibro or prezzo_min or prezzo_max or tipologia_inserzionista or regione_id or tipologia_arma)
@@ -227,9 +223,6 @@ async def category_view(
         solo_pubblicati=True
     )
     totale_pagine = max(1, (totale + 49) // 50) if totale > 0 else 1
-
-    for a in annunci:
-        setattr(a, "url_seo", genera_url_annuncio(a.id, a.titolo))
 
     breadcrumbs = [
         {"name": "Home", "url": f"{base_url}/"},
@@ -317,9 +310,6 @@ async def regional_view(
         solo_pubblicati=True
     )
     totale_pagine = max(1, (totale + 49) // 50) if totale > 0 else 1
-
-    for a in annunci:
-        setattr(a, "url_seo", genera_url_annuncio(a.id, a.titolo))
 
     breadcrumbs = [
         {"name": "Home", "url": f"{base_url}/"},
@@ -560,10 +550,7 @@ async def ad_detail_view(slug_and_id: str, request: Request, db: AsyncSession = 
         .limit(4)
     )
     annunci_simili_raw = (await db.execute(stmt_simili)).scalars().all()
-    annunci_simili = []
-    for s in annunci_simili_raw:
-        setattr(s, "url_seo", genera_url_annuncio(s.id, s.titolo))
-        annunci_simili.append(s)
+    annunci_simili = list(annunci_simili_raw)
 
     # Metadati SEO per l'annuncio
     seo_title = f"{annuncio.titolo} | ArmiMarket Italia"

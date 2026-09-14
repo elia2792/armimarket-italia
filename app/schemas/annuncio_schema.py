@@ -85,6 +85,7 @@ class AnnuncioPublicOut(BaseModel):
     id: int
     titolo: str
     slug: str
+    url_seo: Optional[str] = None
     descrizione: str
     prezzo: float
     prezzo_originale: Optional[float] = None
