@@ -1,9 +1,31 @@
 {% extends "base.html" %}
 
-{% block title %}ArmiMarket Italia - Ricerca Annunci Armi & Armerie Italiane{% endblock %}
+{% block title %}{{ seo_title or "ArmiMarket Italia — Bacheca Annunci Armi Usate e Nuove | Armerie e Privati" }}{% endblock %}
+{% block meta_description %}{{ seo_description or "Cerca tra migliaia di annunci di armi usate e nuove in Italia: pistole, carabine, fucili da caccia e tiro sportivo. Annunci conformi al T.U.L.P.S." }}{% endblock %}
+{% block canonical %}{{ canonical_url or (base_url ~ '/') }}{% endblock %}
+{% block meta_robots %}{{ seo_robots or 'index, follow' }}{% endblock %}
+
+{% block extra_head %}
+{% if schema_breadcrumb %}
+<script type="application/ld+json">
+{{ schema_breadcrumb | tojson | safe }}
+</script>
+{% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    {% if active_category_name or active_region_name %}
+    <!-- Breadcrumbs SEO Navigabili -->
+    <nav class="flex items-center space-x-2 text-xs text-[#6B7064]" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-[#4F5A30] transition-colors">Home</a>
+        <span class="text-[#A8A29E]">/</span>
+        <a href="/annunci" class="hover:text-[#4F5A30] transition-colors">Annunci</a>
+        <span class="text-[#A8A29E]">/</span>
+        <span class="text-[#252821] font-semibold">{{ active_category_name or active_region_name }}</span>
+    </nav>
+    {% endif %}
 
     <!-- Hero Banner con Ricerca Automatica su Misura -->
     <div class="relative bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl overflow-hidden">
@@ -12,18 +34,26 @@
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
                     <i class="fa-solid fa-magnifying-glass"></i> Bacheca Motore di Ricerca
                 </span>
+                {% if active_category_name %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-700/50 text-emerald-200 border border-emerald-600">
+                    <i class="fa-solid fa-tag"></i> Categoria: {{ active_category_name }}
+                </span>
+                {% elif active_region_name %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-700/50 text-blue-200 border border-blue-600">
+                    <i class="fa-solid fa-location-dot"></i> Territorio: {{ active_region_name }}
+                </span>
+                {% else %}
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-700/50 text-slate-300 border border-slate-600">
                     <i class="fa-solid fa-building-columns"></i> Indicizzatore Indipendente
                 </span>
+                {% endif %}
             </div>
 
             <h1 class="text-2xl sm:text-4xl font-black text-white tracking-tight leading-tight mb-2">
-                Trova la tua arma: <span class="text-amber-500">Marca, Modello, Posizione</span>
+                {{ page_h1 or "Trova la tua arma: Marca, Modello, Posizione" }}
             </h1>
             <p class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-4">
-                Scegli marca, modello, calibro e territorio. Il motore scansiona e aggrega annunci inseriti da privati
-                e risultati pubblici reperiti dai <strong>siti web delle armerie italiane</strong>, con foto,
-                prezzo e rimando diretto al negozio online di origine.
+                {{ page_intro or "Scegli marca, modello, calibro e territorio. Il motore scansiona e aggrega annunci inseriti da privati e risultati pubblici reperiti dai siti web delle armerie italiane, con foto, prezzo e rimando diretto al negozio online di origine." }}
             </p>
             <div class="p-3 bg-amber-950/40 border border-amber-500/30 rounded-lg text-[11px] text-amber-200/90 mb-6 flex items-start space-x-2">
                 <i class="fa-solid fa-circle-exclamation text-amber-400 mt-0.5 flex-shrink-0"></i>
@@ -138,9 +168,9 @@
             {% for a in annunci %}
             <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-lg hover:border-slate-700 transition-all flex flex-col group">
                 <!-- Immagine di Copertina -->
-                <div class="relative h-44 bg-black overflow-hidden flex items-center justify-center">
+                <a href="{{ a.url_seo or ('/annuncio/' ~ a.slug ~ '-' ~ a.id) }}" class="block relative h-44 bg-black overflow-hidden flex items-center justify-center">
                     {% if a.galleria_immagini and a.galleria_immagini|length > 0 %}
-                    <img src="{{ a.galleria_immagini[0] }}" alt="{{ a.titolo }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    <img src="{{ a.galleria_immagini[0] }}" alt="{{ a.marca }} {{ a.modello }} calibro {{ a.calibro }} - {{ a.titolo }}" width="320" height="176" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                     {% else %}
                     <div class="text-slate-600 flex flex-col items-center">
                         <i class="fa-solid fa-gun text-4xl mb-1"></i>
@@ -177,30 +207,23 @@
                         <i class="fa-regular fa-heart"></i>
                     </button>
 
-                    <!-- Prezzo -->
-                    <div class="absolute bottom-2 right-2 bg-slate-900/90 backdrop-blur text-amber-400 font-extrabold text-sm px-2.5 py-1 rounded shadow border border-slate-700 flex items-center gap-1.5">
+                    <!-- Badge Prezzo -->
+                    <div class="absolute bottom-2 right-2 bg-slate-950/90 backdrop-blur border border-slate-700/80 px-2.5 py-1 rounded-md text-right shadow-lg">
                         {% if a.prezzo_originale and a.prezzo_originale > a.prezzo %}
-                        <span class="text-[10px] text-slate-400 line-through">€ {{ "{:,.0f}".format(a.prezzo_originale) }}</span>
+                        <div class="text-[9px] text-slate-400 line-through leading-none">€ {{ "{:,.2f}".format(a.prezzo_originale) }}</div>
                         {% endif %}
-                        <span>€ {{ "{:,.2f}".format(a.prezzo) }}</span>
+                        <div class="text-amber-400 font-black text-sm leading-tight">€ {{ "{:,.2f}".format(a.prezzo) }}</div>
                     </div>
-                </div>
+                </a>
 
-                <!-- Info Annuncio -->
+                <!-- Dettagli Annuncio -->
                 <div class="p-4 flex flex-col flex-grow justify-between space-y-3">
                     <div>
                         <span class="text-[10px] uppercase font-mono text-slate-400">{{ a.marca }} &bull; Cal. {{ a.calibro }}</span>
                         <h3 class="text-sm font-bold text-white line-clamp-2 mt-0.5">
-                            {% if a.link_esterno %}
-                            <a href="{{ a.link_esterno }}" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-400 hover:underline transition-colors flex items-start justify-between gap-1 group/link" title="Visita la scheda prodotto sul sito ufficiale dell'armeria">
-                                <span>{{ a.titolo }}</span>
-                                <i class="fa-solid fa-arrow-up-right-from-square text-[11px] text-emerald-400 mt-1 flex-shrink-0 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform"></i>
-                            </a>
-                            {% else %}
-                            <a href="/scheda/{{ a.id }}" class="hover:text-amber-400 hover:underline transition-colors">
+                            <a href="{{ a.url_seo or ('/annuncio/' ~ a.slug ~ '-' ~ a.id) }}" class="hover:text-amber-400 hover:underline transition-colors">
                                 {{ a.titolo }}
                             </a>
-                            {% endif %}
                         </h3>
                         <p class="text-slate-400 text-xs mt-1 line-clamp-2">
                             {{ a.descrizione }}
@@ -261,8 +284,9 @@
             </div>
 
             <div class="flex items-center space-x-2">
+                {% set nav_base = pagination_base_path or '/' %}
                 {% if pagina > 1 %}
-                <a href="/?pagina={{ pagina - 1 }}{{ base_qs }}" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center space-x-1"
+                <a href="{{ nav_base }}?pagina={{ pagina - 1 }}{{ base_qs }}" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center space-x-1"
                    style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
                     <i class="fa-solid fa-chevron-left text-[10px]"></i>
                     <span>Precedente</span>
@@ -281,7 +305,7 @@
                 </span>
 
                 {% if pagina < totale_pagine %}
-                <a href="/?pagina={{ pagina + 1 }}{{ base_qs }}" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center space-x-1"
+                <a href="{{ nav_base }}?pagina={{ pagina + 1 }}{{ base_qs }}" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center space-x-1"
                    style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
                     <span>Successiva</span>
                     <i class="fa-solid fa-chevron-right text-[10px]"></i>

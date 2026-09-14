@@ -1,24 +1,75 @@
 {% extends "base.html" %}
 
-{% block title %}{{ annuncio.titolo }} - ArmiMarket Italia{% endblock %}
+{% block title %}{{ seo_title }}{% endblock %}
+{% block meta_description %}{{ seo_description }}{% endblock %}
+{% block canonical %}{{ canonical_url }}{% endblock %}
+{% block meta_robots %}{{ seo_robots }}{% endblock %}
+{% block og_type %}product{% endblock %}
+{% block og_title %}{{ seo_title }}{% endblock %}
+{% block og_description %}{{ seo_description }}{% endblock %}
+{% block og_url %}{{ canonical_url }}{% endblock %}
+{% block og_image %}{{ og_image }}{% endblock %}
+{% block twitter_title %}{{ seo_title }}{% endblock %}
+{% block twitter_description %}{{ seo_description }}{% endblock %}
+{% block twitter_image %}{{ og_image }}{% endblock %}
+
+{% block extra_head %}
+<!-- Dati Strutturati Schema.org: Product & BreadcrumbList -->
+<script type="application/ld+json">
+{{ schema_product | tojson | safe }}
+</script>
+<script type="application/ld+json">
+{{ schema_breadcrumb | tojson | safe }}
+</script>
+{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-    <!-- Breadcrumb & Back -->
-    <div class="mb-6 flex items-center justify-between text-xs text-slate-400">
-        <div class="flex items-center space-x-2">
-            <a href="/" class="hover:text-amber-400"><i class="fa-solid fa-arrow-left mr-1"></i> Tutti gli annunci</a>
-            <span>/</span>
-            <a href="/mappa" class="hover:text-amber-400">Mappa</a>
-            <span>/</span>
-            <span class="text-slate-300 font-semibold truncate max-w-xs">{{ annuncio.titolo }}</span>
-        </div>
-        <div class="flex items-center space-x-4">
+    <!-- Breadcrumb SEO & Meta Info -->
+    <nav aria-label="Breadcrumb" class="mb-6 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-2">
+        <ol class="flex items-center space-x-2">
+            <li><a href="/" class="hover:text-amber-400">Home</a></li>
+            <li><span>/</span></li>
+            <li><a href="/annunci" class="hover:text-amber-400">Annunci</a></li>
+            {% if categoria_info %}
+            <li><span>/</span></li>
+            <li><a href="/annunci/{{ categoria_info.slug }}" class="hover:text-amber-400">{{ categoria_info.nome }}</a></li>
+            {% endif %}
+            <li><span>/</span></li>
+            <li class="text-slate-300 font-semibold truncate max-w-[200px] sm:max-w-xs" aria-current="page">{{ annuncio.titolo }}</li>
+        </ol>
+        <div class="flex items-center space-x-4 text-[11px]">
             <span><i class="fa-regular fa-eye mr-1"></i> {{ annuncio.visualizzazioni }} visualizzazioni</span>
-            <span><i class="fa-regular fa-clock mr-1"></i> {{ annuncio.data_creazione.strftime('%d/%m/%Y') }}</span>
+            <span><i class="fa-regular fa-clock mr-1"></i> Pubblicato il {{ annuncio.data_creazione.strftime('%d/%m/%Y') }}</span>
         </div>
+    </nav>
+
+    <!-- Banner Avviso se Annuncio Non Più Disponibile / Venduto -->
+    {% if annuncio.stato.value != 'pubblicato' %}
+    <div class="mb-6 p-4 rounded-xl bg-amber-950/80 border-2 border-amber-500/80 text-amber-200 flex items-center justify-between shadow-lg">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 text-lg font-bold">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <div>
+                <h2 class="text-sm font-bold text-white uppercase tracking-wider">
+                    {% if annuncio.stato.value == 'venduto' %}
+                    ANNUNCIO VENDUTO &bull; Trattativa Conclusa
+                    {% else %}
+                    Annuncio Concluso / Non Più Disponibile ({{ annuncio.stato.value | replace('_', ' ') | title }})
+                    {% endif %}
+                </h2>
+                <p class="text-xs text-amber-300/90 mt-0.5">
+                    L'arma non è più disponibile per la compravendita. Consulta gli annunci simili attivi consigliati in fondo alla pagina.
+                </p>
+            </div>
+        </div>
+        <a href="{% if categoria_info %}/annunci/{{ categoria_info.slug }}{% else %}/annunci{% endif %}" class="hidden sm:inline-block bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs transition-colors">
+            Cerca Altri Annunci
+        </a>
     </div>
+    {% endif %}
 
     <!-- Layout a 2 Colonne -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -85,12 +136,12 @@
             <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
                 {% if annuncio.galleria_immagini and annuncio.galleria_immagini|length > 0 %}
                 <div class="relative w-full h-80 sm:h-96 bg-black flex items-center justify-center">
-                    <img id="mainImage" src="{{ annuncio.galleria_immagini[0] }}" alt="{{ annuncio.titolo }}" class="max-h-full max-w-full object-contain">
+                    <img id="mainImage" src="{{ annuncio.galleria_immagini[0] }}" alt="{{ main_image_alt or annuncio.titolo }}" width="800" height="600" class="max-h-full max-w-full object-contain" fetchpriority="high">
                 </div>
                 {% if annuncio.galleria_immagini|length > 1 %}
                 <div class="p-3 bg-slate-900 flex gap-2 overflow-x-auto">
                     {% for img in annuncio.galleria_immagini %}
-                    <img src="{{ img }}" alt="Thumbnail" onclick="document.getElementById('mainImage').src = this.src" class="w-16 h-16 object-cover rounded border border-slate-700 hover:border-amber-500 cursor-pointer transition-all">
+                    <img src="{{ img }}" alt="{{ annuncio.titolo }} - Foto {{ loop.index }}" width="64" height="64" loading="lazy" decoding="async" onclick="document.getElementById('mainImage').src = this.src" class="w-16 h-16 object-cover rounded border border-slate-700 hover:border-amber-500 cursor-pointer transition-all">
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -330,7 +381,65 @@
 
         </div>
 
+    <!-- Sezione Annunci Simili / Correlati (Internal Linking SEO) -->
+    {% if annunci_simili and annunci_simili|length > 0 %}
+    <div class="mt-12 pt-8 border-t border-slate-800">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-crosshairs text-amber-500"></i>
+                    <span>Annunci Simili Consigliati</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">Altre armi della stessa categoria o calibro disponibili sul territorio</p>
+            </div>
+            {% if categoria_info %}
+            <a href="/annunci/{{ categoria_info.slug }}" class="text-xs font-bold text-amber-400 hover:underline flex items-center gap-1">
+                <span>Vedi tutti in {{ categoria_info.nome }}</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {% for sim in annunci_simili %}
+            <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow hover:border-slate-700 transition-all flex flex-col group">
+                <a href="{{ sim.url_seo or ('/annuncio/' ~ sim.slug ~ '-' ~ sim.id) }}" class="block relative h-40 bg-black overflow-hidden flex items-center justify-center">
+                    {% if sim.galleria_immagini and sim.galleria_immagini|length > 0 %}
+                    <img src="{{ sim.galleria_immagini[0] }}" alt="{{ sim.titolo }}" width="300" height="200" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    {% else %}
+                    <div class="text-slate-600 flex flex-col items-center">
+                        <i class="fa-solid fa-gun text-3xl mb-1"></i>
+                        <span class="text-[9px]">Nessuna foto</span>
+                    </div>
+                    {% endif %}
+                    <span class="absolute bottom-2 right-2 bg-slate-900/90 text-amber-400 font-extrabold text-xs px-2 py-0.5 rounded shadow">
+                        € {{ "{:,.2f}".format(sim.prezzo) }}
+                    </span>
+                </a>
+                <div class="p-3.5 flex flex-col justify-between flex-grow space-y-2">
+                    <div>
+                        <span class="text-[9px] uppercase font-mono text-slate-400">{{ sim.marca }} &bull; Cal. {{ sim.calibro }}</span>
+                        <h4 class="text-xs font-bold text-white line-clamp-2 mt-0.5">
+                            <a href="{{ sim.url_seo or ('/annuncio/' ~ sim.slug ~ '-' ~ sim.id) }}" class="hover:text-amber-400 hover:underline">
+                                {{ sim.titolo }}
+                            </a>
+                        </h4>
+                    </div>
+                    <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400">
+                        <span>
+                            <i class="fa-solid fa-location-dot text-amber-500 mr-0.5"></i>
+                            {% if sim.comune %}{{ sim.comune.nome }}{% else %}Italia{% endif %}
+                        </span>
+                        <a href="{{ sim.url_seo or ('/annuncio/' ~ sim.slug ~ '-' ~ sim.id) }}" class="text-amber-400 font-bold hover:underline">
+                            Dettagli &rarr;
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
+    {% endif %}
 
 </div>
 

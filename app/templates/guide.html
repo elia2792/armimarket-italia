@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Guida Normativa Compravendita Armi | T.U.L.P.S. & D.Lgs. 104/2018 — ArmiMarket Italia{% endblock %}
+{% block meta_description %}Guida completa e aggiornata alla compravendita legale di armi tra privati e armerie in Italia: titoli necessari, divieto di spedizione, cessione e denuncia ex Art. 38 T.U.L.P.S.{% endblock %}
+{% block canonical %}{{ canonical_url or (base_url ~ '/guide') }}{% endblock %}
+{% block meta_robots %}index, follow{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+
+    <!-- Breadcrumbs -->
+    <nav class="flex items-center space-x-2 text-xs text-[#6B7064]" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-[#4F5A30] transition-colors">Home</a>
+        <span class="text-[#A8A29E]">/</span>
+        <span class="text-[#252821] font-semibold">Guide & Normativa T.U.L.P.S.</span>
+    </nav>
+
+    <!-- Header Guida -->
+    <div class="border-b border-[#DDD9CD] pb-6">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-3"
+             style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
+            <i class="fa-solid fa-scale-balanced"></i> Normativa Armi in Italia
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-black text-[#252821] tracking-tight leading-tight">
+            Guida Legale alla Compravendita e Cessione di Armi
+        </h1>
+        <p class="text-sm sm:text-base text-[#4A4E44] mt-3 leading-relaxed">
+            Tutto quello che c'è da sapere per acquistare o cedere armi lecite (sportive, comuni o da caccia) tra privati o presso armerie autorizzate nel pieno rispetto del <strong>T.U.L.P.S.</strong>, della <strong>Legge 110/1975</strong> e del <strong>D.Lgs. 104/2018</strong>.
+        </p>
+    </div>
+
+    <!-- Banner Avviso -->
+    <div class="p-4 rounded-xl border flex items-start space-x-3 text-xs leading-relaxed"
+         style="background:#FFF9EB;border-color:#D4B168;color:#5C4314;">
+        <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg mt-0.5 flex-shrink-0"></i>
+        <div>
+            <strong class="font-bold">Avviso Istituzionale di Pubblica Sicurezza:</strong>
+            La detenzione, il porto e la compravendita di armi da fuoco sono rigorosamente regolamentati dalle autorità di Pubblica Sicurezza (Polizia di Stato e Arma dei Carabinieri). ArmiMarket Italia fornisce queste informazioni a solo scopo divulgativo e informativo.
+        </div>
+    </div>
+
+    <!-- Sezione 1: Titoli abilitativi -->
+    <section class="p-6 rounded-2xl border border-[#DDD9CD] bg-white shadow-sm space-y-4">
+        <div class="flex items-center space-x-3 text-[#4F5A30]">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold" style="background:#4F5A30;">
+                1
+            </div>
+            <h2 class="text-xl font-bold text-[#252821]">Titoli Necessari per l'Acquisto</h2>
+        </div>
+        <p class="text-xs sm:text-sm text-[#4A4E44] leading-relaxed">
+            In Italia, per poter acquistare legalmente un'arma da fuoco o munizioni, è obbligatorio essere in possesso di uno dei seguenti titoli abilitativi in corso di validità:
+        </p>
+        <ul class="list-disc list-inside text-xs sm:text-sm text-[#4A4E44] space-y-2 pl-2">
+            <li><strong>Porto di fucile per uso tiro a volo (sportivo):</strong> ha validità di 5 anni e consente l'acquisto e il trasporto di tutte le armi comuni da sparo, sportive e da caccia.</li>
+            <li><strong>Porto di fucile per uso caccia:</strong> ha validità di 5 anni e consente acquisto, trasporto ed esercizio venatorio (con regolare licenza e assicurazione).</li>
+            <li><strong>Porto d'armi per difesa personale:</strong> validità annuale, rilasciato dal Prefetto per comprovato e reale bisogno.</li>
+            <li><strong>Nulla osta all'acquisto:</strong> rilasciato dal Questore competente per territorio; ha validità limitata (solitamente 30 giorni) e consente l'acquisto di una specifica arma senza abilitare al porto o trasporto continuativo.</li>
+        </ul>
+    </section>
+
+    <!-- Sezione 2: Divieto assoluto di spedizione tra privati -->
+    <section class="p-6 rounded-2xl border border-[#DDD9CD] bg-white shadow-sm space-y-4">
+        <div class="flex items-center space-x-3 text-[#4F5A30]">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold" style="background:#4F5A30;">
+                2
+            </div>
+            <h2 class="text-xl font-bold text-[#252821]">Divieto Assoluto di Spedizione Postale tra Privati</h2>
+        </div>
+        <div class="p-3.5 rounded-lg border text-xs" style="background:#FDE8E8;border-color:#F8B4B4;color:#9B1C1C;">
+            <i class="fa-solid fa-ban mr-1 font-bold"></i>
+            <strong>Attenzione — Art. 17 Legge 110/1975:</strong> È severamente vietata la compravendita di armi per corrispondenza tra privati. Le armi non possono essere spedite via posta o tramite corrieri ordinari espresso.
+        </div>
+        <p class="text-xs sm:text-sm text-[#4A4E44] leading-relaxed">
+            Se l'acquirente e il venditore risiedono in regioni o province distanti, l'unico canale lecito per il trasferimento a distanza consiste nella <strong>spedizione da armeria ad armeria</strong>:
+        </p>
+        <ol class="list-decimal list-inside text-xs sm:text-sm text-[#4A4E44] space-y-2 pl-2">
+            <li>Il venditore consegna l'arma alla propria armeria di fiducia munita di licenza ex art. 31 T.U.L.P.S.</li>
+            <li>L'armeria di partenza prende in carico l'arma e organizza la spedizione tramite un vettore blindato e autorizzato dalla Prefettura.</li>
+            <li>L'armeria di destinazione riceve l'arma e, previa verifica del porto d'armi e dell'identità dell'acquirente, perfeziona la consegna e scarica l'arma dal proprio registro di carico/scarico.</li>
+        </ol>
+    </section>
+
+    <!-- Sezione 3: Cessione diretta di persona tra privati -->
+    <section class="p-6 rounded-2xl border border-[#DDD9CD] bg-white shadow-sm space-y-4">
+        <div class="flex items-center space-x-3 text-[#4F5A30]">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold" style="background:#4F5A30;">
+                3
+            </div>
+            <h2 class="text-xl font-bold text-[#252821]">Cessione Diretta di Persona tra Privati</h2>
+        </div>
+        <p class="text-xs sm:text-sm text-[#4A4E44] leading-relaxed">
+            Quando l'incontro avviene di persona, acquirente e venditore devono:
+        </p>
+        <ul class="list-disc list-inside text-xs sm:text-sm text-[#4A4E44] space-y-2 pl-2">
+            <li>Accertare reciprocamente la validità del titolo di polizia (Porto d'armi o Nulla Osta in corso di validità con documento di riconoscimento con foto).</li>
+            <li>Compilare e sottoscrivere in duplice copia la <strong>Scrittura Privata di Cessione di Arma</strong>, indicando data, luogo, dati anagrafici completi, estremi del titolo di polizia, marca, modello, calibro e matricola dell'arma.</li>
+            <li>Conservare ciascuno una copia della dichiarazione firmata.</li>
+        </ul>
+    </section>
+
+    <!-- Sezione 4: Obbligo di Denuncia entro 72 ore -->
+    <section class="p-6 rounded-2xl border border-[#DDD9CD] bg-white shadow-sm space-y-4">
+        <div class="flex items-center space-x-3 text-[#4F5A30]">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold" style="background:#4F5A30;">
+                4
+            </div>
+            <h2 class="text-xl font-bold text-[#252821]">Obbligo di Denuncia entro 72 Ore (Art. 38 T.U.L.P.S.)</h2>
+        </div>
+        <p class="text-xs sm:text-sm text-[#4A4E44] leading-relaxed">
+            Ai sensi dell'art. 38 del T.U.L.P.S., chiunque entri in possesso di un'arma da fuoco (o ne ceda una) deve <strong>entro 72 ore</strong> presentare denuncia di detenzione o cessione presso la Questura, il Commissariato di P.S. o la Stazione dei Carabinieri competente per il luogo dove l'arma viene custodita.
+        </p>
+        <p class="text-xs sm:text-sm text-[#4A4E44] leading-relaxed">
+            La denuncia può essere presentata di persona o trasmessa via Posta Elettronica Certificata (PEC) alla Questura/Comando di riferimento con allegata copia dei documenti e della scrittura di cessione.
+        </p>
+    </section>
+
+    <!-- Sezione 5: Ruolo di ArmiMarket Italia -->
+    <section class="p-6 rounded-2xl border border-[#DDD9CD] bg-white shadow-sm space-y-3" style="border-left: 4px solid #68733F;">
+        <h2 class="text-lg font-bold text-[#252821]">Ruolo e Funzionamento di ArmiMarket Italia</h2>
+        <p class="text-xs sm:text-sm text-[#4A4E44] leading-relaxed">
+            ArmiMarket Italia è una <strong>bacheca tecnologica indipendente e motore di ricerca informativo</strong>. Il portale permette ad armerie autorizzate e privati muniti di titolo di pubblicare annunci e indicizza disponibilità pubbliche reperibili online per semplificare la consultazione.
+        </p>
+        <p class="text-xs text-[#6B7064] leading-relaxed">
+            ArmiMarket Italia <strong>non partecipa alle trattative, non incassa corrispettivi sulle compravendite, non vende né spedisce armi</strong>. La verifica dei titoli e il rispetto di ogni adempimento di pubblica sicurezza rimangono a carico esclusivo dei contraenti.
+        </p>
+    </section>
+
+</div>
+{% endblock %}

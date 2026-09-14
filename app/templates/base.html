@@ -3,7 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}ArmiMarket Italia — Il Mercato delle Armi Lecite d'Italia | Compra, Vendi, Colleziona{% endblock %}</title>
+    <title>{% block title %}{{ seo_title or "ArmiMarket Italia — Il Mercato delle Armi Lecite d'Italia | Compra, Vendi, Colleziona" }}{% endblock %}</title>
+
+    <!-- SEO Meta Tags Primari -->
+    <meta name="description" content="{% block meta_description %}{{ seo_description or 'Bacheca motore di ricerca indipendente per armi usate e nuove in Italia conformemente al T.U.L.P.S. Annunci di armerie autorizzate e privati.' }}{% endblock %}">
+    <meta name="robots" content="{% block meta_robots %}{{ seo_robots or 'index, follow' }}{% endblock %}">
+    <link rel="canonical" href="{% block canonical %}{{ canonical_url or (base_url ~ request.url.path) }}{% endblock %}">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:site_name" content="ArmiMarket Italia">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}{{ seo_title or 'ArmiMarket Italia — Bacheca Armi Lecite' }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ seo_description or 'Bacheca e motore di ricerca per annunci di armi lecite, da caccia, tiro e collezione in Italia.' }}{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}{{ canonical_url or (base_url ~ request.url.path) }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ og_image or (base_url ~ '/static/img/og-preview.jpg') }}{% endblock %}">
+
+    <!-- Twitter / X Cards -->
+    <meta name="twitter:card" content="{% block twitter_card %}summary_large_image{% endblock %}">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ seo_title or 'ArmiMarket Italia' }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ seo_description or 'Bacheca e motore di ricerca per armi usate e nuove in Italia ai sensi del T.U.L.P.S.' }}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ og_image or (base_url ~ '/static/img/og-preview.jpg') }}{% endblock %}">
+
+    <!-- Dati Strutturati Schema.org (JSON-LD) Globali: WebSite & Organization -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "ArmiMarket Italia",
+        "url": "{{ base_url or 'https://armimarket-italia.onrender.com' }}",
+        "description": "Bacheca motore di ricerca indipendente per compravendita di armi lecite, da caccia, tiro e collezione in Italia ai sensi del T.U.L.P.S.",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "{{ base_url or 'https://armimarket-italia.onrender.com' }}/?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "ArmiMarket Italia",
+        "url": "{{ base_url or 'https://armimarket-italia.onrender.com' }}",
+        "description": "Bacheca e motore di ricerca per armerie e privati autorizzati in Italia conformemente al T.U.L.P.S."
+    }
+    </script>
+
     <!-- Tailwind CSS (Build Locale Statico Minificato) -->
     <link rel="stylesheet" href="/static/css/tailwind.min.css?v=1.0.2">
     <!-- Stili Militari / Tattici & Custom Leaflet -->
@@ -101,13 +149,19 @@
                     <i class="fa-solid fa-scale-balanced text-amber-600 text-lg"></i>
                     <span class="font-semibold text-[#252821]">Conformità Legale T.U.L.P.S. & D.Lgs. 104/2018</span>
                 </div>
-                <div class="flex space-x-6 text-[#6B7064]">
+                <div class="flex flex-wrap gap-y-2 space-x-6 text-[#6B7064]">
+                    <a href="/annunci/armi-corte" class="hover:text-[#4F5A30]">Armi Corte</a>
+                    <a href="/annunci/carabine-fucili-rigati" class="hover:text-[#4F5A30]">Carabine</a>
+                    <a href="/annunci/fucili-canna-liscia" class="hover:text-[#4F5A30]">Fucili a Canna Liscia</a>
+                    <a href="/annunci/aria-compressa" class="hover:text-[#4F5A30]">Aria Compressa</a>
+                    <a href="/annunci/ottiche-accessori" class="hover:text-[#4F5A30]">Ottiche & Accessori</a>
+                    <a href="/guide" class="hover:text-[#4F5A30]">Guide & Normativa</a>
+                    <a href="/faq" class="hover:text-[#4F5A30]">FAQ</a>
                     <a href="/contatta-admin" class="hover:text-[#4F5A30] font-semibold text-[#68733F] flex items-center space-x-1">
                         <i class="fa-solid fa-envelope"></i>
                         <span>Contatta Admin</span>
                     </a>
-                    <a href="/mappa" class="hover:text-[#4F5A30]">Cerca per Posizione</a>
-                    <a href="/docs" class="hover:text-[#4F5A30]">Documentazione REST API</a>
+                    <a href="/mappa" class="hover:text-[#4F5A30]">Mappa Territoriale</a>
                 </div>
 
             </div>

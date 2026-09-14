@@ -79,5 +79,13 @@ class Comune(Base):
     provincia = relationship("Provincia", back_populates="comuni")
     annunci = relationship("Annuncio", back_populates="comune")
 
+    @property
+    def sigla_provincia(self) -> str:
+        return self.provincia.sigla_automobilistica if self.provincia else ""
+
+    @property
+    def nome_regione(self) -> str:
+        return self.provincia.regione.nome if self.provincia and self.provincia.regione else ""
+
     def __repr__(self) -> str:
         return f"<Comune id={self.id} nome='{self.nome}' cap='{self.cap}'>"

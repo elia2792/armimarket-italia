@@ -137,14 +137,14 @@ async def test_scheda_annuncio_protezione_stati(client: AsyncClient, db_session,
     # Test visualizzazione HTML con cookie per proprietario
     owner_raw_token = private_token_headers["Authorization"].split(" ")[1]
     client.cookies.set("armimarket_token", owner_raw_token)
-    resp_view_owner = await client.get(f"/scheda/{annuncio_mod.id}")
+    resp_view_owner = await client.get(f"/scheda/{annuncio_mod.id}", follow_redirects=True)
     client.cookies.delete("armimarket_token")
     assert resp_view_owner.status_code == 200
 
     # D) Test Accesso da Amministratore (id=1)
     resp_api_admin = await client.get(f"/api/v1/annunci/{annuncio_mod.id}", headers=admin_token_headers)
     assert resp_api_admin.status_code == 200
-    resp_view_admin = await client.get(f"/scheda/{annuncio_mod.id}", headers=admin_token_headers)
+    resp_view_admin = await client.get(f"/scheda/{annuncio_mod.id}", headers=admin_token_headers, follow_redirects=True)
     assert resp_view_admin.status_code == 200
 
     # E) Test Annuncio RIFIUTATO: non accessibile al pubblico
@@ -156,7 +156,7 @@ async def test_scheda_annuncio_protezione_stati(client: AsyncClient, db_session,
     # F) Test Annuncio PUBBLICATO: accessibile sia ad anonimi che a tutti
     resp_pub_anon = await client.get(f"/api/v1/annunci/{annuncio_pub.id}")
     assert resp_pub_anon.status_code == 200
-    resp_pub_view_anon = await client.get(f"/scheda/{annuncio_pub.id}")
+    resp_pub_view_anon = await client.get(f"/scheda/{annuncio_pub.id}", follow_redirects=True)
     assert resp_pub_view_anon.status_code == 200
 
 

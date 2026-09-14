@@ -416,7 +416,7 @@ async def test_priorita3_stored_xss_output_encoding(client: AsyncClient, db_sess
     await db_session.refresh(ad_xss)
 
     # Richiedi la scheda annuncio HTML
-    resp = await client.get(f"/scheda/{ad_xss.id}")
+    resp = await client.get(f"/scheda/{ad_xss.id}", follow_redirects=True)
     assert resp.status_code == 200
     html_content = resp.text
 

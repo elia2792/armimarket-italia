@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}FAQ Armi Usate e Normativa — Domande Frequenti | ArmiMarket Italia{% endblock %}
+{% block meta_description %}Risposte alle domande più frequenti su compravendita di armi usate in Italia, obblighi di legge T.U.L.P.S., porto d'armi, divieto di spedizione tra privati e funzionamento della bacheca.{% endblock %}
+{% block canonical %}{{ canonical_url or (base_url ~ '/faq') }}{% endblock %}
+{% block meta_robots %}index, follow{% endblock %}
+
+{% block extra_head %}
+<!-- Schema.org JSON-LD FAQPage -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "È legale pubblicare e cercare annunci di armi usate online in Italia?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Sì, la pubblicazione di annunci informativi e la ricerca di armi lecite online sono pienamente legali. Tuttavia, la vendita effettiva e il passaggio materiale dell'arma non possono avvenire a distanza tra privati: la transazione deve perfezionarsi di persona oppure tramite armerie autorizzate titolari di licenza T.U.L.P.S."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "È possibile farsi spedire un'arma a casa da un privato?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No, è severamente vietato dalla Legge 110/1975 (art. 17). La spedizione postale o con corriere ordinario tra privati costituisce reato penale. L'unico canale consentito per la spedizione a distanza è da armeria ad armeria tramite vettori blindati e autorizzati dalla Prefettura."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Quali documenti sono obbligatori per comprare un'arma da un annuncio?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "L'acquirente deve esibire un titolo abilitativo valido rilasciato dalla Pubblica Sicurezza: Porto di fucile per uso tiro a volo (sportivo), Porto d'armi per caccia, Porto d'armi per difesa personale, oppure Nulla Osta all'acquisto rilasciato dalla Questura, unitamente a un documento d'identità valido e codice fiscale."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Entro quante ore bisogna denunciare l'arma acquistata?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Ai sensi dell'art. 38 del T.U.L.P.S., l'acquirente ha l'obbligo di denunciare la detenzione dell'arma entro 72 ore dal momento in cui ne entra materialmente in possesso, presso la Questura, il Commissariato di Pubblica Sicurezza o la Stazione dei Carabinieri competente per territorio."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Le armi ad aria compressa richiedono il porto d'armi?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Le armi ad aria o gas compresso con energia cinetica inferiore a 7.5 Joule sono classificate come armi a modesta capacità offensiva e sono di libera vendita a tutti i cittadini maggiorenni (muniti di documento d'identità valido), senza necessità di porto d'armi. Resta fermo il divieto di vendita per corrispondenza tra privati."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Che cos'è ArmiMarket Italia e come opera?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "ArmiMarket Italia è esclusivamente una bacheca tecnologica indipendente e un motore di ricerca per annunci di armi lecite. Non vende armi, non fa da intermediario nelle compravendite, non percepisce percentuali sulle transazioni e non ha legami societari con i venditori. Ogni trattativa avviene direttamente tra acquirente e inserzionista."
+      }
+    }
+  ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+
+    <!-- Breadcrumbs -->
+    <nav class="flex items-center space-x-2 text-xs text-[#6B7064]" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-[#4F5A30] transition-colors">Home</a>
+        <span class="text-[#A8A29E]">/</span>
+        <span class="text-[#252821] font-semibold">Domande Frequenti (FAQ)</span>
+    </nav>
+
+    <!-- Header FAQ -->
+    <div class="border-b border-[#DDD9CD] pb-6">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-3"
+             style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
+            <i class="fa-solid fa-circle-question"></i> Domande & Risposte
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-black text-[#252821] tracking-tight leading-tight">
+            Domande Frequenti su Armi Usate, Compravendita e Normativa
+        </h1>
+        <p class="text-sm sm:text-base text-[#4A4E44] mt-3 leading-relaxed">
+            Risposte chiare e conformi alla legge italiana alle domande più comuni su annunci, acquisto, vendita, trasporto e detenzione di armi.
+        </p>
+    </div>
+
+    <!-- Lista FAQ -->
+    <div class="space-y-4">
+        
+        <div class="p-6 rounded-2xl border border-[#DDD9CD] bg-white shadow-sm space-y-2">
+            <h2 class="text-base sm:text-lg font-bold text-[#252821] flex items-start gap-2">
+                <i class="fa-solid fa-circle-question text-[#68733F] mt-1 text-sm flex-shrink-0"></i>
+                <span>È legale pubblicare e cercare annunci di armi usate online in Italia?</span>
+            </h2>
+            <p class="text-xs sm:text-sm text-[#4A4E44] leading-relaxed pl-6">
+                Sì, la pubblicazione di annunci informativi e la ricerca di armi lecite online sono pienamente legali. Tuttavia, la vendita effettiva e il passaggio materiale dell'arma non possono avvenire a distanza tra privati: la transazione deve perfezionarsi di persona oppure tramite armerie autorizzate titolari di licenza T.U.L.P.S.
+            </p>
+        </div>
+
+        <div class="p-6 rounded-2xl border border-[#DDD9CD] bg-white shadow-sm space-y-2">
+            <h2 class="text-base sm:text-lg font-bold text-[#252821] flex items-start gap-2">
+                <i class="fa-solid fa-circle-question text-[#68733F] mt-1 text-sm flex-shrink-0"></i>
+                <span>È possibile farsi spedire un'arma a casa da un privato?</span>
+            </h2>
+            <p class="text-xs sm:text-sm text-[#4A4E44] leading-relaxed pl-6">
+                <strong>No, è severamente vietato dalla Legge 110/1975 (art. 17).</strong> La spedizione postale o con corriere ordinario tra privati costituisce reato penale. L'unico canale consentito per la spedizione a distanza è da armeria ad armeria tramite vettori blindati e autorizzati dalla Prefettura.
+            </p>
+        </div>
+
+        <div class="p-6 rounded-2xl border border-[#DDD9CD] bg-white shadow-sm space-y-2">
+            <h2 class="text-base sm:text-lg font-bold text-[#252821] flex items-start gap-2">
+                <i class="fa-solid fa-circle-question text-[#68733F] mt-1 text-sm flex-shrink-0"></i>
+                <span>Quali documenti sono obbligatori per comprare un'arma da un annuncio?</span>
+            </h2>
+            <p class="text-xs sm:text-sm text-[#4A4E44] leading-relaxed pl-6">
+                L'acquirente deve esibire un titolo abilitativo valido rilasciato dalla Pubblica Sicurezza: Porto di fucile per uso tiro a volo (sportivo), Porto d'armi per caccia, Porto d'armi per difesa personale, oppure Nulla Osta all'acquisto rilasciato dalla Questura, unitamente a un documento d'identità valido e codice fiscale.
+            </p>
+        </div>
+
+        <div class="p-6 rounded-2xl border border-[#DDD9CD] bg-white shadow-sm space-y-2">
+            <h2 class="text-base sm:text-lg font-bold text-[#252821] flex items-start gap-2">
+                <i class="fa-solid fa-circle-question text-[#68733F] mt-1 text-sm flex-shrink-0"></i>
+                <span>Entro quante ore bisogna denunciare l'arma acquistata?</span>
+            </h2>
+            <p class="text-xs sm:text-sm text-[#4A4E44] leading-relaxed pl-6">
+                Ai sensi dell'art. 38 del T.U.L.P.S., l'acquirente ha l'obbligo di denunciare la detenzione dell'arma <strong>entro 72 ore</strong> dal momento in cui ne entra materialmente in possesso, presso la Questura, il Commissariato di Pubblica Sicurezza o la Stazione dei Carabinieri competente per territorio.
+            </p>
+        </div>
+
+        <div class="p-6 rounded-2xl border border-[#DDD9CD] bg-white shadow-sm space-y-2">
+            <h2 class="text-base sm:text-lg font-bold text-[#252821] flex items-start gap-2">
+                <i class="fa-solid fa-circle-question text-[#68733F] mt-1 text-sm flex-shrink-0"></i>
+                <span>Le armi ad aria compressa richiedono il porto d'armi?</span>
+            </h2>
+            <p class="text-xs sm:text-sm text-[#4A4E44] leading-relaxed pl-6">
+                Le armi ad aria o gas compresso con energia cinetica inferiore a 7.5 Joule sono classificate come armi a modesta capacità offensiva e sono di libera vendita a tutti i cittadini maggiorenni (muniti di documento d'identità valido), senza necessità di porto d'armi. Resta fermo il divieto di vendita per corrispondenza tra privati.
+            </p>
+        </div>
+
+        <div class="p-6 rounded-2xl border border-[#DDD9CD] bg-white shadow-sm space-y-2">
+            <h2 class="text-base sm:text-lg font-bold text-[#252821] flex items-start gap-2">
+                <i class="fa-solid fa-circle-question text-[#68733F] mt-1 text-sm flex-shrink-0"></i>
+                <span>Che cos'è ArmiMarket Italia e come opera?</span>
+            </h2>
+            <p class="text-xs sm:text-sm text-[#4A4E44] leading-relaxed pl-6">
+                ArmiMarket Italia è esclusivamente una bacheca tecnologica indipendente e un motore di ricerca per annunci di armi lecite. Non vende armi, non fa da intermediario nelle compravendite, non percepisce percentuali sulle transazioni e non ha legami societari con i venditori. Ogni trattativa avviene direttamente tra acquirente e inserzionista.
+            </p>
+        </div>
+
+    </div>
+
+    <div class="pt-6 border-t border-[#DDD9CD] flex flex-wrap items-center justify-between gap-4">
+        <a href="/guide" class="text-xs font-bold text-[#4F5A30] hover:underline flex items-center gap-1.5">
+            <i class="fa-solid fa-book-open"></i> Leggi la Guida Completa alla Compravendita
+        </a>
+        <a href="/contatta-admin" class="text-xs font-bold text-[#8C734B] hover:underline flex items-center gap-1.5">
+            <i class="fa-solid fa-envelope"></i> Hai altre domande? Contatta l'Amministratore
+        </a>
+    </div>
+
+</div>
+{% endblock %}
