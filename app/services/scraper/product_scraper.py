@@ -442,16 +442,13 @@ class UniversalArmeriaScraper:
         """
         stats = {"inseriti": 0, "esistenti": 0, "scartati": 0}
 
-        if not armeria_user:
-            armeria_user = await get_or_create_system_bot_user(db)
-
         nome_armeria = (
             (armeria_info.get("ragione_sociale") or armeria_info.get("nome"))
             if armeria_info
-            else (armeria_user.ragione_sociale or armeria_user.nome)
+            else ((armeria_user.ragione_sociale or armeria_user.nome) if armeria_user else "Armeria Indipendente")
         )
-        email_armeria = armeria_info.get("email") if armeria_info else armeria_user.email
-        telefono_armeria = armeria_info.get("telefono") if armeria_info else armeria_user.telefono
+        email_armeria = armeria_info.get("email") if armeria_info else (armeria_user.email if armeria_user else "info@armimarket.it")
+        telefono_armeria = armeria_info.get("telefono") if armeria_info else (armeria_user.telefono if armeria_user else None)
 
         for url in product_urls:
             # Verifica se l'URL è già stato importato per evitare duplicati
@@ -487,12 +484,14 @@ class UniversalArmeriaScraper:
                 condizione=CondizioneArma.USATO_OTTIMO if "usat" in titolo.lower() else CondizioneArma.NUOVO,
                 matricola_riservata=data.get("matricola"),
                 comune_id=comune_id,
-                utente_id=armeria_user.id,
+                utente_id=armeria_user.id if armeria_user else None,
+                fonte_esterna=nome_armeria,
+                source_id_esterno=str(data.get("external_id") or data.get("id") or ""),
                 galleria_immagini=data.get("immagini", []),
                 link_esterno=url,  # LINK DIRETTO ORIGINALE ALL'ARMERIA
-                email_contatto=email_armeria,
+                email_contatto=email_armeria or "info@armimarket.it",
                 telefono_contatto=telefono_armeria,
-                mostra_telefono_pubblico=True,
+                mostra_telefono_pubblico=bool(telefono_armeria),
             )
 
             db.add(nuovo_annuncio)
@@ -501,6 +500,7 @@ class UniversalArmeriaScraper:
 
         await db.commit()
         return stats
+
 
 
 class MultiArmeriaSearchScraper:
@@ -605,11 +605,9 @@ class MultiArmeriaSearchScraper:
         for armeria_cfg in target_armerie:
             try:
                 # Gestione utente: se è un'armeria registrata, usa il suo user_obj.
-                # Se è un target della directory di scraping, NON creare l'account utente!
-                # Le armerie devono registrarsi autonomamente; per lo scraping usiamo il bot di sistema.
+                # Se è un target della directory di scraping, le armerie NON sono utenti della piattaforma: utente_id=None
                 armeria_user = armeria_cfg.get("user_obj")
-                if not armeria_user:
-                    armeria_user = await get_or_create_system_bot_user(db)
+
 
                 # Risolvi comune sede armeria per coordinate geografiche
                 stmt_comune = select(Comune).where(Comune.nome.ilike(f"%{armeria_cfg['citta']}%"))

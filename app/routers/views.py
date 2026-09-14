@@ -160,6 +160,13 @@ async def index_view(
     ha_filtri_complessi = bool(q or marca or modello or calibro or prezzo_min or prezzo_max or tipologia_inserzionista or regione_id or tipologia_arma)
     seo_robots = "noindex, follow" if ha_filtri_complessi else "index, follow"
     canonical_url = f"{base_url}/" if pagina == 1 else f"{base_url}/?pagina={pagina}"
+    prev_page_url = None
+    next_page_url = None
+    if not ha_filtri_complessi:
+        if pagina > 1:
+            prev_page_url = f"{base_url}/" if pagina == 2 else f"{base_url}/?pagina={pagina - 1}"
+        if pagina < totale_pagine:
+            next_page_url = f"{base_url}/?pagina={pagina + 1}"
 
     return templates.TemplateResponse(
         request=request,
@@ -185,6 +192,8 @@ async def index_view(
             "version": settings.VERSION,
             "base_url": base_url,
             "canonical_url": canonical_url,
+            "prev_page_url": prev_page_url,
+            "next_page_url": next_page_url,
             "seo_robots": seo_robots,
             "seo_title": "ArmiMarket Italia — Bacheca Annunci Armi Usate e Nuove | Armerie e Privati",
             "seo_description": "Bacheca motore di ricerca per annunci di armi usate e nuove in Italia conformemente al T.U.L.P.S. Scopri pistole, carabine, fucili da caccia e tiro sportivo.",
@@ -201,18 +210,17 @@ async def category_view(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Pagina SEO dedicata per Categoria (/annunci/{categoria_slug}):
-    - Title parlante unico
-    - Meta description ricca e mirata
-    - H1 e testo introduttivo ricco per motore di ricerca
-    - Breadcrumbs SEO e BreadcrumbList JSON-LD
+    Landing page SEO-friendly per categoria specifica:
+    - URL pulito: /annunci/{categoria_slug}
+    - Title, meta description e H1 su misura
+    - BreadcrumbList Schema.org
+    - Paginazione server-side a 50 annunci per pagina con rel prev/next
     - Tag canonical coerente (/annunci/{slug} o ?pagina=X)
-    - Paginazione da 50 annunci
     """
-    if categoria_slug not in CATEGORIE_SEO:
+    cat_info = CATEGORIE_SEO.get(categoria_slug)
+    if not cat_info:
         raise HTTPException(status_code=404, detail="Categoria non trovata.")
 
-    cat_info = CATEGORIE_SEO[categoria_slug]
     base_url = _get_base_url(request)
 
     annunci, totale = await SearchService.search_annunci(
@@ -232,6 +240,13 @@ async def category_view(
     schema_breadcrumb = genera_schema_breadcrumb(breadcrumbs)
 
     canonical_url = f"{base_url}/annunci/{categoria_slug}" if pagina == 1 else f"{base_url}/annunci/{categoria_slug}?pagina={pagina}"
+    prev_page_url = None
+    next_page_url = None
+    if pagina > 1:
+        prev_page_url = f"{base_url}/annunci/{categoria_slug}" if pagina == 2 else f"{base_url}/annunci/{categoria_slug}?pagina={pagina - 1}"
+    if pagina < totale_pagine:
+        next_page_url = f"{base_url}/annunci/{categoria_slug}?pagina={pagina + 1}"
+
     regioni = (await db.execute(select(Regione).order_by(Regione.nome))).scalars().all()
 
     return templates.TemplateResponse(
@@ -247,6 +262,8 @@ async def category_view(
             "version": settings.VERSION,
             "base_url": base_url,
             "canonical_url": canonical_url,
+            "prev_page_url": prev_page_url,
+            "next_page_url": next_page_url,
             "seo_robots": "index, follow",
             "seo_title": cat_info["titolo_seo"],
             "seo_description": cat_info["descrizione_seo"],
@@ -268,34 +285,51 @@ async def regional_view(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Pagina SEO Territoriale per Regione (/annunci/regione/{regione_slug}):
-    - Ottimizzazione keyword locali (Lombardia, Lazio, Veneto, Toscana, ecc.)
-    - Annunci filtrati sul territorio regionale
-    - Paginazione da 50 annunci
-    - Breadcrumbs strutturati
-    - Canonical pulito
+    Landing page SEO-friendly territoriale (/annunci/regione/{regione_slug}):
+    - Title e meta description geolocalizzati
+    - Paginazione server-side a 50 annunci per pagina con rel prev/next
+    - Gestione intelligente index/noindex: index, follow se ha annunci; noindex, follow se vuota
     """
-    reg_slug_clean = slugify(regione_slug)
+    reg_slug_clean = regione_slug.lower().strip()
     reg_info = REGIONI_SEO.get(reg_slug_clean)
 
-    if not reg_info:
-        # Fallback database lookup
+    if reg_info:
+        # Trova l'oggetto Regione dal database corrispondente al nome o all'ID
         reg_obj = (
             await db.execute(
-                select(Regione).where(func.lower(Regione.nome) == reg_slug_clean.replace("-", " "))
+                select(Regione).where(
+                    func.lower(Regione.nome) == reg_info["nome"].lower()
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        if not reg_obj:
+            reg_obj = (
+                await db.execute(
+                    select(Regione).where(Regione.id == reg_info["id"]).limit(1)
+                )
+            ).scalar_one_or_none()
+        reg_nome = reg_info["nome"]
+        reg_id = reg_obj.id if reg_obj else reg_info["id"]
+    else:
+        # Fallback nel caso esista una regione nel DB con nome corrispondente allo slug
+        reg_obj = (
+            await db.execute(
+                select(Regione).where(
+                    func.lower(Regione.nome) == reg_slug_clean.replace("-", " ")
+                )
             )
         ).scalar_one_or_none()
         if not reg_obj:
             raise HTTPException(status_code=404, detail="Regione non trovata.")
-        reg_id = reg_obj.id
         reg_nome = reg_obj.nome
+        reg_id = reg_obj.id
+
+    if not reg_info:
         reg_title = f"Annunci Armi Usate e Nuove in {reg_nome} | ArmiMarket Italia"
-        reg_desc = f"Bacheca annunci armi usate e nuove in vendita in {reg_nome}. Pistole, fucili e carabine conformi al T.U.L.P.S."
+        reg_desc = f"Trova annunci di armi usate e nuove in {reg_nome}. Compravendita lecita tra privati e armerie autorizzate."
         reg_h1 = f"Armi Usate e Nuove in Vendita in {reg_nome}"
-        reg_intro = f"Consulta tutti gli annunci di armi sportive e da caccia disponibili nella regione {reg_nome}."
+        reg_intro = f"Consulta gli annunci di armi da caccia, tiro sportivo e collezione disponibili nella regione {reg_nome}."
     else:
-        reg_id = reg_info["id"]
-        reg_nome = reg_info["nome"]
         reg_title = reg_info["titolo_seo"]
         reg_desc = reg_info["descrizione_seo"]
         reg_h1 = reg_info["h1"]
@@ -318,6 +352,17 @@ async def regional_view(
     ]
     schema_breadcrumb = genera_schema_breadcrumb(breadcrumbs)
     canonical_url = f"{base_url}/annunci/regione/{reg_slug_clean}" if pagina == 1 else f"{base_url}/annunci/regione/{reg_slug_clean}?pagina={pagina}"
+
+    prev_page_url = None
+    next_page_url = None
+    if pagina > 1:
+        prev_page_url = f"{base_url}/annunci/regione/{reg_slug_clean}" if pagina == 2 else f"{base_url}/annunci/regione/{reg_slug_clean}?pagina={pagina - 1}"
+    if pagina < totale_pagine:
+        next_page_url = f"{base_url}/annunci/regione/{reg_slug_clean}?pagina={pagina + 1}"
+
+    # Strategia SEO per regioni: se ci sono annunci -> index, follow; se vuota -> noindex, follow per non impoverire l'indice
+    seo_robots = "index, follow" if totale > 0 else "noindex, follow"
+
     regioni = (await db.execute(select(Regione).order_by(Regione.nome))).scalars().all()
 
     return templates.TemplateResponse(
@@ -333,7 +378,9 @@ async def regional_view(
             "version": settings.VERSION,
             "base_url": base_url,
             "canonical_url": canonical_url,
-            "seo_robots": "index, follow",
+            "prev_page_url": prev_page_url,
+            "next_page_url": next_page_url,
+            "seo_robots": seo_robots,
             "seo_title": reg_title,
             "seo_description": reg_desc,
             "page_h1": reg_h1,
@@ -442,9 +489,9 @@ async def ad_detail_view(slug_and_id: str, request: Request, db: AsyncSession = 
     if not annuncio:
         raise HTTPException(status_code=404, detail="Annuncio non trovato.")
 
-    # Controllo canonical dello slug: se l'utente digita uno slug errato con ID corretto, 301 redirect
+    # Controllo canonical dello slug: se l'utente digita uno slug errato o un ID nudo, 301 redirect all'URL canonico unico
     canonical_slug_id = f"{slugify(annuncio.titolo)}-{annuncio.id}"
-    if slug_and_id != canonical_slug_id and slug_and_id != str(annuncio.id):
+    if slug_and_id != canonical_slug_id:
         return RedirectResponse(url=f"/annuncio/{canonical_slug_id}", status_code=301)
 
     # Controllo stato annuncio e permessi di visualizzazione
@@ -493,16 +540,6 @@ async def ad_detail_view(slug_and_id: str, request: Request, db: AsyncSession = 
         else "comunale_protetta"
     )
 
-    # Risoluzione nome inserzionista reale (armerie registrate o scraping)
-    nome_inserzionista = (annuncio.utente.ragione_sociale or annuncio.utente.nome) if annuncio.utente else "Armeria"
-    if annuncio.utente and annuncio.utente.email == "indicizzatore.bot@armimarket.it":
-        from app.services.scraper.directory import ARMERIE_TARGETS
-        matched_target = next((a for a in ARMERIE_TARGETS if a.get("email", "").lower() == (annuncio.email_contatto or "").lower()), None)
-        if matched_target:
-            nome_inserzionista = matched_target.get("ragione_sociale") or matched_target.get("nome")
-        else:
-            nome_inserzionista = "Armeria Online Indipendente"
-    setattr(annuncio, "nome_inserzionista_reale", nome_inserzionista)
 
     setattr(annuncio, "latitudine_mappa", lat)
     setattr(annuncio, "longitudine_mappa", lon)
@@ -614,16 +651,29 @@ async def faq_view(request: Request):
 
 @views_router.get("/sitemap.xml", response_class=Response)
 async def sitemap_xml_view(request: Request, db: AsyncSession = Depends(get_db)):
-    """Sitemap dinamica conforme a sitemaps.org con URL canonici degli annunci attivi."""
+    """Sitemap dinamica conforme a sitemaps.org con URL canonici degli annunci attivi e regioni indicizzabili."""
     base_url = _get_base_url(request)
     stmt = (
         select(Annuncio)
+        .options(
+            selectinload(Annuncio.comune)
+            .selectinload(Comune.provincia)
+            .selectinload(Provincia.regione)
+        )
         .where(Annuncio.stato == StatoAnnuncio.PUBBLICATO)
         .order_by(Annuncio.id.desc())
     )
     annunci_attivi = (await db.execute(stmt)).scalars().all()
-    xml_content = genera_sitemap_xml(base_url, annunci_attivi)
+    
+    # Raccoglie solo le regioni con almeno un annuncio attivo pubblicato
+    regioni_attive = set()
+    for a in annunci_attivi:
+        if a.comune and a.comune.provincia and a.comune.provincia.regione and a.comune.provincia.regione.slug:
+            regioni_attive.add(a.comune.provincia.regione.slug)
+
+    xml_content = genera_sitemap_xml(base_url, annunci_attivi, regioni_attive=regioni_attive)
     return Response(content=xml_content, media_type="application/xml")
+
 
 
 @views_router.get("/robots.txt", response_class=PlainTextResponse)

@@ -10,9 +10,10 @@ Contiene le utilità per:
 """
 import re
 import html
-from typing import Any, Dict, List, Optional
-from datetime import datetime
+from typing import Any, Dict, List, Optional, Set
+from datetime import datetime, timezone
 from app.core.config import settings
+
 from app.models.annuncio import TipologiaArma
 
 # Categorie reali supportate con slug SEO-friendly, titoli e descrizioni ricche
@@ -292,7 +293,7 @@ def estrai_id_da_slug_annuncio(param: str) -> Optional[int]:
 
 
 def genera_meta_description_annuncio(a: Any) -> str:
-    """Genera una meta description accurata basata SOLO sui dati reali dell'annuncio."""
+    """Genera una meta description accurata basata SOLO sui dati reali dell'annuncio, senza claim indimostrabili."""
     parti = []
     if getattr(a, "marca", None) and getattr(a, "modello", None):
         parti.append(f"{a.marca} {a.modello}")
@@ -319,7 +320,8 @@ def genera_meta_description_annuncio(a: Any) -> str:
             parti.append(f"Disponibile a {comune.nome}")
 
     desc_base = " · ".join(parti)
-    full_desc = f"{desc_base}. Annuncio verificato e conforme al T.U.L.P.S. Consulta foto, prezzo e recapito."
+    # Formulazione neutra e trasparente senza asserzioni indimostrabili
+    full_desc = f"{desc_base}. Consulta dettagli tecnici, foto, prezzo e recapiti dell'inserzionista."
     if len(full_desc) > 160:
         return full_desc[:157] + "..."
     return full_desc
@@ -363,19 +365,18 @@ def genera_schema_organization(base_url: str) -> Dict[str, Any]:
         "@type": "Organization",
         "name": "ArmiMarket Italia",
         "url": base_url,
-        "logo": f"{base_url.rstrip('/')}/static/img/logo.png",
-        "description": "Piattaforma tecnologica e bacheca annunci per la compravendita di armi lecite tra titolari di porto d'armi e armerie in Italia.",
+        "logo": f"{base_url.rstrip('/')}/static/images/logo.png",
         "sameAs": []
     }
 
 
 def genera_schema_breadcrumb(crumbs: List[Dict[str, str]]) -> Dict[str, Any]:
-    """Genera lo Schema.org BreadcrumbList da una lista ordinata di elementi {name, url}."""
+    """Genera i dati strutturati BreadcrumbList JSON-LD per la visualizzazione delle briciole di pane nei risultati SERP."""
     items = []
-    for idx, c in enumerate(crumbs, start=1):
+    for i, c in enumerate(crumbs, 1):
         items.append({
             "@type": "ListItem",
-            "position": idx,
+            "position": i,
             "name": c["name"],
             "item": c["url"]
         })
@@ -412,9 +413,17 @@ def genera_schema_product_annuncio(a: Any, url_assoluto: str, base_url: str) -> 
 
     ins_type = getattr(a, "tipologia_inserzionista", None)
     ins_str = ins_type.value if hasattr(ins_type, "value") else str(ins_type or "")
-    seller_name = "Privato autorizzato T.U.L.P.S."
-    if ins_str == "armeria":
-        seller_name = getattr(a, "nome_inserzionista_reale", None) or (a.utente.ragione_sociale if getattr(a, "utente", None) else "Armeria")
+    
+    # Risoluzione seller trasparente: armeria o fonte esterna se scraped, privato altrimenti
+    if getattr(a, "fonte_esterna", None):
+        seller_name = a.fonte_esterna
+        seller_type = "Organization"
+    elif ins_str == "armeria":
+        seller_name = getattr(a, "nome_inserzionista_reale", None) or (a.utente.ragione_sociale if getattr(a, "utente", None) and getattr(a.utente, "ragione_sociale", None) else "Armeria")
+        seller_type = "Organization"
+    else:
+        seller_name = "Privato inserzionista"
+        seller_type = "Person"
 
     product_schema: Dict[str, Any] = {
         "@context": "https://schema.org",
@@ -431,7 +440,7 @@ def genera_schema_product_annuncio(a: Any, url_assoluto: str, base_url: str) -> 
             "itemCondition": schema_condition,
             "availability": availability,
             "seller": {
-                "@type": "Organization" if ins_str == "armeria" else "Person",
+                "@type": seller_type,
                 "name": seller_name
             }
         }
@@ -452,19 +461,18 @@ def genera_schema_product_annuncio(a: Any, url_assoluto: str, base_url: str) -> 
     return product_schema
 
 
-def genera_sitemap_xml(base_url: str, annunci_attivi: List[Any]) -> str:
+def genera_sitemap_xml(base_url: str, annunci_attivi: List[Any], regioni_attive: Optional[Set[str]] = None) -> str:
     """
     Genera il file XML standard sitemap.xml conforme al protocollo sitemaps.org.
     Include:
     - Homepage e catalogo generale
     - Pagine di categoria SEO
-    - Pagine regionali SEO
+    - Pagine regionali SEO SOLO se hanno annunci attivi
     - Pagine informative e legali (guide, faq, mappa)
     - Tutti i singoli annunci attivi e pubblicati con URL canonico e data di aggiornamento/pubblicazione
     Esclude tassativamente pagine sotto noindex, admin, autenticazione e parametri di ricerca.
     """
     base = base_url.rstrip("/")
-    from datetime import timezone
     oggi = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     urls = [
@@ -484,14 +492,24 @@ def genera_sitemap_xml(base_url: str, annunci_attivi: List[Any]) -> str:
             "priority": "0.8"
         })
 
-    # Regioni SEO
-    for reg_slug in REGIONI_SEO.keys():
-        urls.append({
-            "loc": f"{base}/annunci/regione/{reg_slug}",
-            "lastmod": oggi,
-            "changefreq": "daily",
-            "priority": "0.7"
-        })
+    # Regioni SEO: includi solo se indicate come attive (o se non specificato, se presenti in annunci_attivi)
+    if regioni_attive is None:
+        regioni_attive = set()
+        for a in annunci_attivi:
+            reg_slug = None
+            if getattr(a, "comune", None) and getattr(a.comune, "provincia", None) and getattr(a.comune.provincia, "regione", None):
+                reg_slug = getattr(a.comune.provincia.regione, "slug", None)
+            if reg_slug:
+                regioni_attive.add(reg_slug)
+
+    for reg_slug in sorted(regioni_attive):
+        if reg_slug in REGIONI_SEO:
+            urls.append({
+                "loc": f"{base}/annunci/regione/{reg_slug}",
+                "lastmod": oggi,
+                "changefreq": "daily",
+                "priority": "0.7"
+            })
 
     # Annunci attivi
     for a in annunci_attivi:
@@ -523,7 +541,7 @@ def genera_sitemap_xml(base_url: str, annunci_attivi: List[Any]) -> str:
 
 
 def genera_robots_txt(base_url: str) -> str:
-    """Genera il file robots.txt ottimizzato per l'indicizzazione e il risparmio di crawl budget."""
+    """Genera il file robots.txt ottimizzato: blocca le aree riservate senza impedire il crawling dei meta noindex."""
     base = base_url.rstrip("/")
     return f"""# robots.txt per ArmiMarket Italia
 User-agent: *
@@ -549,15 +567,6 @@ Disallow: /reimposta-password
 Disallow: /contatta-admin
 Disallow: /sincronizza
 Disallow: /logout
-
-# Prevenzione crawl budget waste su permutazioni filtri dinamici
-Disallow: /*?*q=
-Disallow: /*?*prezzo_min=
-Disallow: /*?*prezzo_max=
-Disallow: /*?*marca=
-Disallow: /*?*modello=
-Disallow: /*?*calibro=
-Disallow: /*?*tipologia_inserzionista=
 
 # Riferimento alla sitemap canonica
 Sitemap: {base}/sitemap.xml

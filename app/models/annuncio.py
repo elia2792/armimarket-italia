@@ -101,7 +101,12 @@ class Annuncio(Base):
 
     # --- Relazioni Geografiche e Inserzionista ---
     comune_id = Column(Integer, ForeignKey("comuni.id", ondelete="RESTRICT"), nullable=False, index=True)
-    utente_id = Column(Integer, ForeignKey("utenti.id", ondelete="CASCADE"), nullable=False, index=True)
+    # utente_id è opzionale: gli annunci importati da scraping esterno NON sono associati ad account utente
+    utente_id = Column(Integer, ForeignKey("utenti.id", ondelete="CASCADE"), nullable=True, index=True)
+
+    # --- Fonte Esterna per Annunci Scraped / Feed ---
+    fonte_esterna = Column(String(200), nullable=True, index=True)  # Nome dell'armeria o sito esterno (es. 'Armeria Colosseo')
+    source_id_esterno = Column(String(100), nullable=True, index=True)  # ID identificativo originale nel catalogo esterno
 
     # --- Gallery Immagini (JSON array di URL) ---
     galleria_immagini = Column(JSON, default=list, nullable=False)
@@ -134,9 +139,25 @@ class Annuncio(Base):
     preferiti = relationship("Preferito", back_populates="annuncio", cascade="all, delete-orphan")
 
     @property
+    def is_scraped(self) -> bool:
+        """Indica se l'annuncio proviene da aggregazione/scraping esterno anziché da utente registrato."""
+        return self.utente_id is None or bool(self.fonte_esterna)
+
+    @property
+    def nome_inserzionista_reale(self) -> str:
+        """Restituisce il nome dell'inserzionista (fonte esterna se scraped, altrimenti dati dell'utente)."""
+        if self.fonte_esterna:
+            return self.fonte_esterna
+        if self.utente:
+            return self.utente.ragione_sociale or self.utente.nome
+        return "Armeria Online Indipendente"
+
+    @property
     def url_seo(self) -> str:
-        s = self.slug or "annuncio"
-        return f"/annuncio/{s}-{self.id}"
+        """URL canonico deterministico unificato in tutto il progetto."""
+        from app.core.seo import genera_url_annuncio
+        return genera_url_annuncio(self.id, self.titolo)
 
     def __repr__(self) -> str:
         return f"<Annuncio id={self.id} titolo='{self.titolo}' stato='{self.stato}'>"
+

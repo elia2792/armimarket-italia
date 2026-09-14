@@ -9,6 +9,8 @@
     <meta name="description" content="{% block meta_description %}{{ seo_description or 'Bacheca motore di ricerca indipendente per armi usate e nuove in Italia conformemente al T.U.L.P.S. Annunci di armerie autorizzate e privati.' }}{% endblock %}">
     <meta name="robots" content="{% block meta_robots %}{{ seo_robots or 'index, follow' }}{% endblock %}">
     <link rel="canonical" href="{% block canonical %}{{ canonical_url or (base_url ~ request.url.path) }}{% endblock %}">
+    {% if prev_page_url %}<link rel="prev" href="{{ prev_page_url }}">{% endif %}
+    {% if next_page_url %}<link rel="next" href="{{ next_page_url }}">{% endif %}
 
     <!-- Open Graph / Facebook -->
     <meta property="og:site_name" content="ArmiMarket Italia">

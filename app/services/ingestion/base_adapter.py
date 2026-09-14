@@ -88,17 +88,22 @@ class BaseGunshopAdapter(abc.ABC):
     async def sync_inventory(
         self,
         db: AsyncSession,
-        armeria_user: User,
-        comune_id: int,
-        raw_items: List[Dict[str, Any]]
+        armeria_user: Optional[User] = None,
+        comune_id: int = 1,
+        raw_items: Optional[List[Dict[str, Any]]] = None,
+        fonte_esterna: Optional[str] = None,
     ) -> Dict[str, int]:
         """
         Sincronizza gli articoli del feed nel database.
-        Le armerie verificate pubblicano con stato PUBBLICATO direttamente.
+        Se armeria_user è None, gli annunci vengono registrati come fonte esterna senza creare un account utente.
         """
         import uuid
 
+        raw_items = raw_items or []
         stats = {"inseriti": 0, "aggiornati": 0, "scartati": 0}
+        nome_fonte = fonte_esterna or ((armeria_user.ragione_sociale or armeria_user.nome) if armeria_user else "Armeria Partner")
+        email_contatto = armeria_user.email if armeria_user else "info@armimarket.it"
+        telefono_contatto = armeria_user.telefono if armeria_user else None
 
         for item in raw_items:
             try:
@@ -122,17 +127,20 @@ class BaseGunshopAdapter(abc.ABC):
                     condizione=norm.get("condizione", CondizioneArma.NUOVO),
                     matricola_riservata=norm.get("matricola"),  # Conservata ma non esposta
                     comune_id=comune_id,
-                    utente_id=armeria_user.id,
+                    utente_id=armeria_user.id if armeria_user else None,
+                    fonte_esterna=nome_fonte,
+                    source_id_esterno=str(item.get("id") or ""),
                     galleria_immagini=norm.get("immagini", []),
-                    email_contatto=armeria_user.email,
-                    telefono_contatto=armeria_user.telefono,
-                    mostra_telefono_pubblico=True,
+                    email_contatto=email_contatto,
+                    telefono_contatto=telefono_contatto,
+                    mostra_telefono_pubblico=bool(telefono_contatto),
                 )
 
                 db.add(nuovo_annuncio)
                 stats["inseriti"] += 1
             except Exception as e:
                 stats["scartati"] += 1
+
 
         await db.commit()
         return stats

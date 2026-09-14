@@ -254,14 +254,13 @@ async def scrape_product_url(
             detail=f"URL non consentito o non sicuro: {str(e)}"
         )
 
-    # 1. Trova o imposta armeria
-    stmt = select(User).where(User.ruolo == RuoloUtente.ARMERIA)
+    # 1. Trova eventuale armeria partner registrata (opzionale)
+    armeria = None
     if req.armeria_id:
-        stmt = stmt.where(User.id == req.armeria_id)
-    armeria = (await db.execute(stmt)).scalars().first()
+        stmt = select(User).where(User.ruolo == RuoloUtente.ARMERIA, User.id == req.armeria_id)
+        armeria = (await db.execute(stmt)).scalars().first()
 
-    if not armeria:
-        raise HTTPException(status_code=404, detail="Nessuna armeria partner registrata nel sistema.")
+    armeria_nome = (armeria.ragione_sociale or armeria.nome) if armeria else "Armeria Fonte Esterna"
 
     comune_id = req.comune_id or 1
     stmt_c = select(Comune).where(Comune.id == comune_id)
@@ -284,12 +283,13 @@ async def scrape_product_url(
         db=db,
         product_urls=urls_to_scrape,
         armeria_user=armeria,
-        comune_id=comune_id
+        comune_id=comune_id,
+        armeria_info={"nome": armeria_nome} if not armeria else None
     )
 
     return SyncResponse(
         success=True,
-        armeria_nome=armeria.ragione_sociale or armeria.nome,
+        armeria_nome=armeria_nome,
         comune_nome=comune_nome,
         articoli_analizzati=len(urls_to_scrape),
         inseriti=stats["inseriti"],
@@ -306,10 +306,10 @@ async def scrape_all_directory(
 ):
     """
     Avvia lo scraper automatico sulle armerie online italiane censite nella directory.
-    Scarica annunci reali, foto originali e link di rimando diretto.
+    Scarica annunci reali, foto originali e link di rimando diretto senza creare utenti.
     Riservato agli amministratori.
     """
-    from app.services.scraper.product_scraper import UniversalArmeriaScraper, get_or_create_system_bot_user
+    from app.services.scraper.product_scraper import UniversalArmeriaScraper
     from app.services.scraper.directory import ARMERIE_TARGETS
 
     tot_analizzati = 0
@@ -317,11 +317,8 @@ async def scrape_all_directory(
     tot_esistenti = 0
     tot_scartati = 0
 
-    system_bot = await get_or_create_system_bot_user(db)
-
     for target in ARMERIE_TARGETS:
-        # NON creare utente per le armerie esterne della directory: devono registrarsi loro!
-        # Le armerie della directory servono esclusivamente per lo scraping informativo.
+        # Le armerie della directory sono fonti esterne di scraping e NON utenti registrati: armeria_user=None!
 
         # Trova comune
         stmt_comune = select(Comune).where(Comune.nome.ilike(f"%{target['citta']}%"))
@@ -344,13 +341,14 @@ async def scrape_all_directory(
             stats = await UniversalArmeriaScraper.scrape_and_save_listings(
                 db=db,
                 product_urls=product_links,
-                armeria_user=system_bot,
+                armeria_user=None,
                 comune_id=comune_id,
                 armeria_info=target
             )
             tot_inseriti += stats["inseriti"]
             tot_esistenti += stats["esistenti"]
             tot_scartati += stats["scartati"]
+
 
     return SyncResponse(
         success=True,

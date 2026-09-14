@@ -114,6 +114,11 @@ class AnnuncioPublicOut(BaseModel):
     # Distanza opzionale calcolata via PostGIS ST_DWithin / ST_Distance
     distanza_km: Optional[float] = Field(None, description="Distanza in km dal punto di ricerca")
 
+    # Fonte esterna per annunci aggregati/scraped
+    fonte_esterna: Optional[str] = Field(None, description="Nome dell'armeria o sito esterno se annuncio aggregato da scraping")
+    is_scraped: bool = Field(False, description="True se l'annuncio proviene da scraping esterno")
+    nome_inserzionista_reale: Optional[str] = None
+
     # Garanzia di Conformità & Privacy
     matricola_visibile: str = Field(
         default="[RISERVATA AI SENSI DEL REGOLAMENTO DI PUBBLICA SICUREZZA]",
@@ -144,7 +149,8 @@ class AnnuncioAdminOut(AnnuncioPublicOut):
     matricola_mascherata: Optional[str] = None
     matricola_originale_disponibile: bool = False
     note_moderazione: Optional[str] = None
-    utente_id: int
+    utente_id: Optional[int] = None
+
 
 
 class AnnuncioListResponse(BaseModel):
