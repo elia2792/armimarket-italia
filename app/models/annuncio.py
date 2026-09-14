@@ -135,7 +135,7 @@ class Annuncio(Base):
 
     # Relazioni ORM
     comune = relationship("Comune", back_populates="annunci")
-    utente = relationship("User", back_populates="annunci")
+    utente = relationship("User", back_populates="annunci", lazy="joined")
     preferiti = relationship("Preferito", back_populates="annuncio", cascade="all, delete-orphan")
 
     @property
@@ -148,8 +148,10 @@ class Annuncio(Base):
         """Restituisce il nome dell'inserzionista (fonte esterna se scraped, altrimenti dati dell'utente)."""
         if self.fonte_esterna:
             return self.fonte_esterna
-        if self.utente:
-            return self.utente.ragione_sociale or self.utente.nome
+        # Verifica sicura senza innescare lazy loading sincrono fuori da greenlet
+        user_rel = self.__dict__.get("utente")
+        if user_rel:
+            return user_rel.ragione_sociale or user_rel.nome or "Armeria"
         return "Armeria Online Indipendente"
 
     @property

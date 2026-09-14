@@ -79,7 +79,8 @@ class SearchService:
             .join(Comune, Annuncio.comune_id == Comune.id)
             .join(Provincia, Comune.provincia_id == Provincia.id)
             .options(
-                selectinload(Annuncio.comune).selectinload(Comune.provincia).selectinload(Provincia.regione)
+                selectinload(Annuncio.comune).selectinload(Comune.provincia).selectinload(Provincia.regione),
+                selectinload(Annuncio.utente)
             )
         )
 
