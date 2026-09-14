@@ -668,8 +668,11 @@ async def sitemap_xml_view(request: Request, db: AsyncSession = Depends(get_db))
     # Raccoglie solo le regioni con almeno un annuncio attivo pubblicato
     regioni_attive = set()
     for a in annunci_attivi:
-        if a.comune and a.comune.provincia and a.comune.provincia.regione and a.comune.provincia.regione.slug:
-            regioni_attive.add(a.comune.provincia.regione.slug)
+        if a.comune and a.comune.provincia and a.comune.provincia.regione:
+            reg_obj = a.comune.provincia.regione
+            reg_slug = getattr(reg_obj, "slug", None) or slugify(reg_obj.nome)
+            if reg_slug:
+                regioni_attive.add(reg_slug)
 
     xml_content = genera_sitemap_xml(base_url, annunci_attivi, regioni_attive=regioni_attive)
     return Response(content=xml_content, media_type="application/xml")

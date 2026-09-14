@@ -39,6 +39,12 @@ class Regione(Base):
     # Relazioni
     province = relationship("Provincia", back_populates="regione", cascade="all, delete-orphan")
 
+    @property
+    def slug(self) -> str:
+        """Restituisce lo slug normalizzato della regione per gli URL SEO."""
+        from app.core.seo import slugify
+        return slugify(self.nome)
+
     def __repr__(self) -> str:
         return f"<Regione id={self.id} nome='{self.nome}'>"
 

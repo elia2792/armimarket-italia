@@ -298,31 +298,6 @@ class UniversalArmeriaScraper:
 
         return list(found_links)
 
-SYSTEM_BOT_EMAIL = "indicizzatore.bot@armimarket.it"
-
-
-async def get_or_create_system_bot_user(db: AsyncSession) -> User:
-    """Restituisce l'utente tecnico di sistema per gli annunci indicizzati dallo scraper."""
-    from app.core.security import hash_password
-    stmt = select(User).where(User.email == SYSTEM_BOT_EMAIL)
-    bot = (await db.execute(stmt)).scalar_one_or_none()
-    if not bot:
-        bot = User(
-            email=SYSTEM_BOT_EMAIL,
-            hashed_password=hash_password("SystemBotSecretPass2026!"),
-            nome="Indicizzatore Web",
-            cognome="Scraper Cataloghi",
-            ragione_sociale="Sistema Indicizzazione ArmiMarket",
-            ruolo=RuoloUtente.ADMIN,
-            is_active=True,
-            is_verified=True,
-        )
-        db.add(bot)
-        await db.commit()
-        await db.refresh(bot)
-    return bot
-
-
     @classmethod
     async def scrape_and_save_listings(
         cls,
