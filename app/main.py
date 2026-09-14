@@ -147,26 +147,39 @@ async def hourly_catalog_scraper_task():
 async def lifespan(app: FastAPI):
     """Lifecycle manager: inizializzazione schema tabelle, admin, poligoni e task orario scraping."""
     is_production = settings.ENVIRONMENT.lower().strip() in ("production", "prod")
-    if not is_production:
-        async with engine.begin() as conn:
-            if not is_sqlite:
+    # Assicura le estensioni e le colonne necessarie in modo idempotente all'avvio
+    async with engine.begin() as conn:
+        if not is_sqlite:
+            try:
+                await conn.execute(__import__("sqlalchemy").text("CREATE EXTENSION IF NOT EXISTS postgis;"))
+            except Exception:
+                pass
+            # Aggiornamento idempotente dello schema PostgreSQL di produzione (disaccoppiamento scraping da utenti)
+            for migration_sql in [
+                "ALTER TABLE annunci ALTER COLUMN utente_id DROP NOT NULL;",
+                "ALTER TABLE annunci ADD COLUMN IF NOT EXISTS fonte_esterna VARCHAR(200);",
+                "ALTER TABLE annunci ADD COLUMN IF NOT EXISTS source_id_esterno VARCHAR(100);",
+                "CREATE INDEX IF NOT EXISTS ix_annunci_fonte_esterna ON annunci (fonte_esterna);",
+                "CREATE INDEX IF NOT EXISTS ix_annunci_source_id_esterno ON annunci (source_id_esterno);",
+                "ALTER TABLE utenti ADD COLUMN IF NOT EXISTS foto_profilo VARCHAR(512);",
+                "ALTER TABLE comuni ADD COLUMN IF NOT EXISTS codice_istat VARCHAR(6);"
+            ]:
                 try:
-                    await conn.execute(__import__("sqlalchemy").text("CREATE EXTENSION IF NOT EXISTS postgis;"))
+                    await conn.execute(__import__("sqlalchemy").text(migration_sql))
+                except Exception as e:
+                    logger.debug(f"Migrazione idempotente pass: {e}")
+        else:
+            await conn.run_sync(Base.metadata.create_all)
+            for migration_sql in [
+                "ALTER TABLE annunci ADD COLUMN fonte_esterna VARCHAR(200)",
+                "ALTER TABLE annunci ADD COLUMN source_id_esterno VARCHAR(100)",
+                "ALTER TABLE utenti ADD COLUMN foto_profilo VARCHAR(512)",
+                "ALTER TABLE comuni ADD COLUMN codice_istat VARCHAR(6)",
+            ]:
+                try:
+                    await conn.execute(__import__("sqlalchemy").text(migration_sql))
                 except Exception:
                     pass
-            await conn.run_sync(Base.metadata.create_all)
-            # Micro-migrazione per SQLite (Postgres crea già le colonne da Base.metadata.create_all)
-            if is_sqlite:
-                for migration_sql in [
-                    "ALTER TABLE utenti ADD COLUMN foto_profilo VARCHAR(512)",
-                    "ALTER TABLE comuni ADD COLUMN codice_istat VARCHAR(6)",
-                ]:
-                    try:
-                        await conn.execute(__import__("sqlalchemy").text(migration_sql))
-                    except Exception:
-                        pass  # Colonna già esistente – ignora
-    else:
-        logger.info("Ambiente di produzione rilevato: schema database gestito esclusivamente tramite migrazioni Alembic.")
 
     # Inizializza o sincronizza superuser amministratore e poligoni
     async with async_session_factory() as session:
