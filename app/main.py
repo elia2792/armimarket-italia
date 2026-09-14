@@ -149,6 +149,8 @@ async def lifespan(app: FastAPI):
     is_production = settings.ENVIRONMENT.lower().strip() in ("production", "prod")
     # Assicura le estensioni e le colonne necessarie in modo idempotente all'avvio
     async with engine.begin() as conn:
+        if not is_production:
+            await conn.run_sync(Base.metadata.create_all)
         if not is_sqlite:
             try:
                 await conn.execute(__import__("sqlalchemy").text("CREATE EXTENSION IF NOT EXISTS postgis;"))
@@ -169,7 +171,6 @@ async def lifespan(app: FastAPI):
                 except Exception as e:
                     logger.debug(f"Migrazione idempotente pass: {e}")
         else:
-            await conn.run_sync(Base.metadata.create_all)
             for migration_sql in [
                 "ALTER TABLE annunci ADD COLUMN fonte_esterna VARCHAR(200)",
                 "ALTER TABLE annunci ADD COLUMN source_id_esterno VARCHAR(100)",
