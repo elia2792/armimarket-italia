@@ -598,11 +598,20 @@ async def ad_detail_view(slug_and_id: str, request: Request, db: AsyncSession = 
     og_img = annuncio.galleria_immagini[0] if annuncio.galleria_immagini else f"{base_url}/static/img/og-preview.jpg"
     main_image_alt = genera_alt_immagine_annuncio(annuncio, 1)
 
+    # Carica riepilogo valutazioni e recensioni del venditore (utente registrato o fonte esterna)
+    from app.services.valutazione_service import ValutazioneService
+    valutazioni_riepilogo = await ValutazioneService.get_riepilogo(
+        db=db,
+        utente_id=annuncio.utente_id,
+        fonte_esterna=annuncio.fonte_esterna
+    )
+
     return templates.TemplateResponse(
         request=request,
         name="scheda.html",
         context={
             "annuncio": annuncio,
+            "valutazioni_riepilogo": valutazioni_riepilogo,
             "version": settings.VERSION,
             "base_url": base_url,
             "canonical_url": canonical_url,

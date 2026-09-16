@@ -19,6 +19,7 @@ from app.routers.auth import router as auth_router
 from app.routers.geo import router as geo_router
 from app.routers.ingestion import router as ingestion_router
 from app.routers.preferiti import router as preferiti_router
+from app.routers.valutazioni import router as valutazioni_router
 from app.routers.views import views_router
 
 logger = logging.getLogger("app.main")
@@ -164,7 +165,22 @@ async def lifespan(app: FastAPI):
                 "CREATE INDEX IF NOT EXISTS ix_annunci_fonte_esterna ON annunci (fonte_esterna);",
                 "CREATE INDEX IF NOT EXISTS ix_annunci_source_id_esterno ON annunci (source_id_esterno);",
                 "ALTER TABLE utenti ADD COLUMN IF NOT EXISTS foto_profilo VARCHAR(512);",
-                "ALTER TABLE comuni ADD COLUMN IF NOT EXISTS codice_istat VARCHAR(6);"
+                "ALTER TABLE comuni ADD COLUMN IF NOT EXISTS codice_istat VARCHAR(6);",
+                """CREATE TABLE IF NOT EXISTS valutazioni (
+                    id SERIAL PRIMARY KEY,
+                    autore_id INTEGER NOT NULL REFERENCES utenti(id) ON DELETE CASCADE,
+                    recensito_utente_id INTEGER REFERENCES utenti(id) ON DELETE CASCADE,
+                    fonte_esterna VARCHAR(200),
+                    annuncio_id INTEGER REFERENCES annunci(id) ON DELETE SET NULL,
+                    voto INTEGER NOT NULL,
+                    titolo VARCHAR(150),
+                    commento TEXT NOT NULL,
+                    data_creazione TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                    data_aggiornamento TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
+                );""",
+                "CREATE INDEX IF NOT EXISTS ix_valutazioni_autore_id ON valutazioni (autore_id);",
+                "CREATE INDEX IF NOT EXISTS ix_valutazioni_recensito_utente_id ON valutazioni (recensito_utente_id);",
+                "CREATE INDEX IF NOT EXISTS ix_valutazioni_fonte_esterna ON valutazioni (fonte_esterna);"
             ]:
                 try:
                     await conn.execute(__import__("sqlalchemy").text(migration_sql))
@@ -260,6 +276,7 @@ app.include_router(annunci_router, prefix=settings.API_V1_STR)
 app.include_router(admin_router, prefix=settings.API_V1_STR)
 app.include_router(ingestion_router, prefix=settings.API_V1_STR)
 app.include_router(preferiti_router, prefix=settings.API_V1_STR)
+app.include_router(valutazioni_router, prefix=settings.API_V1_STR)
 
 # Registrazione Router Viste Web (Home, Mappa Interattiva, Scheda Dettaglio)
 app.include_router(views_router)

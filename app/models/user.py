@@ -45,6 +45,18 @@ class User(Base):
     # Relazioni
     annunci = relationship("Annuncio", back_populates="utente", cascade="all, delete-orphan")
     preferiti = relationship("Preferito", back_populates="utente", cascade="all, delete-orphan")
+    valutazioni_ricevute = relationship(
+        "Valutazione",
+        foreign_keys="Valutazione.recensito_utente_id",
+        back_populates="recensito_utente",
+        cascade="all, delete-orphan"
+    )
+    valutazioni_lasciate = relationship(
+        "Valutazione",
+        foreign_keys="Valutazione.autore_id",
+        back_populates="autore",
+        cascade="all, delete-orphan"
+    )
 
     @property
     def display_name(self) -> str:

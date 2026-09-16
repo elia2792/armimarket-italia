@@ -752,6 +752,16 @@ async def get_piattaforma_statistiche(
     )
     segnalazioni_row = segnalazioni_stats_res.one()
 
+    # 7. Statistiche Valutazioni & Recensioni
+    from app.models.valutazione import Valutazione
+    valutazioni_stats_res = await db.execute(
+        select(
+            sqlfunc.count(Valutazione.id).label("totale"),
+            sqlfunc.coalesce(sqlfunc.avg(Valutazione.voto), 0.0).label("media_voto"),
+        )
+    )
+    valutazioni_row = valutazioni_stats_res.one()
+
     return {
         "success": True,
         "utenti": {
@@ -789,6 +799,8 @@ async def get_piattaforma_statistiche(
             "segnalazioni_totali": int(segnalazioni_row.totale or 0),
             "segnalazioni_aperte": int(segnalazioni_row.aperte or 0),
             "segnalazioni_risolte": int(segnalazioni_row.risolte or 0),
+            "valutazioni_totali": int(valutazioni_row.totale or 0),
+            "valutazioni_media": round(float(valutazioni_row.media_voto or 0.0), 1),
         }
     }
 
