@@ -739,3 +739,28 @@ async def test_seo_25_opengraph_product_and_guide_article_schema(client: AsyncCl
     assert '"@type": "Article"' in resp_guide.text
     assert "T.U.L.P.S." in resp_guide.text
 
+
+@pytest.mark.asyncio
+async def test_seo_26_google_search_console_html_file_verification(client: AsyncClient):
+    """26. L'endpoint /google{hash}.html risponde 200 con la stringa di verifica ufficiale per Google Search Console."""
+    test_hash = "1234567890abcdef"
+    resp = await client.get(f"/google{test_hash}.html")
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers.get("content-type", "")
+    assert resp.text.strip() == f"google-site-verification: google{test_hash}.html"
+
+    # Hash non valido -> 404
+    resp_invalid = await client.get("/google_invalid_path!@#.html")
+    assert resp_invalid.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_seo_27_google_search_console_meta_tag(client: AsyncClient, monkeypatch):
+    """27. Il meta tag google-site-verification compare in homepage se configurato."""
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "GOOGLE_SITE_VERIFICATION", "test-verification-code-xyz123")
+    resp = await client.get("/")
+    assert resp.status_code == 200
+    assert '<meta name="google-site-verification" content="test-verification-code-xyz123">' in resp.text
+
+

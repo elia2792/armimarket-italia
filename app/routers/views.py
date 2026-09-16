@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -42,6 +43,7 @@ from app.core.seo import (
 # Setup templates directory
 templates_dir = Path(__file__).resolve().parent.parent / "templates"
 templates = Jinja2Templates(directory=str(templates_dir))
+templates.env.globals["settings"] = settings
 
 views_router = APIRouter(include_in_schema=False)
 
@@ -724,6 +726,18 @@ async def robots_txt_view(request: Request):
     """File robots.txt per la gestione del crawl budget dei motori di ricerca."""
     base_url = _get_base_url(request)
     return PlainTextResponse(content=genera_robots_txt(base_url))
+
+
+@views_router.get("/google{verification_code}.html", response_class=Response)
+async def google_search_console_verification(verification_code: str):
+    """
+    Endpoint per la verifica automatica istantanea della proprietà su Google Search Console tramite file HTML.
+    Supporta codici hash alfanumerici standard (es. google1234567890abcdef.html).
+    """
+    if not re.match(r"^[a-zA-Z0-9_-]+$", verification_code):
+        raise HTTPException(status_code=404, detail="File non trovato")
+    content = f"google-site-verification: google{verification_code}.html\n"
+    return Response(content=content, media_type="text/html")
 
 
 @views_router.get("/registrati", response_class=HTMLResponse)
