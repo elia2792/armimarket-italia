@@ -60,7 +60,7 @@ class Settings(BaseSettings):
 
     # Dominio & Indirizzo Base Applicazione
     BASE_URL: str = "http://localhost:8000"
-    GOOGLE_SITE_VERIFICATION: Optional[str] = None
+    GOOGLE_SITE_VERIFICATION: Optional[str] = "c4d8d72365b0f7d7"
 
     # Configurazione Invio Email SMTP
     SMTP_HOST: Optional[str] = None
