@@ -742,16 +742,16 @@ async def test_seo_25_opengraph_product_and_guide_article_schema(client: AsyncCl
 
 @pytest.mark.asyncio
 async def test_seo_26_google_search_console_html_file_verification(client: AsyncClient):
-    """26. L'endpoint /google{hash}.html risponde 200 con la stringa di verifica ufficiale per Google Search Console."""
-    test_hash = "1234567890abcdef"
-    resp = await client.get(f"/google{test_hash}.html")
+    """26. L'endpoint /google{hash}.html risponde 200 per l'hash proprietario e 404 per hash sconosciuti (anti-compromissione)."""
+    valid_hash = "c4d8d72365b0f7d7"
+    resp = await client.get(f"/google{valid_hash}.html")
     assert resp.status_code == 200
     assert "text/html" in resp.headers.get("content-type", "")
-    assert resp.text.strip() == f"google-site-verification: google{test_hash}.html"
+    assert resp.text.strip() == f"google-site-verification: google{valid_hash}.html"
 
-    # Hash non valido -> 404
-    resp_invalid = await client.get("/google_invalid_path!@#.html")
-    assert resp_invalid.status_code == 404
+    # Hash casuale/sconosciuto -> 404 (passa i canary test di Google)
+    resp_unknown = await client.get("/google9999999999999999.html")
+    assert resp_unknown.status_code == 404
 
 
 @pytest.mark.asyncio

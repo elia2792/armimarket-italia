@@ -731,10 +731,12 @@ async def robots_txt_view(request: Request):
 @views_router.get("/google{verification_code}.html", response_class=Response)
 async def google_search_console_verification(verification_code: str):
     """
-    Endpoint per la verifica automatica istantanea della proprietà su Google Search Console tramite file HTML.
-    Supporta codici hash alfanumerici standard (es. google1234567890abcdef.html).
+    Endpoint per la verifica automatica della proprietà su Google Search Console tramite file HTML.
+    Restituisce 200 ESCLUSIVAMENTE per il codice del proprietario verificato.
+    Qualsiasi altro codice restituisce 404 per superare i test anti-compromissione (canary) di Google.
     """
-    if not re.match(r"^[a-zA-Z0-9_-]+$", verification_code):
+    expected = settings.GOOGLE_SITE_VERIFICATION or "c4d8d72365b0f7d7"
+    if verification_code != expected and verification_code != "c4d8d72365b0f7d7":
         raise HTTPException(status_code=404, detail="File non trovato")
     content = f"google-site-verification: google{verification_code}.html\n"
     return Response(content=content, media_type="text/html")
