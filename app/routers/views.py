@@ -34,6 +34,7 @@ from app.core.seo import (
     genera_alt_immagine_annuncio,
     genera_schema_product_annuncio,
     genera_schema_breadcrumb,
+    genera_schema_item_list,
     genera_sitemap_xml,
     genera_robots_txt,
 )
@@ -155,18 +156,31 @@ async def index_view(
     totale_pagine = max(1, (totale + 49) // 50) if totale > 0 else 1
     base_url = _get_base_url(request)
 
-    # Strategia indicizzazione filtri:
-    # Se ci sono filtri di ricerca secondari o parametri liberi, imposta noindex per evitare crawl budget sprecato
+    # Riconoscimento percorso per canonical e paginazione corretta
+    req_path = request.url.path.rstrip("/")
+    is_annunci_catalog = (req_path == "/annunci")
+    pagination_base_path = "/annunci" if is_annunci_catalog else "/"
+    canonical_base = f"{base_url}/annunci" if is_annunci_catalog else f"{base_url}/"
+
     ha_filtri_complessi = bool(q or marca or modello or calibro or prezzo_min or prezzo_max or tipologia_inserzionista or regione_id or tipologia_arma)
     seo_robots = "noindex, follow" if ha_filtri_complessi else "index, follow"
-    canonical_url = f"{base_url}/" if pagina == 1 else f"{base_url}/?pagina={pagina}"
+    canonical_url = canonical_base if pagina == 1 else f"{canonical_base.rstrip('/')}?pagina={pagina}"
     prev_page_url = None
     next_page_url = None
     if not ha_filtri_complessi:
         if pagina > 1:
-            prev_page_url = f"{base_url}/" if pagina == 2 else f"{base_url}/?pagina={pagina - 1}"
+            prev_page_url = canonical_base if pagina == 2 else f"{canonical_base.rstrip('/')}?pagina={pagina - 1}"
         if pagina < totale_pagine:
-            next_page_url = f"{base_url}/?pagina={pagina + 1}"
+            next_page_url = f"{canonical_base.rstrip('/')}?pagina={pagina + 1}"
+
+    # Dati strutturati ItemList per l'elenco annunci
+    schema_item_list = genera_schema_item_list(
+        annunci,
+        base_url,
+        "Catalogo Annunci Armi — ArmiMarket Italia" if is_annunci_catalog else "Bacheca Annunci Armi — ArmiMarket Italia"
+    )
+    page_h1 = "Bacheca Annunci Armi Usate e Nuove in Italia"
+    page_intro = "Trova armi da sparo sportive, da caccia e da collezione in vendita da privati verificati e armerie autorizzate T.U.L.P.S. con foto, prezzo e disponibilità sul territorio."
 
     return templates.TemplateResponse(
         request=request,
@@ -197,7 +211,10 @@ async def index_view(
             "seo_robots": seo_robots,
             "seo_title": "ArmiMarket Italia — Bacheca Annunci Armi Usate e Nuove | Armerie e Privati",
             "seo_description": "Bacheca motore di ricerca per annunci di armi usate e nuove in Italia conformemente al T.U.L.P.S. Scopri pistole, carabine, fucili da caccia e tiro sportivo.",
-            "pagination_base_path": "/",
+            "page_h1": page_h1,
+            "page_intro": page_intro,
+            "schema_item_list": schema_item_list,
+            "pagination_base_path": pagination_base_path,
         }
     )
 
@@ -248,6 +265,7 @@ async def category_view(
         next_page_url = f"{base_url}/annunci/{categoria_slug}?pagina={pagina + 1}"
 
     regioni = (await db.execute(select(Regione).order_by(Regione.nome))).scalars().all()
+    schema_item_list = genera_schema_item_list(annunci, base_url, cat_info["titolo_seo"])
 
     return templates.TemplateResponse(
         request=request,
@@ -271,6 +289,7 @@ async def category_view(
             "page_intro": cat_info["intro_testo"],
             "active_category_name": cat_info["nome"],
             "schema_breadcrumb": schema_breadcrumb,
+            "schema_item_list": schema_item_list,
             "current_tipo": cat_info["enum"].value if hasattr(cat_info["enum"], "value") else str(cat_info["enum"]),
             "pagination_base_path": f"/annunci/{categoria_slug}",
         }
@@ -364,6 +383,7 @@ async def regional_view(
     seo_robots = "index, follow" if totale > 0 else "noindex, follow"
 
     regioni = (await db.execute(select(Regione).order_by(Regione.nome))).scalars().all()
+    schema_item_list = genera_schema_item_list(annunci, base_url, reg_title)
 
     return templates.TemplateResponse(
         request=request,
@@ -387,6 +407,7 @@ async def regional_view(
             "page_intro": reg_intro,
             "active_region_name": reg_nome,
             "schema_breadcrumb": schema_breadcrumb,
+            "schema_item_list": schema_item_list,
             "current_regione_id": reg_id,
             "pagination_base_path": f"/annunci/regione/{reg_slug_clean}",
         }
@@ -567,8 +588,16 @@ async def ad_detail_view(slug_and_id: str, request: Request, db: AsyncSession = 
         })
     breadcrumbs.append({"name": annuncio.titolo, "url": canonical_url})
 
-    # Dati strutturati Schema.org
-    schema_product = genera_schema_product_annuncio(annuncio, canonical_url, base_url)
+    # Carica riepilogo valutazioni e recensioni del venditore (utente registrato o fonte esterna)
+    from app.services.valutazione_service import ValutazioneService
+    valutazioni_riepilogo = await ValutazioneService.get_riepilogo(
+        db=db,
+        utente_id=annuncio.utente_id,
+        fonte_esterna=annuncio.fonte_esterna
+    )
+
+    # Dati strutturati Schema.org (con AggregateRating e Recensioni venditore)
+    schema_product = genera_schema_product_annuncio(annuncio, canonical_url, base_url, valutazioni_riepilogo)
     schema_breadcrumb = genera_schema_breadcrumb(breadcrumbs)
 
     # Annunci simili / correlati per favorire l'internal linking
@@ -598,13 +627,14 @@ async def ad_detail_view(slug_and_id: str, request: Request, db: AsyncSession = 
     og_img = annuncio.galleria_immagini[0] if annuncio.galleria_immagini else f"{base_url}/static/img/og-preview.jpg"
     main_image_alt = genera_alt_immagine_annuncio(annuncio, 1)
 
-    # Carica riepilogo valutazioni e recensioni del venditore (utente registrato o fonte esterna)
-    from app.services.valutazione_service import ValutazioneService
-    valutazioni_riepilogo = await ValutazioneService.get_riepilogo(
-        db=db,
-        utente_id=annuncio.utente_id,
-        fonte_esterna=annuncio.fonte_esterna
-    )
+    # Regione per link territoriale interno
+    regione_slug = None
+    if (
+        getattr(annuncio, "comune", None)
+        and getattr(annuncio.comune, "provincia", None)
+        and getattr(annuncio.comune.provincia, "regione", None)
+    ):
+        regione_slug = getattr(annuncio.comune.provincia.regione, "slug", None)
 
     return templates.TemplateResponse(
         request=request,
@@ -621,6 +651,7 @@ async def ad_detail_view(slug_and_id: str, request: Request, db: AsyncSession = 
             "og_image": og_img,
             "main_image_alt": main_image_alt,
             "categoria_info": categoria_info,
+            "regione_slug": regione_slug,
             "schema_product": schema_product,
             "schema_breadcrumb": schema_breadcrumb,
             "annunci_simili": annunci_simili,

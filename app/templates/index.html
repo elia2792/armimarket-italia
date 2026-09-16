@@ -11,6 +11,11 @@
 {{ schema_breadcrumb | tojson | safe }}
 </script>
 {% endif %}
+{% if schema_item_list %}
+<script type="application/ld+json">
+{{ schema_item_list | tojson | safe }}
+</script>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -134,6 +139,35 @@
         </div>
     </div>
 
+    <!-- Navigazione Categorie SEO Principali -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <a href="/annunci/armi-corte" class="p-3 rounded-xl border {% if current_tipo == 'arma_corta' %}border-amber-500 bg-amber-500/10 text-amber-300{% else %}border-slate-800 bg-slate-900/90 text-slate-200 hover:border-amber-500/50 hover:bg-slate-800/80{% endif %} transition-all flex flex-col items-center text-center group shadow-md">
+            <i class="fa-solid fa-crosshairs text-lg mb-1.5 {% if current_tipo == 'arma_corta' %}text-amber-400{% else %}text-slate-400 group-hover:text-amber-400{% endif %} transition-colors"></i>
+            <span class="text-xs font-bold tracking-tight">Armi Corte</span>
+            <span class="text-[10px] text-slate-400 mt-0.5">Pistole & Revolver</span>
+        </a>
+        <a href="/annunci/carabine-fucili-rigati" class="p-3 rounded-xl border {% if current_tipo == 'arma_lunga_rigata' %}border-amber-500 bg-amber-500/10 text-amber-300{% else %}border-slate-800 bg-slate-900/90 text-slate-200 hover:border-amber-500/50 hover:bg-slate-800/80{% endif %} transition-all flex flex-col items-center text-center group shadow-md">
+            <i class="fa-solid fa-bullseye text-lg mb-1.5 {% if current_tipo == 'arma_lunga_rigata' %}text-amber-400{% else %}text-slate-400 group-hover:text-amber-400{% endif %} transition-colors"></i>
+            <span class="text-xs font-bold tracking-tight">Carabine Rigato</span>
+            <span class="text-[10px] text-slate-400 mt-0.5">Bolt action & Tiro</span>
+        </a>
+        <a href="/annunci/fucili-canna-liscia" class="p-3 rounded-xl border {% if current_tipo == 'canna_liscia' %}border-amber-500 bg-amber-500/10 text-amber-300{% else %}border-slate-800 bg-slate-900/90 text-slate-200 hover:border-amber-500/50 hover:bg-slate-800/80{% endif %} transition-all flex flex-col items-center text-center group shadow-md">
+            <i class="fa-solid fa-feather text-lg mb-1.5 {% if current_tipo == 'canna_liscia' %}text-amber-400{% else %}text-slate-400 group-hover:text-amber-400{% endif %} transition-colors"></i>
+            <span class="text-xs font-bold tracking-tight">Canna Liscia</span>
+            <span class="text-[10px] text-slate-400 mt-0.5">Sovrapposti & Caccia</span>
+        </a>
+        <a href="/annunci/aria-compressa" class="p-3 rounded-xl border {% if current_tipo == 'aria_compressa_libera' %}border-amber-500 bg-amber-500/10 text-amber-300{% else %}border-slate-800 bg-slate-900/90 text-slate-200 hover:border-amber-500/50 hover:bg-slate-800/80{% endif %} transition-all flex flex-col items-center text-center group shadow-md">
+            <i class="fa-solid fa-wind text-lg mb-1.5 {% if current_tipo == 'aria_compressa_libera' %}text-amber-400{% else %}text-slate-400 group-hover:text-amber-400{% endif %} transition-colors"></i>
+            <span class="text-xs font-bold tracking-tight">Aria Compressa</span>
+            <span class="text-[10px] text-slate-400 mt-0.5">Libera Vendita (&lt;7.5J)</span>
+        </a>
+        <a href="/annunci/ottiche-accessori" class="p-3 rounded-xl border {% if current_tipo == 'accessorio_ottica' %}border-amber-500 bg-amber-500/10 text-amber-300{% else %}border-slate-800 bg-slate-900/90 text-slate-200 hover:border-amber-500/50 hover:bg-slate-800/80{% endif %} transition-all flex flex-col items-center text-center group shadow-md col-span-2 sm:col-span-1">
+            <i class="fa-solid fa-eye text-lg mb-1.5 {% if current_tipo == 'accessorio_ottica' %}text-amber-400{% else %}text-slate-400 group-hover:text-amber-400{% endif %} transition-colors"></i>
+            <span class="text-xs font-bold tracking-tight">Ottiche & Accessori</span>
+            <span class="text-[10px] text-slate-400 mt-0.5">Cannocchiali & Red Dot</span>
+        </a>
+    </div>
+
     <!-- Banner Notifica Ricerca Live (se attivata ed eseguita) -->
     {% if scraper_message %}
     <div class="p-4 rounded-xl text-xs font-semibold bg-emerald-950/70 border border-emerald-600/70 text-emerald-200 flex items-center justify-between shadow-lg">
@@ -170,7 +204,11 @@
                 <!-- Immagine di Copertina -->
                 <a href="{{ a.url_seo or ('/annuncio/' ~ a.slug ~ '-' ~ a.id) }}" class="block relative h-44 bg-black overflow-hidden flex items-center justify-center">
                     {% if a.galleria_immagini and a.galleria_immagini|length > 0 %}
+                    {% if loop.index <= 2 %}
+                    <img src="{{ a.galleria_immagini[0] }}" alt="{{ a.marca }} {{ a.modello }} calibro {{ a.calibro }} - {{ a.titolo }}" width="320" height="176" loading="eager" fetchpriority="high" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    {% else %}
                     <img src="{{ a.galleria_immagini[0] }}" alt="{{ a.marca }} {{ a.modello }} calibro {{ a.calibro }} - {{ a.titolo }}" width="320" height="176" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    {% endif %}
                     {% else %}
                     <div class="text-slate-600 flex flex-col items-center">
                         <i class="fa-solid fa-gun text-4xl mb-1"></i>

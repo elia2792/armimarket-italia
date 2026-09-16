@@ -580,3 +580,162 @@ async def test_seo_20_nessuna_catena_di_redirect(client: AsyncClient, db_session
     assert len(resp_wrong.history) == 1
     assert resp_wrong.history[0].status_code == 301
     assert resp_wrong.history[0].headers.get("location") == canonical_url
+
+
+@pytest.mark.asyncio
+async def test_seo_21_sitemap_google_images(client: AsyncClient, db_session):
+    """21. La sitemap XML include il namespace Google Image e i tag <image:image> per gli annunci con foto."""
+    privato = (await db_session.execute(select(User).where(User.ruolo == RuoloUtente.PRIVATO))).scalar_one()
+
+    ad = Annuncio(
+        titolo="Pistola Beretta M9A3 Calibro 9x21",
+        slug="pistola-beretta-m9a3-calibro-9x21",
+        descrizione="Pistola tattica con canna filettata e 3 caricatori.",
+        prezzo=950.0,
+        stato=StatoAnnuncio.PUBBLICATO,
+        tipologia_inserzionista=TipologiaInserzionista.PRIVATO,
+        tipologia_arma=TipologiaArma.ARMA_CORTA,
+        classificazione=ClassificazioneArma.SPORTIVA,
+        condizione=CondizioneArma.NUOVO,
+        marca="Beretta",
+        modello="M9A3",
+        calibro="9x21",
+        matricola_riservata="BERETM9A3",
+        comune_id=1,
+        utente_id=privato.id,
+        email_contatto=privato.email,
+        galleria_immagini=["/static/uploads/beretta_m9a3_1.jpg", "/static/uploads/beretta_m9a3_2.jpg"]
+    )
+    db_session.add(ad)
+    await db_session.commit()
+
+    resp = await client.get("/sitemap.xml")
+    assert resp.status_code == 200
+    xml = resp.text
+    assert 'xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' in xml
+    assert "<image:image>" in xml
+    assert "<image:loc>" in xml
+    assert "beretta_m9a3_1.jpg" in xml
+
+
+@pytest.mark.asyncio
+async def test_seo_22_schema_product_aggregate_rating_reviews(client: AsyncClient, db_session):
+    """22. La scheda annuncio include AggregateRating e Review Schema.org se il venditore ha valutazioni."""
+    from app.models.valutazione import Valutazione
+
+    users = (await db_session.execute(select(User).order_by(User.id))).scalars().all()
+    autore = users[0]
+    venditore = users[1]
+
+    ad = Annuncio(
+        titolo="Carabina Tikka T3x TAC A1",
+        slug="carabina-tikka-t3x-tac-a1",
+        descrizione="Carabina per tiro di precisione a lunga distanza.",
+        prezzo=2100.0,
+        stato=StatoAnnuncio.PUBBLICATO,
+        tipologia_inserzionista=TipologiaInserzionista.PRIVATO,
+        tipologia_arma=TipologiaArma.ARMA_LUNGA_RIGATA,
+        classificazione=ClassificazioneArma.SPORTIVA,
+        condizione=CondizioneArma.USATO_OTTIMO,
+        marca="Tikka",
+        modello="T3x TAC A1",
+        calibro="6.5 Creedmoor",
+        matricola_riservata="TIKKA65TAC",
+        comune_id=1,
+        utente_id=venditore.id,
+        email_contatto=venditore.email
+    )
+    db_session.add(ad)
+    await db_session.commit()
+    await db_session.refresh(ad)
+
+    val = Valutazione(
+        autore_id=autore.id,
+        recensito_utente_id=venditore.id,
+        annuncio_id=ad.id,
+        voto=5,
+        titolo="Venditore eccellente",
+        commento="Arma impeccabile e transazione perfetta in armeria."
+    )
+    db_session.add(val)
+    await db_session.commit()
+
+    url_ad = genera_url_annuncio(ad.id, ad.titolo)
+    resp = await client.get(url_ad)
+    assert resp.status_code == 200
+    html_content = resp.text
+    assert '"AggregateRating"' in html_content
+    assert '"ratingValue": "5.0"' in html_content or '"ratingValue": "5"' in html_content
+    assert '"reviewCount": "1"' in html_content
+    assert '"Review"' in html_content
+
+
+@pytest.mark.asyncio
+async def test_seo_23_schema_item_list_catalog_and_category(client: AsyncClient):
+    """23. /annunci e le pagine di categoria includono lo Schema.org ItemList JSON-LD."""
+    # 1. Su /annunci
+    resp_ann = await client.get("/annunci")
+    assert resp_ann.status_code == 200
+    assert '"@type": "ItemList"' in resp_ann.text
+
+    # 2. Su categoria
+    resp_cat = await client.get("/annunci/armi-corte")
+    assert resp_cat.status_code == 200
+    assert '"@type": "ItemList"' in resp_cat.text
+
+
+@pytest.mark.asyncio
+async def test_seo_24_footer_regional_linking_hub(client: AsyncClient):
+    """24. Il footer di base.html include i link interni verso tutte le 20 landing page regionali."""
+    resp = await client.get("/")
+    assert resp.status_code == 200
+    text = resp.text
+    assert "Annunci Armi per Regione:" in text
+    assert '/annunci/regione/lombardia' in text
+    assert '/annunci/regione/piemonte' in text
+    assert '/annunci/regione/sicilia' in text
+    assert '/annunci/regione/toscana' in text
+    assert '/annunci/regione/veneto' in text
+    assert '/annunci/regione/valle-daosta' in text
+
+
+@pytest.mark.asyncio
+async def test_seo_25_opengraph_product_and_guide_article_schema(client: AsyncClient, db_session):
+    """25. Scheda annuncio ha meta Open Graph Product e /guide ha schema Article."""
+    privato = (await db_session.execute(select(User).where(User.ruolo == RuoloUtente.PRIVATO))).scalar_one()
+
+    ad = Annuncio(
+        titolo="Revolver Smith & Wesson 686 6 Pollici",
+        slug="revolver-smith-wesson-686-6-pollici",
+        descrizione="Revolver in acciaio inox calibro .357 Magnum.",
+        prezzo=1050.0,
+        stato=StatoAnnuncio.PUBBLICATO,
+        tipologia_inserzionista=TipologiaInserzionista.PRIVATO,
+        tipologia_arma=TipologiaArma.ARMA_CORTA,
+        classificazione=ClassificazioneArma.SPORTIVA,
+        condizione=CondizioneArma.USATO_OTTIMO,
+        marca="Smith & Wesson",
+        modello="686",
+        calibro=".357 Magnum",
+        matricola_riservata="SW686TEST",
+        comune_id=1,
+        utente_id=privato.id,
+        email_contatto=privato.email
+    )
+    db_session.add(ad)
+    await db_session.commit()
+    await db_session.refresh(ad)
+
+    # 1. Open Graph Product su scheda annuncio
+    resp_ad = await client.get(genera_url_annuncio(ad.id, ad.titolo))
+    assert resp_ad.status_code == 200
+    assert 'property="product:price:amount"' in resp_ad.text
+    assert 'property="product:price:currency" content="EUR"' in resp_ad.text
+    assert 'property="product:availability"' in resp_ad.text
+
+    # 2. Schema Article su /guide
+    resp_guide = await client.get("/guide")
+    assert resp_guide.status_code == 200
+    assert '"@type": "Article"' in resp_guide.text
+    assert "T.U.L.P.S." in resp_guide.text
+

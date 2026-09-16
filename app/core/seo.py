@@ -387,8 +387,13 @@ def genera_schema_breadcrumb(crumbs: List[Dict[str, str]]) -> Dict[str, Any]:
     }
 
 
-def genera_schema_product_annuncio(a: Any, url_assoluto: str, base_url: str) -> Dict[str, Any]:
-    """Schema.org Product / IndividualProduct per la scheda annuncio."""
+def genera_schema_product_annuncio(
+    a: Any,
+    url_assoluto: str,
+    base_url: str,
+    valutazioni_riepilogo: Optional[Any] = None
+) -> Dict[str, Any]:
+    """Schema.org Product / IndividualProduct per la scheda annuncio con supporto a valutazioni e recensioni."""
     galleria = getattr(a, "galleria_immagini", []) or []
     immagini_assolute = []
     for img in galleria:
@@ -458,24 +463,89 @@ def genera_schema_product_annuncio(a: Any, url_assoluto: str, base_url: str) -> 
     if getattr(a, "modello", None):
         product_schema["model"] = a.modello
 
+    # Arricchimento Rich Snippet con AggregateRating e Reviews se disponibili
+    if valutazioni_riepilogo and getattr(valutazioni_riepilogo, "totale_valutazioni", 0) > 0:
+        product_schema["aggregateRating"] = {
+            "@context": "https://schema.org",
+            "@type": "AggregateRating",
+            "ratingValue": f"{valutazioni_riepilogo.media_voto:.1f}",
+            "reviewCount": str(valutazioni_riepilogo.totale_valutazioni),
+            "bestRating": "5",
+            "worstRating": "1"
+        }
+        reviews_list = []
+        recensioni_raw = getattr(valutazioni_riepilogo, "valutazioni", []) or []
+        for r in recensioni_raw[:5]:
+            rev_item: Dict[str, Any] = {
+                "@type": "Review",
+                "reviewRating": {
+                    "@type": "Rating",
+                    "ratingValue": str(r.voto),
+                    "bestRating": "5",
+                    "worstRating": "1"
+                },
+                "author": {
+                    "@type": "Person",
+                    "name": getattr(r, "autore_display_name", "Utente Verificato")
+                }
+            }
+            if getattr(r, "commento", None):
+                rev_item["reviewBody"] = r.commento
+            if getattr(r, "data_creazione", None):
+                try:
+                    rev_item["datePublished"] = r.data_creazione.strftime("%Y-%m-%d")
+                except Exception:
+                    pass
+            reviews_list.append(rev_item)
+        if reviews_list:
+            product_schema["review"] = reviews_list
+
     return product_schema
+
+
+def genera_schema_item_list(annunci: List[Any], base_url: str, nome_elenco: str) -> Dict[str, Any]:
+    """Genera i dati strutturati ItemList JSON-LD per pagine catalogo, elenchi categorie e territori."""
+    base = base_url.rstrip("/")
+    items = []
+    for i, a in enumerate(annunci, 1):
+        url_canonico = genera_url_annuncio(a.id, a.titolo, base_url=base)
+        item_entry: Dict[str, Any] = {
+            "@type": "ListItem",
+            "position": i,
+            "url": url_canonico,
+            "name": a.titolo
+        }
+        if getattr(a, "galleria_immagini", None) and a.galleria_immagini:
+            first_img = a.galleria_immagini[0]
+            if first_img.startswith("http://") or first_img.startswith("https://"):
+                item_entry["image"] = first_img
+            else:
+                item_entry["image"] = f"{base}/{first_img.lstrip('/')}"
+        items.append(item_entry)
+
+    return {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": nome_elenco,
+        "itemListElement": items
+    }
 
 
 def genera_sitemap_xml(base_url: str, annunci_attivi: List[Any], regioni_attive: Optional[Set[str]] = None) -> str:
     """
-    Genera il file XML standard sitemap.xml conforme al protocollo sitemaps.org.
+    Genera il file XML standard sitemap.xml conforme al protocollo sitemaps.org con estensione Google Image Sitemap.
     Include:
     - Homepage e catalogo generale
     - Pagine di categoria SEO
     - Pagine regionali SEO SOLO se hanno annunci attivi
     - Pagine informative e legali (guide, faq, mappa)
-    - Tutti i singoli annunci attivi e pubblicati con URL canonico e data di aggiornamento/pubblicazione
+    - Tutti i singoli annunci attivi e pubblicati con URL canonico, data di aggiornamento/pubblicazione e immagini associate
     Esclude tassativamente pagine sotto noindex, admin, autenticazione e parametri di ricerca.
     """
     base = base_url.rstrip("/")
     oggi = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    urls = [
+    urls: List[Dict[str, Any]] = [
         {"loc": f"{base}/", "lastmod": oggi, "changefreq": "daily", "priority": "1.0"},
         {"loc": f"{base}/annunci", "lastmod": oggi, "changefreq": "daily", "priority": "0.9"},
         {"loc": f"{base}/guide", "lastmod": "2026-09-14", "changefreq": "monthly", "priority": "0.7"},
@@ -511,22 +581,33 @@ def genera_sitemap_xml(base_url: str, annunci_attivi: List[Any], regioni_attive:
                 "priority": "0.7"
             })
 
-    # Annunci attivi
+    # Annunci attivi con immagini (Google Image Sitemap)
     for a in annunci_attivi:
         url_ad = genera_url_annuncio(a.id, a.titolo, base_url=base)
         data_mod = getattr(a, "data_aggiornamento", None) or getattr(a, "data_pubblicazione", None)
         lastmod_str = data_mod.strftime("%Y-%m-%d") if data_mod else oggi
+
+        ad_images = []
+        galleria = getattr(a, "galleria_immagini", []) or []
+        for idx, img in enumerate(galleria[:6], 1):
+            img_clean = img if (img.startswith("http://") or img.startswith("https://")) else f"{base}/{img.lstrip('/')}"
+            ad_images.append({
+                "loc": img_clean,
+                "title": f"{a.titolo} - Foto {idx}"
+            })
+
         urls.append({
             "loc": url_ad,
             "lastmod": lastmod_str,
             "changefreq": "weekly",
-            "priority": "0.7"
+            "priority": "0.7",
+            "images": ad_images
         })
 
-    # Composizione XML
+    # Composizione XML con supporto a Google Image Sitemap
     xml_lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'
     ]
     for u in urls:
         xml_lines.append("  <url>")
@@ -534,6 +615,11 @@ def genera_sitemap_xml(base_url: str, annunci_attivi: List[Any], regioni_attive:
         xml_lines.append(f"    <lastmod>{u['lastmod']}</lastmod>")
         xml_lines.append(f"    <changefreq>{u['changefreq']}</changefreq>")
         xml_lines.append(f"    <priority>{u['priority']}</priority>")
+        for img in u.get("images", []):
+            xml_lines.append("    <image:image>")
+            xml_lines.append(f"      <image:loc>{html.escape(img['loc'])}</image:loc>")
+            xml_lines.append(f"      <image:title>{html.escape(img['title'])}</image:title>")
+            xml_lines.append("    </image:image>")
         xml_lines.append("  </url>")
     xml_lines.append("</urlset>")
 

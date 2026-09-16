@@ -5,6 +5,35 @@
 {% block canonical %}{{ canonical_url or (base_url ~ '/guide') }}{% endblock %}
 {% block meta_robots %}index, follow{% endblock %}
 
+{% block extra_head %}
+<!-- Schema.org JSON-LD Article -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Guida Legale alla Compravendita e Cessione di Armi in Italia (T.U.L.P.S. & D.Lgs. 104/2018)",
+  "description": "Guida completa e aggiornata alla compravendita legale di armi tra privati e armerie in Italia: titoli necessari, divieto di spedizione, cessione e denuncia ex Art. 38 T.U.L.P.S.",
+  "inLanguage": "it-IT",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "{{ canonical_url or (base_url ~ '/guide') }}"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "ArmiMarket Italia",
+    "url": "{{ base_url or 'https://armimarket-italia.onrender.com' }}"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "ArmiMarket Italia",
+    "url": "{{ base_url or 'https://armimarket-italia.onrender.com' }}"
+  },
+  "datePublished": "2026-09-14",
+  "dateModified": "2026-09-16"
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
 
