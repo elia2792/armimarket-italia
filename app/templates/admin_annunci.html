@@ -184,167 +184,175 @@
 </div>
 
 <!-- Modal Modifica Annuncio (Admin) -->
-<div id="modalEditAnnuncio" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white border border-[#DDD9CD] rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between border-b border-[#DDD9CD] pb-3">
-            <h3 class="text-sm font-bold text-[#252821] flex items-center gap-2">
-                <i class="fa-solid fa-pen-to-square text-[#8C734B]"></i>
-                <span>Modifica Annuncio Admin &bull; #<span id="editAdIdLabel">—</span></span>
-            </h3>
-            <button type="button" class="btn-close-modal text-[#6B7064] hover:text-[#252821] p-1 cursor-pointer">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-        </div>
-
-        <form id="formEditAnnuncio" class="space-y-4 text-xs">
-            <input type="hidden" id="editAdId">
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div class="sm:col-span-2">
-                    <label class="block font-bold text-[#252821] mb-1">Titolo Annuncio *</label>
-                    <input type="text" id="editTitolo" required minlength="3" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
-                </div>
-                <div>
-                    <label class="block font-bold text-[#252821] mb-1">Prezzo Attuale (€) *</label>
-                    <input type="number" step="0.01" min="0" id="editPrezzo" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F] font-bold">
-                </div>
+<div id="modalEditAnnuncio" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden overflow-y-auto p-2 sm:p-4 flex items-center justify-center">
+    <div class="bg-white border border-[#DDD9CD] rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[92vh] my-auto overflow-hidden">
+        <form id="formEditAnnuncio" class="flex flex-col h-full max-h-[92vh] overflow-hidden text-xs">
+            <!-- Header fisso in alto -->
+            <div class="flex items-center justify-between border-b border-[#DDD9CD] px-6 py-4 bg-[#F7F5EF] flex-shrink-0">
+                <h3 class="text-sm font-bold text-[#252821] flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-[#8C734B]"></i>
+                    <span>Modifica Annuncio Admin &bull; #<span id="editAdIdLabel">—</span></span>
+                </h3>
+                <button type="button" class="btn-close-modal text-[#6B7064] hover:text-[#252821] p-1.5 rounded-lg hover:bg-[#DDD9CD]/50 cursor-pointer" title="Chiudi finestra">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                    <label class="block font-bold text-[#252821] mb-1">Tipologia Inserzionista *</label>
-                    <select id="editTipoInserzionista" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
-                        <option value="privato">Privato</option>
-                        <option value="armeria">Armeria</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-[#252821] mb-1">Stato Annuncio *</label>
-                    <select id="editStato" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
-                        <option value="pubblicato">Pubblicato (Attivo)</option>
-                        <option value="in_moderazione">In Moderazione</option>
-                        <option value="venduto">Venduto</option>
-                        <option value="rifiutato">Rifiutato</option>
-                        <option value="archiviato">Archiviato</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-[#252821] mb-1">Prezzo Originale (€)</label>
-                    <input type="number" step="0.01" min="0" id="editPrezzoOriginale" placeholder="es. 850.00" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
-                </div>
-            </div>
+            <!-- Corpo del form scorrevole liberamente su e giù -->
+            <div class="p-6 overflow-y-auto flex-1 min-h-0 space-y-4 overscroll-contain">
+                <input type="hidden" id="editAdId">
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                    <label class="block font-bold text-[#252821] mb-1">Marca *</label>
-                    <input type="text" id="editMarca" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
-                </div>
-                <div>
-                    <label class="block font-bold text-[#252821] mb-1">Modello *</label>
-                    <input type="text" id="editModello" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
-                </div>
-                <div>
-                    <label class="block font-bold text-[#252821] mb-1">Calibro *</label>
-                    <input type="text" id="editCalibro" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F] font-mono">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                    <label class="block font-bold text-[#252821] mb-1">Tipologia Arma *</label>
-                    <select id="editTipologiaArma" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
-                        <option value="arma_corta">Arma Corta</option>
-                        <option value="arma_lunga_rigata">Arma Lunga Rigata</option>
-                        <option value="canna_liscia">Canna Liscia</option>
-                        <option value="aria_compressa_libera">Aria Compressa (&lt; 7.5J)</option>
-                        <option value="accessorio_ottica">Accessori & Ottiche</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-[#252821] mb-1">Condizione *</label>
-                    <select id="editCondizione" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
-                        <option value="nuovo">Nuovo / Mai Sparato</option>
-                        <option value="usato_eccellente">Usato Eccellente</option>
-                        <option value="usato_ottimo">Usato Ottimo</option>
-                        <option value="usato_buono">Usato Buono</option>
-                        <option value="d_epoca">D'Epoca / Collezione</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold text-[#252821] mb-1">Classificazione *</label>
-                    <select id="editClassificazione" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
-                        <option value="comune">Arma Comune da Sparo</option>
-                        <option value="sportiva">Arma Sportiva (CONI/FITDS)</option>
-                        <option value="caccia">Arma da Caccia</option>
-                        <option value="antica_artistica">Antica o Artistica</option>
-                        <option value="libera_vendita">Libera Vendita (&lt; 7.5J)</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Posizione Geografica / Comune ISTAT -->
-            <div class="p-3 bg-[#F7F5EF] border border-[#DDD9CD] rounded-xl space-y-2">
-                <div class="font-bold text-[#252821] flex items-center justify-between">
-                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot text-[#8C734B]"></i> Ubicazione Comune ISTAT *</span>
-                    <span id="editComuneCurrentLabel" class="text-[11px] font-mono text-[#4F5A30] font-bold"></span>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="sm:col-span-2">
+                        <label class="block font-bold text-[#252821] mb-1">Titolo Annuncio *</label>
+                        <input type="text" id="editTitolo" required minlength="3" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                    </div>
                     <div>
-                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">1. Scegli Provincia</label>
-                        <select id="editProvinciaSelect" class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none cursor-pointer">
-                            <option value="">-- Filtra per Provincia --</option>
+                        <label class="block font-bold text-[#252821] mb-1">Prezzo Attuale (€) *</label>
+                        <input type="number" step="0.01" min="0" id="editPrezzo" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F] font-bold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block font-bold text-[#252821] mb-1">Tipologia Inserzionista *</label>
+                        <select id="editTipoInserzionista" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                            <option value="privato">Privato</option>
+                            <option value="armeria">Armeria</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">2. Scegli Comune *</label>
-                        <select id="editComuneSelect" required class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none cursor-pointer">
-                            <option value="">-- Seleziona comune --</option>
+                        <label class="block font-bold text-[#252821] mb-1">Stato Annuncio *</label>
+                        <select id="editStato" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                            <option value="pubblicato">Pubblicato (Attivo)</option>
+                            <option value="in_moderazione">In Moderazione</option>
+                            <option value="venduto">Venduto</option>
+                            <option value="rifiutato">Rifiutato</option>
+                            <option value="archiviato">Archiviato</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-[#252821] mb-1">Prezzo Originale (€)</label>
+                        <input type="number" step="0.01" min="0" id="editPrezzoOriginale" placeholder="es. 850.00" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block font-bold text-[#252821] mb-1">Marca *</label>
+                        <input type="text" id="editMarca" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-[#252821] mb-1">Modello *</label>
+                        <input type="text" id="editModello" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-[#252821] mb-1">Calibro *</label>
+                        <input type="text" id="editCalibro" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F] font-mono">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block font-bold text-[#252821] mb-1">Tipologia Arma *</label>
+                        <select id="editTipologiaArma" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                            <option value="arma_corta">Arma Corta</option>
+                            <option value="arma_lunga_rigata">Arma Lunga Rigata</option>
+                            <option value="canna_liscia">Canna Liscia</option>
+                            <option value="aria_compressa_libera">Aria Compressa (&lt; 7.5J)</option>
+                            <option value="accessorio_ottica">Accessori & Ottiche</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-[#252821] mb-1">Condizione *</label>
+                        <select id="editCondizione" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                            <option value="nuovo">Nuovo / Mai Sparato</option>
+                            <option value="usato_eccellente">Usato Eccellente</option>
+                            <option value="usato_ottimo">Usato Ottimo</option>
+                            <option value="usato_buono">Usato Buono</option>
+                            <option value="d_epoca">D'Epoca / Collezione</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-[#252821] mb-1">Classificazione *</label>
+                        <select id="editClassificazione" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                            <option value="comune">Arma Comune da Sparo</option>
+                            <option value="sportiva">Arma Sportiva (CONI/FITDS)</option>
+                            <option value="caccia">Arma da Caccia</option>
+                            <option value="antica_artistica">Antica o Artistica</option>
+                            <option value="libera_vendita">Libera Vendita (&lt; 7.5J)</option>
                         </select>
                     </div>
                 </div>
-            </div>
 
-            <!-- Dati Armeria Esterna & Contatti -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-bold text-[#252821] mb-1">Nome Armeria o Fonte Esterna</label>
-                    <input type="text" id="editFonteEsterna" placeholder="es. Armeria Reggiana (opzionale)" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                <!-- Posizione Geografica / Comune ISTAT -->
+                <div class="p-3 bg-[#F7F5EF] border border-[#DDD9CD] rounded-xl space-y-2">
+                    <div class="font-bold text-[#252821] flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot text-[#8C734B]"></i> Ubicazione Comune ISTAT *</span>
+                        <span id="editComuneCurrentLabel" class="text-[11px] font-mono text-[#4F5A30] font-bold"></span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">1. Scegli Provincia</label>
+                            <select id="editProvinciaSelect" class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none cursor-pointer">
+                                <option value="">-- Filtra per Provincia --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">2. Scegli Comune *</label>
+                            <select id="editComuneSelect" required class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none cursor-pointer">
+                                <option value="">-- Seleziona comune --</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Dati Armeria Esterna & Contatti -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-[#252821] mb-1">Nome Armeria o Fonte Esterna</label>
+                        <input type="text" id="editFonteEsterna" placeholder="es. Armeria Reggiana (opzionale)" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-[#252821] mb-1">Link Diretto Esterno Scheda</label>
+                        <input type="url" id="editLinkEsterno" placeholder="https://www.armeria.it/prodotto..." class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-[#252821] mb-1">Email Contatto</label>
+                        <input type="email" id="editEmailContatto" placeholder="email@contatto.it" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-[#252821] mb-1">Telefono Contatto</label>
+                        <input type="text" id="editTelefonoContatto" placeholder="+39 340 1234567" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                    </div>
+                </div>
+
                 <div>
-                    <label class="block font-bold text-[#252821] mb-1">Link Diretto Esterno Scheda</label>
-                    <input type="url" id="editLinkEsterno" placeholder="https://www.armeria.it/prodotto..." class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                    <label class="block font-bold text-[#252821] mb-1">Descrizione Dettagliata *</label>
+                    <textarea id="editDescrizione" rows="4" required minlength="10" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg p-2.5 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]"></textarea>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Galleria Immagini (Un URL per riga)</label>
+                    <textarea id="editGalleriaImmagini" rows="2" placeholder="https://...&#10;https://..." class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg p-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F] font-mono"></textarea>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-bold text-[#252821] mb-1">Email Contatto</label>
-                    <input type="email" id="editEmailContatto" placeholder="email@contatto.it" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+            <!-- Footer fisso in basso con bottone Salva SEMPRE visibile e cliccabile -->
+            <div class="flex items-center justify-between border-t border-[#DDD9CD] px-6 py-3.5 bg-[#F7F5EF] flex-shrink-0">
+                <span class="text-[11px] text-[#6B7064]">* Campi obbligatori</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="btn-close-modal px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-[#DDD9CD] text-[#4A4E44] hover:bg-[#F1EFE7] transition-all cursor-pointer">
+                        Annulla
+                    </button>
+                    <button type="submit" id="btnSubmitEdit" class="btn-tactical px-5 py-2 rounded-xl font-bold text-xs uppercase tracking-wide flex items-center gap-2 shadow-md cursor-pointer">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Salva Modifiche</span>
+                    </button>
                 </div>
-                <div>
-                    <label class="block font-bold text-[#252821] mb-1">Telefono Contatto</label>
-                    <input type="text" id="editTelefonoContatto" placeholder="+39 340 1234567" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
-                </div>
-            </div>
-
-            <div>
-                <label class="block font-bold text-[#252821] mb-1">Descrizione Dettagliata *</label>
-                <textarea id="editDescrizione" rows="4" required minlength="10" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg p-2.5 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]"></textarea>
-            </div>
-
-            <div>
-                <label class="block font-bold text-[#252821] mb-1">Galleria Immagini (Un URL per riga)</label>
-                <textarea id="editGalleriaImmagini" rows="2" placeholder="https://...&#10;https://..." class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg p-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F] font-mono"></textarea>
-            </div>
-
-            <div class="pt-3 border-t border-[#DDD9CD] flex justify-end gap-2">
-                <button type="button" class="btn-close-modal px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-[#DDD9CD] text-[#4A4E44] hover:bg-[#F1EFE7] transition-all cursor-pointer">
-                    Annulla
-                </button>
-                <button type="submit" id="btnSubmitEdit" class="px-5 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-                        style="background:#68733F;border:1px solid #4F5A30;">
-                    <i class="fa-solid fa-floppy-disk"></i>
-                    <span>Salva Modifiche</span>
-                </button>
             </div>
         </form>
     </div>
