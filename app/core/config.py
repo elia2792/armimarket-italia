@@ -68,6 +68,7 @@ class Settings(BaseSettings):
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
     SMTP_TLS: bool = True
+    SMTP_SSL: bool = False
     EMAILS_FROM_EMAIL: str = "no-reply@armimarket.it"
     EMAILS_FROM_NAME: str = "ArmiMarket Italia"
 
