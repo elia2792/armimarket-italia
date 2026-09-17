@@ -54,6 +54,11 @@ class EmailService:
             return True, None
         except Exception as e:
             err_msg = str(e)
+            if "101" in err_msg or "network is unreachable" in err_msg.lower():
+                err_msg = (
+                    "Porta SMTP bloccata dal piano Free di Render per prevenire spam ([Errno 101] Network is unreachable). "
+                    "Segna questo messaggio come Risolto per archiviarlo, oppure attiva il piano Starter di Render per sbloccare l'invio SMTP."
+                )
             logger.error(f"Impossibile inviare email via SMTP: {err_msg}")
             return False, err_msg
 
@@ -506,6 +511,11 @@ class EmailService:
                 return results, None
         except Exception as e:
             err_str = str(e)
+            if "101" in err_str or "network is unreachable" in err_str.lower():
+                err_str = (
+                    "Porta IMAP (993) non raggiungibile dal piano Free di Render ([Errno 101] Network is unreachable). "
+                    "Attiva il piano Starter di Render per abilitare le connessioni esterne dirette verso Google."
+                )
             logger.error(f"Errore connessione IMAP Gmail: {err_str}")
             return [], err_str
 
