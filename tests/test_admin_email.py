@@ -157,3 +157,60 @@ async def test_gestione_errori_invio_e_risoluzione(client: AsyncClient, admin_to
     resp_conv = await client.get("/api/v1/admin/email/conversazioni", headers=admin_token_headers)
     assert resp_conv.status_code == 200
     assert resp_conv.json()["conteggio_errori"] == 0
+
+
+@pytest.mark.asyncio
+async def test_invio_email_brevo_http(monkeypatch):
+    from app.core.config import settings
+    from app.services.email_service import EmailService
+    import httpx
+
+    monkeypatch.setattr(settings, "BREVO_API_KEY", "xkeysib-test-key-123")
+    monkeypatch.setattr(settings, "RESEND_API_KEY", None)
+
+    called_url = []
+
+    async def mock_post(self, url, *args, **kwargs):
+        called_url.append(str(url))
+        return httpx.Response(201, json={"messageId": "brevo-msg-123"})
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
+
+    success, err = await EmailService._send_http_email(
+        to_email="utente@destinatario.it",
+        subject="Oggetto Test",
+        html_body="<p>Test</p>",
+        text_body="Test"
+    )
+    assert success is True
+    assert err is None
+    assert any("api.brevo.com" in u for u in called_url)
+
+
+@pytest.mark.asyncio
+async def test_invio_email_resend_http(monkeypatch):
+    from app.core.config import settings
+    from app.services.email_service import EmailService
+    import httpx
+
+    monkeypatch.setattr(settings, "BREVO_API_KEY", None)
+    monkeypatch.setattr(settings, "RESEND_API_KEY", "re_test_key_123")
+
+    called_url = []
+
+    async def mock_post(self, url, *args, **kwargs):
+        called_url.append(str(url))
+        return httpx.Response(200, json={"id": "resend-msg-123"})
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
+
+    success, err = await EmailService._send_http_email(
+        to_email="utente@destinatario.it",
+        subject="Oggetto Test",
+        html_body="<p>Test</p>",
+        text_body="Test"
+    )
+    assert success is True
+    assert err is None
+    assert any("api.resend.com" in u for u in called_url)
+

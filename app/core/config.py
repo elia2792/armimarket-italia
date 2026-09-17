@@ -79,6 +79,10 @@ class Settings(BaseSettings):
     IMAP_PASSWORD: Optional[str] = None
     IMAP_SSL: bool = True
 
+    # Provider Email HTTP REST (Porta 443 HTTPS - compatibile con Render Free Tier)
+    BREVO_API_KEY: Optional[str] = None
+    RESEND_API_KEY: Optional[str] = None
+
     @model_validator(mode="after")
     def validate_production_security(self) -> "Settings":
         env_clean = self.ENVIRONMENT.lower().strip()

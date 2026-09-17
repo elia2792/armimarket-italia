@@ -63,6 +63,79 @@ class EmailService:
             return False, err_msg
 
     @classmethod
+    async def _send_http_email(
+        cls,
+        to_email: str,
+        subject: str,
+        html_body: str,
+        text_body: str
+    ) -> Tuple[bool, Optional[str]]:
+        """Invia email tramite REST API HTTPS (porta 443, non bloccata dal piano Free di Render)."""
+        import httpx
+
+        # 1. Prova Brevo API se configurata
+        if settings.BREVO_API_KEY:
+            try:
+                headers = {
+                    "accept": "application/json",
+                    "api-key": settings.BREVO_API_KEY.strip(),
+                    "content-type": "application/json"
+                }
+                payload = {
+                    "sender": {
+                        "name": settings.EMAILS_FROM_NAME or "ArmiMarket Italia",
+                        "email": settings.EMAILS_FROM_EMAIL or "armimarkt@gmail.com"
+                    },
+                    "to": [{"email": to_email}],
+                    "subject": subject,
+                    "htmlContent": html_body,
+                    "textContent": text_body
+                }
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    resp = await client.post("https://api.brevo.com/v3/smtp/email", json=payload, headers=headers)
+                    if resp.status_code in (200, 201, 202):
+                        logger.info(f"Email inviata con successo via Brevo API a {to_email}")
+                        return True, None
+                    else:
+                        err_text = resp.text
+                        logger.error(f"Errore Brevo API HTTP {resp.status_code}: {err_text}")
+                        return False, f"Brevo API error ({resp.status_code}): {err_text}"
+            except Exception as e:
+                logger.error(f"Eccezione chiamata Brevo API: {e}")
+                return False, str(e)
+
+        # 2. Prova Resend API se configurata
+        if settings.RESEND_API_KEY:
+            try:
+                headers = {
+                    "Authorization": f"Bearer {settings.RESEND_API_KEY.strip()}",
+                    "Content-Type": "application/json"
+                }
+                sender_email = settings.EMAILS_FROM_EMAIL or "onboarding@resend.dev"
+                sender = f"{settings.EMAILS_FROM_NAME} <{sender_email}>" if settings.EMAILS_FROM_NAME else sender_email
+                payload = {
+                    "from": sender,
+                    "to": [to_email],
+                    "subject": subject,
+                    "html": html_body,
+                    "text": text_body
+                }
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    resp = await client.post("https://api.resend.com/emails", json=payload, headers=headers)
+                    if resp.status_code in (200, 201):
+                        logger.info(f"Email inviata con successo via Resend API a {to_email}")
+                        return True, None
+                    else:
+                        err_text = resp.text
+                        logger.error(f"Errore Resend API HTTP {resp.status_code}: {err_text}")
+                        return False, f"Resend API error ({resp.status_code}): {err_text}"
+            except Exception as e:
+                logger.error(f"Eccezione chiamata Resend API: {e}")
+                return False, str(e)
+
+        return False, "Nessun provider HTTP configurato (imposta BREVO_API_KEY o RESEND_API_KEY)."
+
+    @classmethod
     async def log_and_send_email(
         cls,
         to_email: str,
@@ -74,18 +147,24 @@ class EmailService:
         db: Optional[AsyncSession] = None,
         from_email: Optional[str] = None
     ) -> bool:
-        """Invia l email (se SMTP attivo) e ne registra la copia su database per la casella postale dell amministratore."""
+        """Invia l email (via HTTP API o SMTP) e ne registra la copia su database per la casella postale dell amministratore."""
         sender = from_email or f"{settings.EMAILS_FROM_NAME} <{settings.EMAILS_FROM_EMAIL}>"
         
-        loop = asyncio.get_running_loop()
-        success, error = await loop.run_in_executor(
-            None,
-            cls._send_smtp_email_sync,
-            to_email,
-            subject,
-            html_body,
-            text_body
-        )
+        # Se presente chiave HTTP (Brevo o Resend), invia via HTTPS porta 443
+        if settings.BREVO_API_KEY or settings.RESEND_API_KEY:
+            success, error = await cls._send_http_email(to_email, subject, html_body, text_body)
+        elif settings.SMTP_HOST:
+            loop = asyncio.get_running_loop()
+            success, error = await loop.run_in_executor(
+                None,
+                cls._send_smtp_email_sync,
+                to_email,
+                subject,
+                html_body,
+                text_body
+            )
+        else:
+            success, error = False, "Nessun provider email configurato (imposta BREVO_API_KEY su Render)."
 
         if db is not None:
             log_entry = EmailLog(
@@ -588,21 +667,31 @@ class EmailService:
 
     @classmethod
     async def retry_send_email(cls, email_id: int, db: AsyncSession) -> Tuple[bool, Optional[str]]:
-        """Riprova l'invio via SMTP Gmail di un'email fallita."""
+        """Riprova l'invio via HTTP API o SMTP di un'email fallita."""
         stmt = select(EmailLog).where(EmailLog.id == email_id)
         email_obj = (await db.execute(stmt)).scalar_one_or_none()
         if not email_obj:
             return False, "Email non trovata nel database."
 
-        loop = asyncio.get_running_loop()
-        success, error = await loop.run_in_executor(
-            None,
-            cls._send_smtp_email_sync,
-            email_obj.destinatario,
-            email_obj.oggetto,
-            email_obj.corpo_html,
-            email_obj.corpo_testo
-        )
+        if settings.BREVO_API_KEY or settings.RESEND_API_KEY:
+            success, error = await cls._send_http_email(
+                email_obj.destinatario,
+                email_obj.oggetto,
+                email_obj.corpo_html,
+                email_obj.corpo_testo
+            )
+        elif settings.SMTP_HOST:
+            loop = asyncio.get_running_loop()
+            success, error = await loop.run_in_executor(
+                None,
+                cls._send_smtp_email_sync,
+                email_obj.destinatario,
+                email_obj.oggetto,
+                email_obj.corpo_html,
+                email_obj.corpo_testo
+            )
+        else:
+            success, error = False, "Nessun provider email configurato (imposta BREVO_API_KEY su Render)."
 
         if success:
             email_obj.inviata = True
