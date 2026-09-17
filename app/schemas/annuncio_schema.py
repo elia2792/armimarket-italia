@@ -67,8 +67,16 @@ class AnnuncioUpdate(BaseModel):
     titolo: Optional[str] = Field(None, min_length=5, max_length=255)
     descrizione: Optional[str] = Field(None, min_length=20)
     prezzo: Optional[float] = Field(None, ge=0.0)
+    prezzo_originale: Optional[float] = Field(None, ge=0.0)
+    marca: Optional[str] = Field(None, min_length=2, max_length=100)
+    modello: Optional[str] = Field(None, min_length=1, max_length=100)
+    calibro: Optional[str] = Field(None, min_length=1, max_length=50)
+    tipologia_arma: Optional[TipologiaArma] = None
+    classificazione: Optional[ClassificazioneArma] = None
     condizione: Optional[CondizioneArma] = None
+    comune_id: Optional[int] = None
     galleria_immagini: Optional[List[str]] = None
+    email_contatto: Optional[EmailStr] = None
     telefono_contatto: Optional[str] = None
     mostra_telefono_pubblico: Optional[bool] = None
     stato: Optional[StatoAnnuncio] = None

@@ -1,6 +1,7 @@
 import io
 import re
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -33,6 +34,7 @@ from app.schemas.annuncio_schema import (
     AnnuncioDetailOut,
     AnnuncioListResponse,
     AnnuncioPublicOut,
+    AnnuncioUpdate,
     ComuneOut,
     ContactFormRequest,
     ContactFormResponse,
@@ -410,46 +412,48 @@ async def get_my_annunci(
     annunci = res.scalars().all()
 
     out = []
-    for a in annunci:
-        comune_out = None
-        if a.comune:
-            comune_out = ComuneOut(
-                id=a.comune.id,
-                nome=a.comune.nome,
-                cap=a.comune.cap,
-                provincia_id=a.comune.provincia_id,
-                latitudine=a.comune.latitudine,
-                longitudine=a.comune.longitudine,
-                sigla_provincia=a.comune.provincia.sigla_automobilistica if a.comune.provincia else None,
-                nome_regione=a.comune.provincia.regione.nome if a.comune.provincia and a.comune.provincia.regione else None
-            )
-        out.append(
-            AnnuncioPublicOut(
-                id=a.id,
-                titolo=a.titolo,
-                slug=a.slug,
-                descrizione=a.descrizione,
-                prezzo=a.prezzo,
-                stato=a.stato,
-                tipologia_inserzionista=a.tipologia_inserzionista,
-                tipologia_arma=a.tipologia_arma,
-                marca=a.marca,
-                modello=a.modello,
-                calibro=a.calibro,
-                classificazione=a.classificazione,
-                condizione=a.condizione,
-                comune_id=a.comune_id,
-                galleria_immagini=a.galleria_immagini or [],
-                link_esterno=a.link_esterno,
-                email_contatto=a.email_contatto,
-                telefono_contatto=a.telefono_contatto if a.mostra_telefono_pubblico else None,
-                visualizzazioni=a.visualizzazioni,
-                data_creazione=a.data_creazione,
-                data_aggiornamento=a.data_aggiornamento,
-                comune=comune_out
-            )
+    return [_build_annuncio_public_out(a) for a in annunci]
+
+
+def _build_annuncio_public_out(a: Annuncio) -> AnnuncioPublicOut:
+    comune_out = None
+    if a.comune:
+        comune_out = ComuneOut(
+            id=a.comune.id,
+            nome=a.comune.nome,
+            cap=a.comune.cap,
+            provincia_id=a.comune.provincia_id,
+            latitudine=a.comune.latitudine,
+            longitudine=a.comune.longitudine,
+            sigla_provincia=a.comune.provincia.sigla_automobilistica if a.comune.provincia else None,
+            nome_regione=a.comune.provincia.regione.nome if a.comune.provincia and a.comune.provincia.regione else None
         )
-    return out
+    return AnnuncioPublicOut(
+        id=a.id,
+        titolo=a.titolo,
+        slug=a.slug,
+        descrizione=a.descrizione,
+        prezzo=a.prezzo,
+        prezzo_originale=a.prezzo_originale,
+        sconto_percentuale=int(round((a.prezzo_originale - a.prezzo) / a.prezzo_originale * 100)) if (a.prezzo_originale and a.prezzo_originale > a.prezzo) else None,
+        stato=a.stato,
+        tipologia_inserzionista=a.tipologia_inserzionista,
+        tipologia_arma=a.tipologia_arma,
+        marca=a.marca,
+        modello=a.modello,
+        calibro=a.calibro,
+        classificazione=a.classificazione,
+        condizione=a.condizione,
+        comune_id=a.comune_id,
+        galleria_immagini=a.galleria_immagini or [],
+        link_esterno=a.link_esterno,
+        email_contatto=a.email_contatto,
+        telefono_contatto=a.telefono_contatto if a.mostra_telefono_pubblico else None,
+        visualizzazioni=a.visualizzazioni,
+        data_creazione=a.data_creazione,
+        data_aggiornamento=a.data_aggiornamento,
+        comune=comune_out
+    )
 
 
 @router.delete("/{id}", status_code=status.HTTP_200_OK)
@@ -482,7 +486,97 @@ async def delete_annuncio(
 
     await db.delete(annuncio)
     await db.commit()
-    return {"message": "Annuncio rimosso con successo per articolo venduto/ritirato.", "id": id}
+    return {"message": "Annuncio rimosso con successo per articolo venduto/ritirato.", "id": id, "success": True}
+
+
+@router.put("/{id}", response_model=AnnuncioPublicOut, status_code=status.HTTP_200_OK)
+async def update_annuncio(
+    id: int,
+    req: AnnuncioUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Modifica completa di un annuncio da parte del proprietario (autore privato o armeria)
+    o dell'amministratore/moderatore.
+    """
+    stmt = (
+        select(Annuncio)
+        .options(selectinload(Annuncio.comune).selectinload(Comune.provincia).selectinload(Provincia.regione))
+        .where(Annuncio.id == id)
+    )
+    annuncio = (await db.execute(stmt)).scalar_one_or_none()
+
+    if not annuncio:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Annuncio non trovato."
+        )
+
+    is_staff = current_user.ruolo in [RuoloUtente.ADMIN, RuoloUtente.MODERATORE]
+    if annuncio.utente_id != current_user.id and not is_staff:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Non hai i permessi per modificare questo annuncio."
+        )
+
+    if req.comune_id is not None:
+        comune_stmt = select(Comune).where(Comune.id == req.comune_id)
+        comune_obj = (await db.execute(comune_stmt)).scalar_one_or_none()
+        if not comune_obj:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Comune con id {req.comune_id} non trovato."
+            )
+        annuncio.comune_id = req.comune_id
+
+    if req.titolo is not None:
+        annuncio.titolo = req.titolo.strip()
+    if req.descrizione is not None:
+        annuncio.descrizione = req.descrizione.strip()
+    if req.prezzo is not None:
+        annuncio.prezzo = req.prezzo
+    if req.prezzo_originale is not None:
+        annuncio.prezzo_originale = req.prezzo_originale
+    if req.marca is not None:
+        annuncio.marca = req.marca.strip()
+    if req.modello is not None:
+        annuncio.modello = req.modello.strip()
+    if req.calibro is not None:
+        annuncio.calibro = req.calibro.strip()
+    if req.tipologia_arma is not None:
+        annuncio.tipologia_arma = req.tipologia_arma
+    if req.classificazione is not None:
+        annuncio.classificazione = req.classificazione
+    if req.condizione is not None:
+        annuncio.condizione = req.condizione
+    if req.galleria_immagini is not None:
+        annuncio.galleria_immagini = req.galleria_immagini
+    if req.email_contatto is not None:
+        annuncio.email_contatto = req.email_contatto
+    if req.telefono_contatto is not None:
+        annuncio.telefono_contatto = req.telefono_contatto.strip() or None
+    if req.mostra_telefono_pubblico is not None:
+        annuncio.mostra_telefono_pubblico = req.mostra_telefono_pubblico
+
+    if req.stato is not None:
+        if not is_staff and req.stato == StatoAnnuncio.PUBBLICATO and annuncio.stato != StatoAnnuncio.PUBBLICATO:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo l'amministratore o un moderatore può approvare o pubblicare direttamente un annuncio."
+            )
+        annuncio.stato = req.stato
+
+    annuncio.data_aggiornamento = datetime.now(timezone.utc)
+    await db.commit()
+
+    stmt_reload = (
+        select(Annuncio)
+        .options(selectinload(Annuncio.comune).selectinload(Comune.provincia).selectinload(Provincia.regione))
+        .where(Annuncio.id == id)
+    )
+    annuncio_aggiornato = (await db.execute(stmt_reload)).scalar_one()
+    return _build_annuncio_public_out(annuncio_aggiornato)
 
 
 @router.patch("/{id}/stato", status_code=status.HTTP_200_OK)

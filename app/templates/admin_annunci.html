@@ -3,19 +3,24 @@
 {% block title %}Admin · Gestione Annunci (Privati & Armerie) — ArmiMarket Italia{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
     <!-- Header Sezione Admin -->
-    <div class="mb-8 p-6 rounded-2xl shadow relative overflow-hidden bg-white border border-[#DDD9CD]"
-         style="background:linear-gradient(135deg,#FFFFFF 0%,#F7F5EF 100%);">
+    <div class="p-6 rounded-2xl relative overflow-hidden bg-white border border-[#DDD9CD] shadow-sm">
         <div class="absolute -right-8 -bottom-8 opacity-5 pointer-events-none text-[180px] text-[#4F5A30]">
             <i class="fa-solid fa-bullhorn"></i>
         </div>
-        <div class="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <div class="flex items-center gap-3 mb-1">
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base"
-                         style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
+                <div class="flex items-center space-x-2 mb-1">
+                    <div class="w-2.5 h-2.5 rounded-full animate-pulse" style="background:#68733F;"></div>
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-[#6B7064]">
+                        MODERAZIONE CONTENUTI & COMPLIANCE T.U.L.P.S.
+                    </span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-sm"
+                         style="background:#68733F;">
                         <i class="fa-solid fa-bullhorn"></i>
                     </div>
                     <h1 class="mil-brand text-2xl font-bold text-[#252821] tracking-wide">GESTIONE ANNUNCI</h1>
@@ -58,7 +63,7 @@
     <div id="adminAlert" class="hidden mb-6 p-4 rounded-xl text-xs font-semibold border"></div>
 
     <!-- Statistiche rapide KPI -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="p-4 rounded-xl text-center bg-white border border-[#DDD9CD] shadow-sm">
             <div id="statTotale" class="text-2xl font-black text-[#8C734B]">—</div>
             <div class="text-[10px] uppercase tracking-widest mt-1 font-mono text-[#6B7064]">Totale Annunci</div>
@@ -79,31 +84,31 @@
 
     <!-- Barra Tab Suddivisione Inserzionisti (Tutti / Privati / Armerie / Moderazione / Venduti) -->
     <div class="flex items-center space-x-2 overflow-x-auto pb-2 mb-4 border-b border-[#DDD9CD]">
-        <button type="button" onclick="setFilterCategory('', '')" id="tabAll"
+        <button type="button" id="tabAll" data-action="filter-category" data-tipo="" data-stato=""
                 class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 bg-[#68733F] text-white border border-[#4F5A30] shadow-xs whitespace-nowrap cursor-pointer">
             <i class="fa-solid fa-layer-group"></i>
             <span>Tutti gli Annunci</span>
             <span id="tabCountAll" class="ml-1 text-[10px] bg-white text-[#252821] px-2 py-0.5 rounded-full font-mono font-bold">0</span>
         </button>
-        <button type="button" onclick="setFilterCategory('privato', '')" id="tabPrivati"
+        <button type="button" id="tabPrivati" data-action="filter-category" data-tipo="privato" data-stato=""
                 class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap cursor-pointer">
             <i class="fa-solid fa-user text-sky-600"></i>
             <span>Solo Privati</span>
             <span id="tabCountPrivati" class="ml-1 text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
         </button>
-        <button type="button" onclick="setFilterCategory('armeria', '')" id="tabArmerie"
+        <button type="button" id="tabArmerie" data-action="filter-category" data-tipo="armeria" data-stato=""
                 class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap cursor-pointer">
             <i class="fa-solid fa-store text-emerald-600"></i>
             <span>Solo Armerie</span>
             <span id="tabCountArmerie" class="ml-1 text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
         </button>
-        <button type="button" onclick="setFilterCategory('', 'in_moderazione')" id="tabModerazione"
+        <button type="button" id="tabModerazione" data-action="filter-category" data-tipo="" data-stato="in_moderazione"
                 class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap cursor-pointer">
             <i class="fa-solid fa-clock text-amber-600"></i>
             <span>In Moderazione</span>
             <span id="tabCountModerazione" class="ml-1 text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
         </button>
-        <button type="button" onclick="setFilterCategory('', 'venduto')" id="tabVenduti"
+        <button type="button" id="tabVenduti" data-action="filter-category" data-tipo="" data-stato="venduto"
                 class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap cursor-pointer">
             <i class="fa-solid fa-check-double text-slate-600"></i>
             <span>Venduti</span>
@@ -116,10 +121,9 @@
             <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-[#6B7064]"></i>
             <input id="searchInput" type="text" placeholder="Cerca per titolo, marca, modello, calibro, armeria o ID..."
                    class="w-full pl-8 pr-3 py-2 rounded-lg text-xs text-[#252821] focus:outline-none"
-                   style="background:#F7F5EF;border:1px solid #DDD9CD;"
-                   oninput="debounceSearch()">
+                   style="background:#F7F5EF;border:1px solid #DDD9CD;">
         </div>
-        <select id="filterStato" onchange="loadAnnunci(1)" class="text-xs px-3 py-2 rounded-lg focus:outline-none"
+        <select id="filterStato" class="text-xs px-3 py-2 rounded-lg focus:outline-none cursor-pointer"
                 style="background:#F7F5EF;border:1px solid #DDD9CD;color:#252821;">
             <option value="">Tutti gli stati</option>
             <option value="pubblicato">Pubblicato</option>
@@ -128,7 +132,7 @@
             <option value="rifiutato">Rifiutato</option>
             <option value="archiviato">Archiviato</option>
         </select>
-        <button onclick="loadAnnunci(1)" class="text-xs font-bold px-4 py-2 rounded-lg uppercase tracking-wide transition-all shadow-sm cursor-pointer"
+        <button type="button" id="btnRefreshAnnunci" class="text-xs font-bold px-4 py-2 rounded-lg uppercase tracking-wide transition-all shadow-sm cursor-pointer"
                 style="background:#68733F;color:#FFFFFF;border:1px solid #4F5A30;">
             <i class="fa-solid fa-rotate mr-1"></i>Aggiorna
         </button>
@@ -139,13 +143,14 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
                 <thead>
-                    <tr class="border-b border-[#DDD9CD] bg-[#F7F5EF] text-[11px] uppercase tracking-wider font-mono text-[#6B7064]">
-                        <th class="py-3 px-4">Articolo / Annuncio</th>
-                        <th class="py-3 px-4">Prezzo</th>
-                        <th class="py-3 px-4">Inserzionista</th>
-                        <th class="py-3 px-4">Ubicazione</th>
-                        <th class="py-3 px-4">Stato</th>
-                        <th class="py-3 px-4 text-right">Azioni</th>
+                    <tr class="border-b border-[#DDD9CD] text-[10px] uppercase tracking-wider font-mono text-[#6B7064]"
+                        style="background:#F7F5EF;">
+                        <th class="py-3 px-4 font-bold">Annuncio / Identificativo</th>
+                        <th class="py-3 px-4 font-bold">Prezzo</th>
+                        <th class="py-3 px-4 font-bold">Inserzionista</th>
+                        <th class="py-3 px-4 font-bold">Ubicazione / Comune</th>
+                        <th class="py-3 px-4 font-bold">Stato</th>
+                        <th class="py-3 px-4 font-bold text-right">Azioni Rapide</th>
                     </tr>
                 </thead>
                 <tbody id="annunciTableBody" class="divide-y divide-[#E8E5DB]">
@@ -163,12 +168,12 @@
         <div class="p-3.5 border-t border-[#DDD9CD] flex items-center justify-between bg-[#F7F5EF] text-xs">
             <span class="text-[#6B7064] font-mono text-[11px]" id="pagingInfo">0 annunci trovati</span>
             <div class="flex items-center space-x-2">
-                <button type="button" id="btnPrevPage" onclick="changePage(-1)" disabled
+                <button type="button" id="btnPrevPage" disabled
                         class="px-3 py-1.5 bg-white hover:bg-[#F1EFE7] disabled:opacity-40 border border-[#DDD9CD] text-[#252821] rounded-lg font-semibold transition-all cursor-pointer">
                     <i class="fa-solid fa-chevron-left text-[10px]"></i> Prec
                 </button>
                 <span id="pageIndicator" class="text-[11px] text-[#252821] font-mono font-bold px-2">Pag. 1 di 1</span>
-                <button type="button" id="btnNextPage" onclick="changePage(1)" disabled
+                <button type="button" id="btnNextPage" disabled
                         class="px-3 py-1.5 bg-white hover:bg-[#F1EFE7] disabled:opacity-40 border border-[#DDD9CD] text-[#252821] rounded-lg font-semibold transition-all cursor-pointer">
                     Succ <i class="fa-solid fa-chevron-right text-[10px]"></i>
                 </button>
@@ -186,12 +191,12 @@
                 <i class="fa-solid fa-pen-to-square text-[#8C734B]"></i>
                 <span>Modifica Annuncio Admin &bull; #<span id="editAdIdLabel">—</span></span>
             </h3>
-            <button type="button" onclick="closeEditModal()" class="text-[#6B7064] hover:text-[#252821] p-1 cursor-pointer">
+            <button type="button" class="btn-close-modal text-[#6B7064] hover:text-[#252821] p-1 cursor-pointer">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
 
-        <form id="formEditAnnuncio" onsubmit="handleSaveEditAnnuncio(event)" class="space-y-4 text-xs">
+        <form id="formEditAnnuncio" class="space-y-4 text-xs">
             <input type="hidden" id="editAdId">
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -284,12 +289,12 @@
                     <span id="editComuneCurrentLabel" class="text-[11px] font-mono text-[#4F5A30] font-bold"></span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <select id="editProvinciaSelect" onchange="onEditProvinciaChange(this.value)" class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none">
+                    <select id="editProvinciaSelect" class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none cursor-pointer">
                         <option value="">-- Filtra per Provincia --</option>
                     </select>
-                    <input type="text" id="editComuneSearch" placeholder="Cerca comune o CAP..." oninput="onEditComuneSearch(this.value)" class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none">
+                    <input type="text" id="editComuneSearch" placeholder="Cerca comune o CAP..." class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none">
                 </div>
-                <select id="editComuneSelect" required class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none">
+                <select id="editComuneSelect" required class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none cursor-pointer">
                     <option value="">-- Seleziona comune --</option>
                 </select>
             </div>
@@ -328,7 +333,7 @@
             </div>
 
             <div class="pt-3 border-t border-[#DDD9CD] flex justify-end gap-2">
-                <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-[#DDD9CD] text-[#4A4E44] hover:bg-[#F1EFE7] transition-all cursor-pointer">
+                <button type="button" class="btn-close-modal px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-[#DDD9CD] text-[#4A4E44] hover:bg-[#F1EFE7] transition-all cursor-pointer">
                     Annulla
                 </button>
                 <button type="submit" id="btnSubmitEdit" class="px-5 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
@@ -385,6 +390,83 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error("Errore verifica admin:", e);
     }
 
+    // Attach form & input listeners
+    const formEdit = document.getElementById("formEditAnnuncio");
+    if (formEdit) {
+        formEdit.addEventListener("submit", handleSaveEditAnnuncio);
+    }
+
+    const searchInput = document.getElementById("searchInput");
+    if (searchInput) {
+        searchInput.addEventListener("input", debounceSearch);
+    }
+
+    const filterStato = document.getElementById("filterStato");
+    if (filterStato) {
+        filterStato.addEventListener("change", () => loadAnnunci(1));
+    }
+
+    const btnRefresh = document.getElementById("btnRefreshAnnunci");
+    if (btnRefresh) {
+        btnRefresh.addEventListener("click", () => loadAnnunci(1));
+    }
+
+    const btnPrev = document.getElementById("btnPrevPage");
+    if (btnPrev) {
+        btnPrev.addEventListener("click", () => changePage(-1));
+    }
+
+    const btnNext = document.getElementById("btnNextPage");
+    if (btnNext) {
+        btnNext.addEventListener("click", () => changePage(1));
+    }
+
+    const editProvSelect = document.getElementById("editProvinciaSelect");
+    if (editProvSelect) {
+        editProvSelect.addEventListener("change", (e) => onEditProvinciaChange(e.target.value));
+    }
+
+    const editComSearch = document.getElementById("editComuneSearch");
+    if (editComSearch) {
+        editComSearch.addEventListener("input", (e) => onEditComuneSearch(e.target.value));
+    }
+
+    // Event delegation for table action buttons and modal close
+    document.addEventListener("click", (e) => {
+        // Close modal
+        const closeBtn = e.target.closest(".btn-close-modal");
+        if (closeBtn) {
+            closeEditModal();
+            return;
+        }
+
+        // Category filter tabs
+        const tabBtn = e.target.closest('[data-action="filter-category"]');
+        if (tabBtn) {
+            const tipo = tabBtn.dataset.tipo || "";
+            const stato = tabBtn.dataset.stato || "";
+            setFilterCategory(tipo, stato);
+            return;
+        }
+
+        // Edit ad button
+        const editBtn = e.target.closest(".btn-edit-ad");
+        if (editBtn) {
+            const id = editBtn.dataset.id;
+            if (id) openEditModal(parseInt(id));
+            return;
+        }
+
+        // Delete ad button
+        const delBtn = e.target.closest(".btn-delete-ad");
+        if (delBtn) {
+            const id = delBtn.dataset.id;
+            const title = delBtn.dataset.title || "Annuncio #" + id;
+            if (id) deleteAdAdmin(parseInt(id), title);
+            return;
+        }
+    });
+
     loadProvince();
     loadAnnunci(1);
 });
@@ -406,7 +488,8 @@ async function loadProvince() {
 function setFilterCategory(tipo, stato) {
     currentTipologia = tipo;
     currentStato = stato;
-    document.getElementById("filterStato").value = stato;
+    const filterStato = document.getElementById("filterStato");
+    if (filterStato) filterStato.value = stato;
 
     // Aggiorna stile dei bottoni tab
     const tabs = [
@@ -432,7 +515,8 @@ function setFilterCategory(tipo, stato) {
 function debounceSearch() {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-        currentSearch = document.getElementById("searchInput").value.trim();
+        const searchInput = document.getElementById("searchInput");
+        currentSearch = searchInput ? searchInput.value.trim() : "";
         loadAnnunci(1);
     }, 300);
 }
@@ -440,6 +524,8 @@ function debounceSearch() {
 async function loadAnnunci(pagina = 1) {
     currentPagina = pagina;
     const tbody = document.getElementById("annunciTableBody");
+    if (!tbody) return;
+
     tbody.innerHTML = `
         <tr>
             <td colspan="6" class="p-8 text-center text-slate-500">
@@ -449,7 +535,8 @@ async function loadAnnunci(pagina = 1) {
         </tr>
     `;
 
-    currentStato = document.getElementById("filterStato").value;
+    const filterStatoEl = document.getElementById("filterStato");
+    currentStato = filterStatoEl ? filterStatoEl.value : "";
 
     let url = `/api/v1/admin/annunci?pagina=${pagina}&elementi_per_pagina=20`;
     if (currentTipologia) url += `&tipologia_inserzionista=${encodeURIComponent(currentTipologia)}`;
@@ -471,10 +558,17 @@ async function loadAnnunci(pagina = 1) {
         renderAnnunciTable(data.annunci);
 
         // Paginazione
-        document.getElementById("pagingInfo").innerText = `${data.totale} annunci filtrati`;
-        document.getElementById("pageIndicator").innerText = `Pag. ${data.pagina} di ${data.pagine_totali}`;
-        document.getElementById("btnPrevPage").disabled = (data.pagina <= 1);
-        document.getElementById("btnNextPage").disabled = (data.pagina >= data.pagine_totali);
+        const pagingInfo = document.getElementById("pagingInfo");
+        if (pagingInfo) pagingInfo.innerText = `${data.totale} annunci filtrati`;
+
+        const pageIndicator = document.getElementById("pageIndicator");
+        if (pageIndicator) pageIndicator.innerText = `Pag. ${data.pagina} di ${data.pagine_totali}`;
+
+        const btnPrev = document.getElementById("btnPrevPage");
+        if (btnPrev) btnPrev.disabled = (data.pagina <= 1);
+
+        const btnNext = document.getElementById("btnNextPage");
+        if (btnNext) btnNext.disabled = (data.pagina >= data.pagine_totali);
 
     } catch (e) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-rose-600">Errore di connessione.</td></tr>`;
@@ -482,19 +576,25 @@ async function loadAnnunci(pagina = 1) {
 }
 
 function renderStatistiche(data) {
-    document.getElementById("statTotale").innerText = data.totale !== undefined ? data.totale : 0;
-    document.getElementById("statPrivati").innerText = data.totale_privati !== undefined ? data.totale_privati : 0;
-    document.getElementById("statArmerie").innerText = data.totale_armerie !== undefined ? data.totale_armerie : 0;
-    document.getElementById("statModerazione").innerText = data.totale_in_moderazione !== undefined ? data.totale_in_moderazione : 0;
+    const setElText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = val !== undefined ? val : 0;
+    };
+    setElText("statTotale", data.totale);
+    setElText("statPrivati", data.totale_privati);
+    setElText("statArmerie", data.totale_armerie);
+    setElText("statModerazione", data.totale_in_moderazione);
 
-    document.getElementById("tabCountAll").innerText = data.totale !== undefined ? data.totale : 0;
-    document.getElementById("tabCountPrivati").innerText = data.totale_privati !== undefined ? data.totale_privati : 0;
-    document.getElementById("tabCountArmerie").innerText = data.totale_armerie !== undefined ? data.totale_armerie : 0;
-    document.getElementById("tabCountModerazione").innerText = data.totale_in_moderazione !== undefined ? data.totale_in_moderazione : 0;
+    setElText("tabCountAll", data.totale);
+    setElText("tabCountPrivati", data.totale_privati);
+    setElText("tabCountArmerie", data.totale_armerie);
+    setElText("tabCountModerazione", data.totale_in_moderazione);
 }
 
 function renderAnnunciTable(annunci) {
     const tbody = document.getElementById("annunciTableBody");
+    if (!tbody) return;
+
     if (!annunci || annunci.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -529,7 +629,7 @@ function renderAnnunciTable(annunci) {
                     <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-300 flex items-center gap-1">
                         <i class="fa-solid fa-user text-[9px]"></i> Privato
                     </span>
-                    <span class="text-[#6B7064] font-mono text-[11px] truncate max-w-[130px]">${a.email_contatto || 'Utente #' + (a.utente_id || '')}</span>
+                    <span class="text-[#6B7064] font-mono text-[11px] truncate max-w-[130px]">${escapeHtml(a.email_contatto || 'Utente #' + (a.utente_id || ''))}</span>
                 </div>
             `;
         }
@@ -545,17 +645,18 @@ function renderAnnunciTable(annunci) {
         }
 
         const comuneStr = a.comune ? `${a.comune.nome} (${a.comune.sigla_provincia || ''})` : "Italia";
+        const safeTitle = escapeHtml(a.titolo);
 
         return `
             <tr class="hover:bg-[#F7F5EF] transition-colors">
                 <td class="py-3 px-4">
                     <div class="flex items-center space-x-3">
                         <div class="w-12 h-12 rounded-lg bg-stone-100 border border-[#DDD9CD] overflow-hidden flex-shrink-0 flex items-center justify-center">
-                            ${thumb ? `<img src="${thumb}" alt="${escapeHtml(a.titolo)}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-gun text-stone-400"></i>`}
+                            ${thumb ? `<img src="${thumb}" alt="${safeTitle}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-gun text-stone-400"></i>`}
                         </div>
                         <div class="overflow-hidden">
-                            <div class="font-bold text-[#252821] truncate max-w-[240px] text-xs" title="${escapeHtml(a.titolo)}">
-                                ${escapeHtml(a.titolo)}
+                            <div class="font-bold text-[#252821] truncate max-w-[240px] text-xs" title="${safeTitle}">
+                                ${safeTitle}
                             </div>
                             <div class="text-[11px] text-[#6B7064] font-mono mt-0.5">
                                 #${a.id} &bull; ${escapeHtml(a.marca)} &bull; Cal. ${escapeHtml(a.calibro)}
@@ -577,15 +678,15 @@ function renderAnnunciTable(annunci) {
                 </td>
                 <td class="py-3 px-4 text-right whitespace-nowrap">
                     <div class="flex items-center justify-end space-x-1.5">
-                        <button type="button" onclick="openEditModal(${a.id})" class="px-2.5 py-1 text-xs font-bold text-[#27471E] bg-[#EBEFE0] hover:bg-[#DDE5CC] border border-[#A4B882] rounded-lg transition-all flex items-center gap-1 cursor-pointer" title="Modifica l'annuncio">
-                            <i class="fa-solid fa-pen-to-square text-[10px]"></i>
-                            <span>Modifica</span>
+                        <button type="button" class="btn-edit-ad px-2.5 py-1 text-xs font-bold text-[#27471E] bg-[#EBEFE0] hover:bg-[#DDE5CC] border border-[#A4B882] rounded-lg transition-all flex items-center gap-1 cursor-pointer" data-id="${a.id}" title="Modifica l'annuncio">
+                            <i class="fa-solid fa-pen-to-square text-[10px] pointer-events-none"></i>
+                            <span class="pointer-events-none">Modifica</span>
                         </button>
                         <a href="/scheda/${a.id}" target="_blank" class="p-1.5 text-[#6B7064] hover:text-[#252821] hover:bg-stone-100 rounded-lg transition-all" title="Vedi scheda pubblica">
                             <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
                         </a>
-                        <button type="button" onclick="deleteAdAdmin(${a.id}, '${escapeHtml(a.titolo).replace(/'/g, "\\'")}')" class="p-1.5 text-[#6B7064] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer" title="Elimina annuncio">
-                            <i class="fa-regular fa-trash-can text-xs"></i>
+                        <button type="button" class="btn-delete-ad p-1.5 text-[#6B7064] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer" data-id="${a.id}" data-title="${safeTitle}" title="Elimina annuncio">
+                            <i class="fa-regular fa-trash-can text-xs pointer-events-none"></i>
                         </button>
                     </div>
                 </td>
@@ -658,12 +759,15 @@ async function openEditModal(adId) {
 
 function closeEditModal() {
     const modal = document.getElementById("modalEditAnnuncio");
-    modal.classList.add("hidden");
-    modal.classList.remove("flex");
+    if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    }
 }
 
 async function loadModalComuni(query = "", provId = null) {
     const sel = document.getElementById("editComuneSelect");
+    if (!sel) return;
     if (!query && !provId) return;
     sel.innerHTML = `<option value="">Ricerca comuni in corso...</option>`;
     try {
@@ -686,14 +790,16 @@ async function loadModalComuni(query = "", provId = null) {
 }
 
 function onEditProvinciaChange(provId) {
-    const q = (document.getElementById("editComuneSearch").value || "").trim();
+    const searchEl = document.getElementById("editComuneSearch");
+    const q = searchEl ? searchEl.value.trim() : "";
     loadModalComuni(q, provId || null);
 }
 
 function onEditComuneSearch(query) {
     clearTimeout(modalComuniDebounce);
     modalComuniDebounce = setTimeout(() => {
-        const provId = document.getElementById("editProvinciaSelect").value;
+        const provSelect = document.getElementById("editProvinciaSelect");
+        const provId = provSelect ? provSelect.value : null;
         loadModalComuni(query.trim(), provId || null);
     }, 250);
 }
@@ -792,6 +898,7 @@ async function deleteAdAdmin(adId, title) {
 
 function showAlert(msg, type = "success") {
     const box = document.getElementById("adminAlert");
+    if (!box) return;
     box.classList.remove("hidden");
     if (type === "success") {
         box.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-emerald-50 border-emerald-300 text-emerald-800 flex items-center space-x-2";

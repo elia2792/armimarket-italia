@@ -14,7 +14,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
             <div class="flex items-start sm:items-center space-x-4">
                 <!-- Avatar cliccabile con upload foto profilo -->
-                <div class="relative flex-shrink-0 cursor-pointer group" onclick="document.getElementById('avatarInput').click()" title="Clicca per cambiare foto profilo">
+                <div class="relative flex-shrink-0 cursor-pointer group" id="avatarBox" title="Clicca per cambiare foto profilo">
                     <div id="userAvatar"
                          class="w-20 h-20 rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-lg flex-shrink-0 overflow-hidden"
                          style="background:linear-gradient(135deg,#2e3a18 0%,#4a5c2a 100%);border:2px solid #4a5c2a;">
@@ -29,7 +29,7 @@
                          style="background:#4a5c2a;border:1.5px solid #6b7d3e;">
                         <i class="fa-solid fa-camera text-[9px] text-stone-200"></i>
                     </div>
-                    <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="uploadAvatar(this)">
+                    <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp" class="hidden">
                 </div>
                 <div>
                     <div class="flex items-center space-x-2">
@@ -42,7 +42,7 @@
                         <span class="text-xs text-amber-400 font-semibold bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-md flex items-center gap-1.5">
                             <i class="fa-solid fa-user-astronaut text-amber-400"></i> Nickname pubblico: <strong id="userNicknameText" class="text-white">Non impostato</strong>
                         </span>
-                        <button id="btnEditNickname" onclick="toggleEditNickname()" class="text-[11px] text-slate-400 hover:text-amber-400 underline decoration-dotted transition-colors">
+                        <button type="button" id="btnEditNickname" class="text-[11px] text-slate-400 hover:text-amber-400 underline decoration-dotted transition-colors cursor-pointer">
                             Modifica
                         </button>
                     </div>
@@ -54,10 +54,10 @@
                         </label>
                         <div class="flex items-center gap-2">
                             <input type="text" id="inputNewNickname" maxlength="50" placeholder="es. CacciatoreEsperto..." class="flex-1 bg-slate-950 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-amber-500">
-                            <button onclick="saveNickname()" id="btnSaveNickname" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs transition-colors">
+                            <button type="button" id="btnSaveNickname" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer">
                                 Salva
                             </button>
-                            <button onclick="toggleEditNickname()" class="text-slate-400 hover:text-slate-200 text-xs px-2 py-1.5">
+                            <button type="button" id="btnCancelNickname" class="text-slate-400 hover:text-slate-200 text-xs px-2 py-1.5 cursor-pointer">
                                 Annulla
                             </button>
                         </div>
@@ -101,28 +101,28 @@
 
     <!-- Tabs: I Miei Annunci / Preferiti / Valutazioni Ricevute -->
     <div class="flex items-center space-x-3 border-b border-slate-800 mb-6 pb-2 overflow-x-auto">
-        <button id="tabMyAdsBtn" onclick="switchTab('my-ads')" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 bg-amber-500/20 text-amber-400 border border-amber-500/40 whitespace-nowrap">
+        <button type="button" id="tabMyAdsBtn" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 bg-amber-500/20 text-amber-400 border border-amber-500/40 whitespace-nowrap cursor-pointer">
             <i class="fa-solid fa-bullhorn"></i>
             <span>I Miei Annunci</span>
             <span id="myAdsCount" class="bg-amber-500/30 text-amber-300 text-[10px] px-2 py-0.5 rounded-full font-mono ml-1">0</span>
         </button>
-        <button id="tabFavoritesBtn" onclick="switchTab('favorites')" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap">
+        <button type="button" id="tabFavoritesBtn" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap cursor-pointer">
             <i class="fa-solid fa-heart text-rose-500"></i>
             <span>Articoli Preferiti</span>
             <span id="favoritesCount" class="bg-slate-800 text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-mono ml-1">0</span>
         </button>
-        <button id="tabReviewsBtn" onclick="switchTab('reviews')" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap">
+        <button type="button" id="tabReviewsBtn" class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap cursor-pointer">
             <i class="fa-solid fa-star text-amber-400"></i>
             <span>Valutazioni Ricevute</span>
             <span id="reviewsCount" class="bg-slate-800 text-slate-300 text-[10px] px-2 py-0.5 rounded-full font-mono ml-1">0</span>
         </button>
     </div>
 
-    <!-- Tab 1: I Miei Annunci (Gestione, Venduto, Cancella) -->
+    <!-- Tab 1: I Miei Annunci (Modifica Completa, Segna Venduto, Elimina) -->
     <div id="tabMyAds" class="space-y-4">
         <div class="flex items-center justify-between">
             <p class="text-xs text-slate-400">
-                Gestisci le tue inserzioni. Quando un articolo è stato ceduto, puoi <strong>marcarlo come VENDUTO</strong> o <strong>eliminarlo definitivamente</strong> per non accumulare dati obsoleti.
+                Gestisci le tue inserzioni. Puoi <strong>modificare i dettagli</strong> in qualsiasi momento, <strong>marcare l'arma come VENDUTA</strong> oppure <strong>eliminarla definitivamente</strong>.
             </p>
         </div>
 
@@ -183,6 +183,138 @@
         </div>
     </div>
 
+    <!-- Modal Modifica Completa Annuncio (Autore / Privato / Armeria) -->
+    <div id="modalEditMyAd" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-amber-500"></i>
+                    <span>Modifica Annuncio &bull; #<span id="editMyAdIdLabel">—</span></span>
+                </h3>
+                <button type="button" class="btn-close-edit-modal text-slate-400 hover:text-white p-1 cursor-pointer">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="formEditMyAd" class="space-y-4 text-xs">
+                <input type="hidden" id="editMyAdId">
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="sm:col-span-2">
+                        <label class="block font-bold text-slate-200 mb-1">Titolo Annuncio *</label>
+                        <input type="text" id="editMyTitolo" required minlength="5" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-200 mb-1">Prezzo (€) *</label>
+                        <input type="number" step="0.01" min="0" id="editMyPrezzo" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-amber-400 font-bold focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-200 mb-1">Marca *</label>
+                        <input type="text" id="editMyMarca" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-200 mb-1">Modello *</label>
+                        <input type="text" id="editMyModello" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-200 mb-1">Calibro *</label>
+                        <input type="text" id="editMyCalibro" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-mono">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-200 mb-1">Tipologia Arma *</label>
+                        <select id="editMyTipologiaArma" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                            <option value="arma_corta">Arma Corta</option>
+                            <option value="arma_lunga_rigata">Arma Lunga Rigata</option>
+                            <option value="canna_liscia">Canna Liscia</option>
+                            <option value="aria_compressa_libera">Aria Compressa (&lt; 7.5J)</option>
+                            <option value="accessorio_ottica">Accessori & Ottiche</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-200 mb-1">Condizione *</label>
+                        <select id="editMyCondizione" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                            <option value="nuovo">Nuovo / Mai Sparato</option>
+                            <option value="usato_eccellente">Usato Eccellente</option>
+                            <option value="usato_ottimo">Usato Ottimo</option>
+                            <option value="usato_buono">Usato Buono</option>
+                            <option value="d_epoca">D'Epoca / Collezione</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-200 mb-1">Classificazione *</label>
+                        <select id="editMyClassificazione" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                            <option value="comune">Arma Comune da Sparo</option>
+                            <option value="sportiva">Arma Sportiva (CONI/FITDS)</option>
+                            <option value="caccia">Arma da Caccia</option>
+                            <option value="antica_artistica">Antica o Artistica</option>
+                            <option value="libera_vendita">Libera Vendita (&lt; 7.5J)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Ubicazione Comune ISTAT -->
+                <div class="p-3 bg-slate-950 border border-slate-700 rounded-xl space-y-2">
+                    <div class="font-bold text-slate-200 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot text-amber-500"></i> Ubicazione Comune ISTAT *</span>
+                        <span id="editMyComuneCurrentLabel" class="text-[11px] font-mono text-amber-400 font-bold"></span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <select id="editMyProvinciaSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none cursor-pointer">
+                            <option value="">-- Filtra per Provincia --</option>
+                        </select>
+                        <input type="text" id="editMyComuneSearch" placeholder="Cerca comune o CAP..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none">
+                    </div>
+                    <select id="editMyComuneSelect" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none cursor-pointer">
+                        <option value="">-- Seleziona comune --</option>
+                    </select>
+                </div>
+
+                <!-- Contatti -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-200 mb-1">Email Contatto *</label>
+                        <input type="email" id="editMyEmailContatto" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-200 mb-1">Telefono Contatto</label>
+                        <input type="text" id="editMyTelefonoContatto" placeholder="+39 340 1234567" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" id="editMyMostraTelefono" class="rounded border-slate-700 text-amber-500 focus:ring-amber-400 h-4 w-4 bg-slate-950">
+                    <label for="editMyMostraTelefono" class="text-xs text-slate-300 cursor-pointer">Mostra numero di telefono pubblicamente nella scheda dell'annuncio</label>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-200 mb-1">Descrizione Dettagliata *</label>
+                    <textarea id="editMyDescrizione" rows="4" required minlength="20" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-amber-500"></textarea>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-200 mb-1">Galleria Immagini (Un URL per riga)</label>
+                    <textarea id="editMyGalleriaImmagini" rows="2" placeholder="https://...&#10;https://..." class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-amber-500 font-mono"></textarea>
+                </div>
+
+                <div class="pt-3 border-t border-slate-800 flex justify-end gap-2">
+                    <button type="button" class="btn-close-edit-modal px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all cursor-pointer">
+                        Annulla
+                    </button>
+                    <button type="submit" id="btnSubmitEditMyAd" class="px-5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-400 transition-all flex items-center gap-1.5 cursor-pointer shadow-lg">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Salva Modifiche</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal Cambio Comune Annuncio -->
     <div id="modalChangeComune" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
@@ -191,7 +323,7 @@
                     <i class="fa-solid fa-location-dot text-amber-500"></i>
                     <span>Modifica Comune Annuncio</span>
                 </h3>
-                <button type="button" onclick="closeChangeComuneModal()" class="text-slate-400 hover:text-white p-1">
+                <button type="button" class="btn-close-change-comune-modal text-slate-400 hover:text-white p-1 cursor-pointer">
                     <i class="fa-solid fa-xmark text-base"></i>
                 </button>
             </div>
@@ -201,29 +333,29 @@
             <div class="space-y-3">
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-300 mb-1">1. Filtra per Provincia (opzionale)</label>
-                    <select id="modalProvinciaSelect" onchange="onModalProvinciaChange(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                    <select id="modalProvinciaSelect" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 cursor-pointer">
                         <option value="">-- Tutte le Province d'Italia --</option>
                     </select>
                 </div>
 
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-300 mb-1">2. Cerca Comune o CAP</label>
-                    <input type="text" id="modalComuneSearch" placeholder="Digita nome comune o CAP (es. Brescia, Roma, 25121...)" oninput="onModalComuneSearch(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                    <input type="text" id="modalComuneSearch" placeholder="Digita nome comune o CAP (es. Brescia, Roma, 25121...)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
                 </div>
 
                 <div>
                     <label class="block text-[11px] font-semibold text-slate-300 mb-1">3. Seleziona Comune *</label>
-                    <select id="modalComuneSelect" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                    <select id="modalComuneSelect" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 cursor-pointer">
                         <option value="">-- Seleziona una provincia o cerca sopra --</option>
                     </select>
                 </div>
             </div>
 
             <div class="pt-3 border-t border-slate-800 flex justify-end gap-2">
-                <button type="button" onclick="closeChangeComuneModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all">
+                <button type="button" class="btn-close-change-comune-modal px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all cursor-pointer">
                     Annulla
                 </button>
-                <button type="button" id="btnSaveChangeComune" onclick="saveAdComune()" class="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all flex items-center gap-1.5">
+                <button type="button" id="btnSaveChangeComune" class="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all flex items-center gap-1.5 cursor-pointer">
                     <i class="fa-solid fa-check"></i>
                     <span>Salva Comune</span>
                 </button>
@@ -236,51 +368,165 @@
 
 {% block extra_scripts %}
 <script nonce="{{ request.scope.get('csp_nonce', '') }}">
-let token = localStorage.getItem("armimarket_token");
+function getAuthToken() {
+    const ls = localStorage.getItem("armimarket_token");
+    if (ls) return ls;
+    const match = document.cookie.match(/(?:^|;\s*)armimarket_token=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+}
+
+let token = getAuthToken();
 let currentUser = null;
 let currentTab = 'my-ads';
+let cachedMyAds = [];
+let editingAdId = null;
+let modalProvinceList = [];
+let modalSearchDebounce = null;
+let editAdProvinceDebounce = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
-    // Listener logout profilo immediato
-    const btnProfOut = document.getElementById("btnProfileLogout");
-    if (btnProfOut) {
-        btnProfOut.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (typeof window.logout === "function") {
-                window.logout();
-            } else {
-                try {
-                    localStorage.removeItem("armimarket_token");
-                    localStorage.removeItem("armimarket_user");
-                    sessionStorage.clear();
-                } catch(err) {}
-                window.location.replace("/logout");
-            }
-        });
-    }
-
+    token = getAuthToken();
     if (!token) {
         window.location.href = "/login?redirect=/profilo";
         return;
     }
+
+    // Attach static input/change listeners
+    const avatarBox = document.getElementById("avatarBox");
+    const avatarInput = document.getElementById("avatarInput");
+    if (avatarBox && avatarInput) {
+        avatarBox.addEventListener("click", () => avatarInput.click());
+        avatarInput.addEventListener("change", (e) => uploadAvatar(e.target));
+    }
+
+    const btnEditNick = document.getElementById("btnEditNickname");
+    if (btnEditNick) btnEditNick.addEventListener("click", toggleEditNickname);
+
+    const btnSaveNick = document.getElementById("btnSaveNickname");
+    if (btnSaveNick) btnSaveNick.addEventListener("click", saveNickname);
+
+    const btnCancelNick = document.getElementById("btnCancelNickname");
+    if (btnCancelNick) btnCancelNick.addEventListener("click", toggleEditNickname);
+
+    const tabMyAdsBtn = document.getElementById("tabMyAdsBtn");
+    if (tabMyAdsBtn) tabMyAdsBtn.addEventListener("click", () => switchTab('my-ads'));
+
+    const tabFavsBtn = document.getElementById("tabFavoritesBtn");
+    if (tabFavsBtn) tabFavsBtn.addEventListener("click", () => switchTab('favorites'));
+
+    const tabRevBtn = document.getElementById("tabReviewsBtn");
+    if (tabRevBtn) tabRevBtn.addEventListener("click", () => switchTab('reviews'));
+
+    const modalProvSelect = document.getElementById("modalProvinciaSelect");
+    if (modalProvSelect) {
+        modalProvSelect.addEventListener("change", (e) => onModalProvinciaChange(e.target.value));
+    }
+
+    const modalComSearch = document.getElementById("modalComuneSearch");
+    if (modalComSearch) {
+        modalComSearch.addEventListener("input", (e) => onModalComuneSearch(e.target.value));
+    }
+
+    const btnSaveComune = document.getElementById("btnSaveChangeComune");
+    if (btnSaveComune) {
+        btnSaveComune.addEventListener("click", saveAdComune);
+    }
+
+    // Edit My Ad Form & Controls
+    const formEditMy = document.getElementById("formEditMyAd");
+    if (formEditMy) {
+        formEditMy.addEventListener("submit", handleSaveEditMyAd);
+    }
+
+    const editMyProvSelect = document.getElementById("editMyProvinciaSelect");
+    if (editMyProvSelect) {
+        editMyProvSelect.addEventListener("change", (e) => onEditMyAdProvinciaChange(e.target.value));
+    }
+
+    const editMyComSearch = document.getElementById("editMyComuneSearch");
+    if (editMyComSearch) {
+        editMyComSearch.addEventListener("input", (e) => onEditMyAdComuneSearch(e.target.value));
+    }
+
+    // Centralized Event Delegation for dynamically rendered ad elements and modals
+    document.addEventListener("click", async (e) => {
+        // Close change comune modal
+        const closeComuneBtn = e.target.closest(".btn-close-change-comune-modal");
+        if (closeComuneBtn) {
+            closeChangeComuneModal();
+            return;
+        }
+
+        // Close edit modal
+        const closeEditBtn = e.target.closest(".btn-close-edit-modal");
+        if (closeEditBtn) {
+            closeEditMyAdModal();
+            return;
+        }
+
+        // Edit My Ad button
+        const editBtn = e.target.closest(".btn-edit-my-ad");
+        if (editBtn) {
+            const adId = parseInt(editBtn.dataset.id);
+            if (adId) openEditMyAdModal(adId);
+            return;
+        }
+
+        // Delete My Ad button
+        const delBtn = e.target.closest(".btn-delete-my-ad");
+        if (delBtn) {
+            const adId = parseInt(delBtn.dataset.id);
+            const title = delBtn.dataset.titolo || "questo annuncio";
+            if (adId) deleteAd(adId, title);
+            return;
+        }
+
+        // Mark Sold button
+        const markSoldBtn = e.target.closest(".btn-mark-sold");
+        if (markSoldBtn) {
+            const adId = parseInt(markSoldBtn.dataset.id);
+            if (adId) markAsSold(adId);
+            return;
+        }
+
+        // Restore Published button
+        const markPubBtn = e.target.closest(".btn-mark-published");
+        if (markPubBtn) {
+            const adId = parseInt(markPubBtn.dataset.id);
+            if (adId) markAsPublished(adId);
+            return;
+        }
+
+        // Change Comune button
+        const changeComuneBtn = e.target.closest(".btn-change-comune");
+        if (changeComuneBtn) {
+            const adId = parseInt(changeComuneBtn.dataset.id);
+            const title = changeComuneBtn.dataset.titolo || "";
+            if (adId) openChangeComuneModal(adId, title);
+            return;
+        }
+
+        // Remove favorite button
+        const remFavBtn = e.target.closest(".btn-remove-favorite");
+        if (remFavBtn) {
+            const adId = parseInt(remFavBtn.dataset.id);
+            if (adId) removeFavorite(adId);
+            return;
+        }
+    });
 
     try {
         const resp = await fetch("/api/v1/auth/me", {
             headers: { "Authorization": `Bearer ${token}` }
         });
         if (!resp.ok) {
-            if (typeof window.logout === "function") {
-                window.logout();
-            } else {
-                window.location.replace("/logout");
-            }
+            window.location.replace("/logout");
             return;
         }
         currentUser = await resp.json();
         renderUserProfile(currentUser);
 
-        // Carica dati
+        // Carica dati utente
         await loadMyAds();
         await loadFavorites();
         await loadReviews();
@@ -294,12 +540,12 @@ function renderUserProfile(u) {
     const isAdmin = u.ruolo === 'admin';
     
     const fullName = isAdmin ? 'Admin' : (isArmeria ? (u.ragione_sociale || u.nome) : `${u.nome} ${u.cognome || ''}`.trim());
-    document.getElementById("userFullName").textContent = fullName;
+    const nameEl = document.getElementById("userFullName");
+    if (nameEl) nameEl.textContent = fullName;
     
-    // Per l'admin mostriamo la casella ufficiale configurata
-    document.getElementById("userEmail").textContent = isAdmin ? "armimarkt@gmail.com (Canale Ufficiale)" : u.email;
+    const emailEl = document.getElementById("userEmail");
+    if (emailEl) emailEl.textContent = isAdmin ? "armimarkt@gmail.com (Canale Ufficiale)" : u.email;
 
-    // Avatar: foto profilo o icona default con stile militare
     const avatarEl = document.getElementById("userAvatar");
     if (avatarEl) {
         if (u.foto_profilo) {
@@ -311,7 +557,6 @@ function renderUserProfile(u) {
         }
     }
 
-    // Nickname pubblico
     const nickRow = document.getElementById("userNicknameBadgeRow");
     const nickText = document.getElementById("userNicknameText");
     const inputNick = document.getElementById("inputNewNickname");
@@ -324,20 +569,21 @@ function renderUserProfile(u) {
     }
 
     const roleBadge = document.getElementById("userRoleBadge");
-    if (isAdmin) {
-        roleBadge.className = "text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full border bg-amber-950/80 text-amber-400 border-amber-600";
-        roleBadge.textContent = "Amministratore di Sistema";
-        const adminBtn = document.getElementById("adminPostaLinkProfile");
-        if (adminBtn) adminBtn.classList.remove("hidden");
-        // Nascondi posizione e recapiti per l'admin a tutela della privacy
-        document.getElementById("userLocation").innerHTML = `<i class="fa-solid fa-shield-halved text-amber-500 mr-1"></i> Area Riservata di Pubblica Sicurezza`;
-        return;
-    } else if (isArmeria) {
-        roleBadge.className = "text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full border bg-emerald-950/80 text-emerald-400 border-emerald-600";
-        roleBadge.textContent = "Armeria Autorizzata TULPS";
-    } else {
-        roleBadge.className = "text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full border bg-blue-950/80 text-blue-400 border-blue-600";
-        roleBadge.textContent = "Privato con Titolo";
+    if (roleBadge) {
+        if (isAdmin) {
+            roleBadge.className = "text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full border bg-amber-950/80 text-amber-400 border-amber-600";
+            roleBadge.textContent = "Amministratore di Sistema";
+            const adminBtn = document.getElementById("adminPostaLinkProfile");
+            if (adminBtn) adminBtn.classList.remove("hidden");
+            document.getElementById("userLocation").innerHTML = `<i class="fa-solid fa-shield-halved text-amber-500 mr-1"></i> Area Riservata di Pubblica Sicurezza`;
+            return;
+        } else if (isArmeria) {
+            roleBadge.className = "text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full border bg-emerald-950/80 text-emerald-400 border-emerald-600";
+            roleBadge.textContent = "Armeria Autorizzata TULPS";
+        } else {
+            roleBadge.className = "text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full border bg-blue-950/80 text-blue-400 border-blue-600";
+            roleBadge.textContent = "Privato con Titolo";
+        }
     }
 
     if (u.indirizzo) {
@@ -345,6 +591,7 @@ function renderUserProfile(u) {
     } else {
         document.getElementById("userLocation").innerHTML = `<i class="fa-solid fa-location-dot text-amber-500 mr-1"></i> <span>Italia</span>`;
     }
+
     const pivaEl = document.getElementById("userPiva");
     if (pivaEl) {
         if (isArmeria && u.partita_iva) {
@@ -356,26 +603,27 @@ function renderUserProfile(u) {
     }
     if (u.telefono) {
         const ph = document.getElementById("userPhone");
-        ph.classList.remove("hidden");
-        ph.querySelector("span").textContent = u.telefono;
-
-        const wa = document.getElementById("userWhatsApp");
-
-        wa.classList.remove("hidden");
-        let clean = u.telefono.replace(/\s+/g, '').replace(/[-.()]/g, '');
-        if (!clean.startsWith('+') && !clean.startsWith('00')) {
-            clean = '39' + clean;
-        } else {
-            clean = clean.replace('+', '');
+        if (ph) {
+            ph.classList.remove("hidden");
+            ph.querySelector("span").textContent = u.telefono;
         }
-        wa.querySelector("a").href = `https://wa.me/${clean}?text=${encodeURIComponent("Salve, la contatto tramite il suo profilo su ArmiMarket Italia.")}`;
+        const wa = document.getElementById("userWhatsApp");
+        if (wa) {
+            wa.classList.remove("hidden");
+            let clean = u.telefono.replace(/\s+/g, '').replace(/[-.()]/g, '');
+            if (!clean.startsWith('+') && !clean.startsWith('00')) clean = '39' + clean;
+            else clean = clean.replace('+', '');
+            wa.querySelector("a").href = `https://wa.me/${clean}?text=${encodeURIComponent("Salve, la contatto tramite il suo profilo su ArmiMarket Italia.")}`;
+        }
     }
     if (u.sito_web) {
         const sw = document.getElementById("userWebsite");
-        sw.classList.remove("hidden");
-        const a = sw.querySelector("a");
-        a.href = u.sito_web;
-        a.textContent = u.sito_web.replace(/^https?:\/\//, '');
+        if (sw) {
+            sw.classList.remove("hidden");
+            const a = sw.querySelector("a");
+            a.href = u.sito_web;
+            a.textContent = u.sito_web.replace(/^https?:\/\//, '');
+        }
     }
 }
 
@@ -384,7 +632,8 @@ function toggleEditNickname() {
     if (box) {
         box.classList.toggle("hidden");
         if (!box.classList.contains("hidden")) {
-            document.getElementById("inputNewNickname").focus();
+            const input = document.getElementById("inputNewNickname");
+            if (input) input.focus();
         }
     }
 }
@@ -404,21 +653,16 @@ async function saveNickname() {
                 "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                nickname: val || ""
-            })
+            body: JSON.stringify({ nickname: val || "" })
         });
 
         const data = await resp.json();
         if (!resp.ok) {
             alert(data.detail || "Errore durante l'aggiornamento del nickname.");
-            btn.disabled = false;
-            btn.innerHTML = "Salva";
             return;
         }
 
         currentUser = data;
-        // Aggiorna cache utente locale per la navbar
         localStorage.setItem("armimarket_user", JSON.stringify(data));
         renderUserProfile(currentUser);
         toggleEditNickname();
@@ -436,7 +680,6 @@ async function uploadAvatar(input) {
     if (!input.files || !input.files[0]) return;
     const file = input.files[0];
 
-    // Anteprima immediata
     const avatarEl = document.getElementById("userAvatar");
     const reader = new FileReader();
     reader.onload = e => {
@@ -447,7 +690,6 @@ async function uploadAvatar(input) {
     };
     reader.readAsDataURL(file);
 
-    // Upload al server
     const formData = new FormData();
     formData.append("file", file);
     try {
@@ -468,7 +710,6 @@ async function uploadAvatar(input) {
     } catch(e) {
         showAlert("Errore di connessione durante il caricamento.", "danger");
     }
-    // Reset input per consentire ricaricamento stesso file
     input.value = "";
 }
 
@@ -481,31 +722,32 @@ function switchTab(tab) {
     const btnFavs = document.getElementById("tabFavoritesBtn");
     const btnReviews = document.getElementById("tabReviewsBtn");
 
-    const activeClass = "tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 bg-amber-500/20 text-amber-400 border border-amber-500/40 whitespace-nowrap";
-    const inactiveClass = "tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap";
+    const activeClass = "tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 bg-amber-500/20 text-amber-400 border border-amber-500/40 whitespace-nowrap cursor-pointer";
+    const inactiveClass = "tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap cursor-pointer";
 
-    tabMyAds.classList.add("hidden");
-    tabFavorites.classList.add("hidden");
-    tabReviews.classList.add("hidden");
-    btnMyAds.className = inactiveClass;
-    btnFavs.className = inactiveClass;
-    btnReviews.className = inactiveClass;
+    if (tabMyAds) tabMyAds.classList.add("hidden");
+    if (tabFavorites) tabFavorites.classList.add("hidden");
+    if (tabReviews) tabReviews.classList.add("hidden");
+    if (btnMyAds) btnMyAds.className = inactiveClass;
+    if (btnFavs) btnFavs.className = inactiveClass;
+    if (btnReviews) btnReviews.className = inactiveClass;
 
     if (tab === 'my-ads') {
-        tabMyAds.classList.remove("hidden");
-        btnMyAds.className = activeClass;
+        if (tabMyAds) tabMyAds.classList.remove("hidden");
+        if (btnMyAds) btnMyAds.className = activeClass;
     } else if (tab === 'favorites') {
-        tabFavorites.classList.remove("hidden");
-        btnFavs.className = activeClass;
+        if (tabFavorites) tabFavorites.classList.remove("hidden");
+        if (btnFavs) btnFavs.className = activeClass;
     } else if (tab === 'reviews') {
-        tabReviews.classList.remove("hidden");
-        btnReviews.className = activeClass;
+        if (tabReviews) tabReviews.classList.remove("hidden");
+        if (btnReviews) btnReviews.className = activeClass;
         loadReviews();
     }
 }
 
 async function loadMyAds() {
     const container = document.getElementById("myAdsContainer");
+    if (!container) return;
     try {
         const resp = await fetch("/api/v1/annunci/utente/miei", {
             headers: { "Authorization": `Bearer ${token}` }
@@ -513,14 +755,16 @@ async function loadMyAds() {
         if (!resp.ok) throw new Error("Errore nel recupero annunci");
 
         const ads = await resp.json();
-        document.getElementById("myAdsCount").textContent = ads.length;
+        cachedMyAds = ads;
+        const cntEl = document.getElementById("myAdsCount");
+        if (cntEl) cntEl.textContent = ads.length;
 
         if (ads.length === 0) {
             container.innerHTML = `
                 <div class="p-12 text-center text-slate-400 bg-slate-950 border border-slate-800 rounded-2xl">
                     <i class="fa-solid fa-box-open text-4xl text-slate-600 mb-3"></i>
                     <h3 class="text-sm font-bold text-white mb-1">Non hai ancora pubblicato annunci</h3>
-                    <p class="text-xs text-slate-400 mb-4">Inserisci il tuo primo annuncio di armi, ottiche o munizioni conformi.</p>
+                    <p class="text-xs text-slate-400 mb-4">Inserisci il tuo primo annuncio di armi, ottiche o accessori conformi.</p>
                     <a href="/nuovo-annuncio" class="inline-flex items-center space-x-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs shadow-lg">
                         <i class="fa-solid fa-plus"></i>
                         <span>Inserisci Nuovo Annuncio</span>
@@ -545,7 +789,7 @@ async function loadMyAds() {
             const safeTitolo = escapeHtml(a.titolo);
             const safeMarca = escapeHtml(a.marca || "");
             const safeCalibro = escapeHtml(a.calibro || "");
-            const safeComune = escapeHtml(a.comune ? a.comune.nome : "Italia");
+            const safeComune = escapeHtml(a.comune ? `${a.comune.nome} (${a.comune.sigla_provincia || ''})` : "Italia");
             const safeImgUrl = imgUrl ? encodeURI(imgUrl) : null;
 
             return `
@@ -572,30 +816,34 @@ async function loadMyAds() {
                         </div>
                     </div>
 
-                    <!-- Bottoni di Gestione: Segna come Venduto & Rimuovi Annuncio -->
-                    <div class="flex items-center space-x-2 w-full sm:w-auto justify-end pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
+                    <!-- Bottoni di Gestione: Modifica, Segna Venduto, Cambia Comune, Elimina -->
+                    <div class="flex items-center flex-wrap gap-2 w-full sm:w-auto justify-end pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
+                        <button type="button" class="btn-edit-my-ad px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-950/50 hover:bg-emerald-900 text-emerald-300 border border-emerald-600/50 transition-all flex items-center space-x-1.5 cursor-pointer" data-id="${a.id}" title="Modifica l'annuncio">
+                            <i class="fa-solid fa-pen-to-square text-[11px] pointer-events-none"></i>
+                            <span class="pointer-events-none">Modifica</span>
+                        </button>
                         ${!isSold ? `
-                            <button onclick="markAsSold(${a.id})" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-600/40 transition-all flex items-center space-x-1.5" title="Contrassegna come venduto">
-                                <i class="fa-solid fa-tag text-[10px]"></i>
-                                <span>Segna Venduto</span>
+                            <button type="button" class="btn-mark-sold px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-600/40 transition-all flex items-center space-x-1.5 cursor-pointer" data-id="${a.id}" title="Contrassegna come venduto">
+                                <i class="fa-solid fa-tag text-[10px] pointer-events-none"></i>
+                                <span class="pointer-events-none">Segna Venduto</span>
                             </button>
                         ` : `
-                            <button onclick="markAsPublished(${a.id})" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-all flex items-center space-x-1.5" title="Ripristina come disponibile">
-                                <i class="fa-solid fa-rotate-left text-[10px]"></i>
-                                <span>Ripristina</span>
+                            <button type="button" class="btn-mark-published px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-all flex items-center space-x-1.5 cursor-pointer" data-id="${a.id}" title="Ripristina come disponibile">
+                                <i class="fa-solid fa-rotate-left text-[10px] pointer-events-none"></i>
+                                <span class="pointer-events-none">Ripristina</span>
                             </button>
                         `}
-                        <button onclick="openChangeComuneModal(${a.id}, '${safeTitolo.replace(/'/g, "\\'")}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-sky-300 border border-sky-600/40 transition-all flex items-center space-x-1.5" title="Modifica il comune dell'annuncio">
-                            <i class="fa-solid fa-location-dot text-[11px]"></i>
-                            <span>Cambia Comune</span>
+                        <button type="button" class="btn-change-comune px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-sky-300 border border-sky-600/40 transition-all flex items-center space-x-1.5 cursor-pointer" data-id="${a.id}" data-titolo="${safeTitolo}" title="Modifica il comune dell'annuncio">
+                            <i class="fa-solid fa-location-dot text-[11px] pointer-events-none"></i>
+                            <span class="pointer-events-none">Comune</span>
                         </button>
-                        <a href="/scheda/${a.id}" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-all flex items-center space-x-1">
+                        <a href="/scheda/${a.id}" target="_blank" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-all flex items-center space-x-1" title="Vedi scheda pubblica">
                             <i class="fa-solid fa-eye text-[11px]"></i>
                             <span>Vedi</span>
                         </a>
-                        <button onclick="deleteAd(${a.id}, this.dataset.titolo)" data-titolo="${safeTitolo}" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/40 hover:bg-rose-900 text-rose-300 border border-rose-700/60 transition-all flex items-center space-x-1.5" title="Elimina annuncio venduto o non più disponibile">
-                            <i class="fa-solid fa-trash-can text-[11px]"></i>
-                            <span>Elimina</span>
+                        <button type="button" class="btn-delete-my-ad px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/40 hover:bg-rose-900 text-rose-300 border border-rose-700/60 transition-all flex items-center space-x-1.5 cursor-pointer" data-id="${a.id}" data-titolo="${safeTitolo}" title="Elimina annuncio definitivamente">
+                            <i class="fa-solid fa-trash-can text-[11px] pointer-events-none"></i>
+                            <span class="pointer-events-none">Elimina</span>
                         </button>
                     </div>
                 </div>
@@ -606,6 +854,180 @@ async function loadMyAds() {
         container.innerHTML = `<div class="p-6 text-center text-rose-400 bg-rose-950/20 border border-rose-800 rounded-xl text-xs">Errore nel caricamento annunci. Riprova più tardi.</div>`;
     }
 }
+
+// ==========================================
+// MODAL MODIFICA ANNUNCIO AUTORE
+// ==========================================
+
+async function openEditMyAdModal(adId) {
+    try {
+        const resp = await fetch(`/api/v1/annunci/${adId}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!resp.ok) {
+            alert("Impossibile caricare i dati dell'annuncio per la modifica.");
+            return;
+        }
+
+        const a = await resp.json();
+        document.getElementById("editMyAdId").value = a.id;
+        document.getElementById("editMyAdIdLabel").innerText = a.id;
+        document.getElementById("editMyTitolo").value = a.titolo || "";
+        document.getElementById("editMyPrezzo").value = a.prezzo || 0;
+        document.getElementById("editMyMarca").value = a.marca || "";
+        document.getElementById("editMyModello").value = a.modello || "";
+        document.getElementById("editMyCalibro").value = a.calibro || "";
+        document.getElementById("editMyTipologiaArma").value = a.tipologia_arma || "arma_corta";
+        document.getElementById("editMyCondizione").value = a.condizione || "usato_ottimo";
+        document.getElementById("editMyClassificazione").value = a.classificazione || "comune";
+        document.getElementById("editMyEmailContatto").value = a.email_contatto || "";
+        document.getElementById("editMyTelefonoContatto").value = a.telefono_contatto || "";
+        document.getElementById("editMyMostraTelefono").checked = Boolean(a.telefono_contatto);
+        document.getElementById("editMyDescrizione").value = a.descrizione || "";
+        document.getElementById("editMyGalleriaImmagini").value = (a.galleria_immagini || []).join("\n");
+
+        // Comune corrente
+        const currentComuneName = a.comune ? `${a.comune.nome} (${a.comune.sigla_provincia || ''})` : "Nessuno";
+        document.getElementById("editMyComuneCurrentLabel").innerText = `Attuale: ${currentComuneName}`;
+        
+        const selCom = document.getElementById("editMyComuneSelect");
+        if (a.comune) {
+            selCom.innerHTML = `<option value="${a.comune.id}" selected>${a.comune.nome} (${a.comune.sigla_provincia || ''}) - CAP ${a.comune.cap || ''}</option>`;
+        } else {
+            selCom.innerHTML = `<option value="">-- Seleziona comune --</option>`;
+        }
+
+        await loadModalProvince();
+        const provSelect = document.getElementById("editMyProvinciaSelect");
+        if (provSelect && modalProvinceList.length > 0) {
+            provSelect.innerHTML = `<option value="">-- Filtra per Provincia --</option>` +
+                modalProvinceList.map(p => `<option value="${p.id}">${p.nome} (${p.sigla_automobilistica})</option>`).join("");
+        }
+
+        const modal = document.getElementById("modalEditMyAd");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+
+    } catch (e) {
+        console.error("Errore recupero dati annuncio:", e);
+        alert("Errore nel recupero dell'annuncio.");
+    }
+}
+
+function closeEditMyAdModal() {
+    const modal = document.getElementById("modalEditMyAd");
+    if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    }
+}
+
+async function handleSaveEditMyAd(e) {
+    e.preventDefault();
+    const adId = parseInt(document.getElementById("editMyAdId").value);
+    if (!adId) return;
+
+    const btn = document.getElementById("btnSubmitEditMyAd");
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvataggio...`;
+
+    const rawImgs = document.getElementById("editMyGalleriaImmagini").value;
+    const immagini = rawImgs ? rawImgs.split(/[\n,]+/).map(s => s.trim()).filter(Boolean) : [];
+
+    const selComuneVal = document.getElementById("editMyComuneSelect").value;
+    const comuneId = selComuneVal ? parseInt(selComuneVal) : null;
+
+    const payload = {
+        titolo: document.getElementById("editMyTitolo").value.trim(),
+        prezzo: parseFloat(document.getElementById("editMyPrezzo").value) || 0,
+        marca: document.getElementById("editMyMarca").value.trim(),
+        modello: document.getElementById("editMyModello").value.trim(),
+        calibro: document.getElementById("editMyCalibro").value.trim(),
+        tipologia_arma: document.getElementById("editMyTipologiaArma").value,
+        condizione: document.getElementById("editMyCondizione").value,
+        classificazione: document.getElementById("editMyClassificazione").value,
+        email_contatto: document.getElementById("editMyEmailContatto").value.trim(),
+        telefono_contatto: document.getElementById("editMyTelefonoContatto").value.trim() || null,
+        mostra_telefono_pubblico: document.getElementById("editMyMostraTelefono").checked,
+        descrizione: document.getElementById("editMyDescrizione").value.trim(),
+        galleria_immagini: immagini
+    };
+
+    if (comuneId) {
+        payload.comune_id = comuneId;
+    }
+
+    try {
+        const resp = await fetch(`/api/v1/annunci/${adId}`, {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) {
+            alert(data.detail || "Errore durante il salvataggio dell'annuncio.");
+            return;
+        }
+
+        showAlert(`Annuncio #${adId} modificato e salvato con successo!`, "success");
+        closeEditMyAdModal();
+        await loadMyAds();
+
+    } catch (e) {
+        console.error("Errore salvataggio annuncio:", e);
+        alert("Errore di connessione durante il salvataggio.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-floppy-disk mr-1"></i> Salva Modifiche`;
+    }
+}
+
+function onEditMyAdProvinciaChange(provId) {
+    const searchEl = document.getElementById("editMyComuneSearch");
+    const q = searchEl ? searchEl.value.trim() : "";
+    loadEditMyAdComuni(q, provId || null);
+}
+
+function onEditMyAdComuneSearch(query) {
+    clearTimeout(editAdProvinceDebounce);
+    editAdProvinceDebounce = setTimeout(() => {
+        const provSelect = document.getElementById("editMyProvinciaSelect");
+        const provId = provSelect ? provSelect.value : null;
+        loadEditMyAdComuni(query.trim(), provId || null);
+    }, 250);
+}
+
+async function loadEditMyAdComuni(query = "", provId = null) {
+    const sel = document.getElementById("editMyComuneSelect");
+    if (!sel) return;
+    if (!query && !provId) return;
+    sel.innerHTML = `<option value="">Ricerca comuni in corso...</option>`;
+    try {
+        let url = `/api/v1/geo/comuni?limit=300`;
+        if (provId) url += `&provincia_id=${provId}`;
+        if (query) url += `&q=${encodeURIComponent(query)}`;
+
+        const res = await fetch(url);
+        if (res.ok) {
+            const list = await res.json();
+            if (list.length === 0) {
+                sel.innerHTML = `<option value="" disabled>Nessun comune trovato</option>`;
+            } else {
+                sel.innerHTML = `<option value="">-- Scegli comune tra i ${list.length} trovati --</option>` +
+                    list.map(c => `<option value="${c.id}">${c.nome} (${c.sigla_provincia || ''}) - CAP ${c.cap || ''}</option>`).join("");
+                if (list.length === 1) sel.selectedIndex = 1;
+            }
+        }
+    } catch(e) {}
+}
+
+// ==========================================
+// STATO, ELIMINAZIONE E PREFERITI
+// ==========================================
 
 async function markAsSold(adId) {
     if (!confirm("Vuoi contrassegnare questo articolo come VENDUTO?")) return;
@@ -628,12 +1050,12 @@ async function markAsSold(adId) {
 
 async function markAsPublished(adId) {
     try {
-        const resp = await fetch(`/api/v1/annunci/${adId}/stato?nuovo_stato=pubblicato`, {
+        const resp = await fetch(`/api/v1/annunci/${adId}/stato?nuovo_stato=in_moderazione`, {
             method: 'PATCH',
             headers: { "Authorization": `Bearer ${token}` }
         });
         if (resp.ok) {
-            showAlert("Articolo ripristinato come DISPONIBILE!", "success");
+            showAlert("Articolo ripristinato e inviato alla moderazione!", "success");
             await loadMyAds();
         } else {
             const err = await resp.json();
@@ -645,7 +1067,7 @@ async function markAsPublished(adId) {
 }
 
 async function deleteAd(adId, adTitle) {
-    const ok = confirm(`Confermi di voler rimuovere definitivamente l'annuncio "${adTitle}"?\n\nQuesta operazione eviterà l'accumulo di dati per l'articolo venduto.`);
+    const ok = confirm(`Confermi di voler rimuovere definitivamente l'annuncio "${adTitle}"?\n\nQuesta operazione eliminerà definitivamente l'annuncio dal portale.`);
     if (!ok) return;
 
     try {
@@ -654,10 +1076,10 @@ async function deleteAd(adId, adTitle) {
             headers: { "Authorization": `Bearer ${token}` }
         });
         if (resp.ok) {
-            showAlert("Annuncio rimosso con successo dal database!", "success");
+            showAlert("Annuncio rimosso con successo!", "success");
             await loadMyAds();
         } else {
-            const err = await resp.json();
+            const err = await resp.json().catch(() => ({}));
             showAlert(err.detail || "Errore durante l'eliminazione dell'annuncio.", "danger");
         }
     } catch(e) {
@@ -667,6 +1089,7 @@ async function deleteAd(adId, adTitle) {
 
 async function loadFavorites() {
     const container = document.getElementById("favoritesContainer");
+    if (!container) return;
     try {
         const resp = await fetch("/api/v1/preferiti", {
             headers: { "Authorization": `Bearer ${token}` }
@@ -674,7 +1097,8 @@ async function loadFavorites() {
         if (!resp.ok) throw new Error("Errore nel recupero preferiti");
 
         const favs = await resp.json();
-        document.getElementById("favoritesCount").textContent = favs.length;
+        const cntEl = document.getElementById("favoritesCount");
+        if (cntEl) cntEl.textContent = favs.length;
 
         if (favs.length === 0) {
             container.innerHTML = `
@@ -706,8 +1130,8 @@ async function loadFavorites() {
                         ${safeImgUrl ? `<img src="${safeImgUrl}" alt="${safeTitolo}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">` : `<i class="fa-solid fa-gun text-4xl text-slate-700"></i>`}
                         
                         <!-- Bottone Rimuovi dai Preferiti -->
-                        <button onclick="removeFavorite(${a.id})" class="absolute top-2 right-2 w-8 h-8 rounded-full bg-slate-900/90 text-rose-500 hover:bg-rose-600 hover:text-white flex items-center justify-center text-xs shadow transition-all" title="Rimuovi dai preferiti">
-                            <i class="fa-solid fa-heart"></i>
+                        <button type="button" class="btn-remove-favorite absolute top-2 right-2 w-8 h-8 rounded-full bg-slate-900/90 text-rose-500 hover:bg-rose-600 hover:text-white flex items-center justify-center text-xs shadow transition-all cursor-pointer" data-id="${a.id}" title="Rimuovi dai preferiti">
+                            <i class="fa-solid fa-heart pointer-events-none"></i>
                         </button>
 
                         <div class="absolute bottom-2 right-2 bg-slate-900/90 text-amber-400 font-extrabold text-xs px-2 py-0.5 rounded shadow border border-slate-700">
@@ -737,7 +1161,7 @@ async function loadFavorites() {
         }).join("");
 
     } catch (e) {
-        container.innerHTML = `<div class="col-span-full p-6 text-center text-rose-400 bg-rose-950/20 border border-rose-800 rounded-xl text-xs">Errore nel caricamento preferiti.</div>`;
+        container.innerHTML = `<div class="col-span-full p-6 text-center text-rose-400 bg-rose-950/20 border border-rose-800 rounded-xl text-xs">Errore nel caricamento dei preferiti.</div>`;
     }
 }
 
@@ -748,58 +1172,53 @@ async function removeFavorite(adId) {
             headers: { "Authorization": `Bearer ${token}` }
         });
         if (resp.ok) {
-            showAlert("Articolo rimosso dai preferiti.", "success");
+            showAlert("Articolo rimosso dai preferiti", "success");
             await loadFavorites();
+        } else {
+            showAlert("Errore durante la rimozione dai preferiti.", "danger");
         }
     } catch(e) {
-        showAlert("Errore durante la rimozione dai preferiti.", "danger");
+        showAlert("Errore di connessione.", "danger");
     }
 }
 
 async function loadReviews() {
     const container = document.getElementById("reviewsContainer");
-    const countBadge = document.getElementById("reviewsCount");
-    const avgEl = document.getElementById("profileRatingAvg");
-    const starsEl = document.getElementById("profileRatingStars");
-    const totalLabel = document.getElementById("profileRatingTotalLabel");
-
+    if (!container) return;
     try {
-        const resp = await fetch("/api/v1/valutazioni/mie-ricevute", {
+        const resp = await fetch("/api/v1/valutazioni/ricevute", {
             headers: { "Authorization": `Bearer ${token}` }
         });
         if (!resp.ok) throw new Error("Errore recupero recensioni");
 
         const reviews = await resp.json();
-        if (countBadge) countBadge.textContent = reviews.length;
+        const cntEl = document.getElementById("reviewsCount");
+        if (cntEl) cntEl.textContent = reviews.length;
+
+        const totEl = document.getElementById("profileRatingTotalLabel");
+        if (totEl) totEl.textContent = `${reviews.length} recensioni`;
 
         if (reviews.length === 0) {
-            if (avgEl) avgEl.textContent = "—";
-            if (totalLabel) totalLabel.textContent = "0 recensioni";
             container.innerHTML = `
-                <div class="p-10 text-center text-slate-400 bg-slate-950 border border-slate-800 rounded-xl">
-                    <i class="fa-regular fa-star text-3xl text-slate-600 mb-2 block"></i>
-                    <h3 class="text-xs font-bold text-white mb-1">Non hai ancora ricevuto valutazioni</h3>
-                    <p class="text-[11px] text-slate-400">Le recensioni degli altri utenti compariranno qui quando interagiranno con i tuoi annunci.</p>
+                <div class="p-8 text-center text-slate-400 bg-slate-950 border border-slate-800 rounded-2xl">
+                    <i class="fa-regular fa-star text-3xl text-slate-600 mb-2"></i>
+                    <p class="text-xs">Non hai ancora ricevuto recensioni per le tue trattative.</p>
                 </div>
             `;
             return;
         }
 
-        const sum = reviews.reduce((acc, r) => acc + r.voto, 0);
-        const avg = (sum / reviews.length).toFixed(1);
-        if (avgEl) avgEl.textContent = avg;
-        if (totalLabel) totalLabel.textContent = `${reviews.length} recensioni`;
+        const avg = reviews.reduce((sum, r) => sum + r.voto, 0) / reviews.length;
+        const avgEl = document.getElementById("profileRatingAvg");
+        if (avgEl) avgEl.textContent = avg.toFixed(1);
 
+        const starsEl = document.getElementById("profileRatingStars");
         if (starsEl) {
             let starsHtml = "";
             for (let i = 1; i <= 5; i++) {
-                if (avg >= i) {
-                    starsHtml += `<i class="fa-solid fa-star text-amber-400"></i>`;
-                } else if (avg >= i - 0.5) {
-                    starsHtml += `<i class="fa-solid fa-star-half-stroke text-amber-400"></i>`;
-                } else {
-                    starsHtml += `<i class="fa-regular fa-star text-slate-700"></i>`;
-                }
+                if (avg >= i) starsHtml += `<i class="fa-solid fa-star text-amber-400"></i>`;
+                else if (avg >= i - 0.5) starsHtml += `<i class="fa-solid fa-star-half-stroke text-amber-400"></i>`;
+                else starsHtml += `<i class="fa-regular fa-star text-slate-700"></i>`;
             }
             starsEl.innerHTML = starsHtml;
         }
@@ -842,8 +1261,9 @@ async function loadReviews() {
     }
 }
 
-function showAlert(msg, type) {
+function showAlert(msg, type = "success") {
     const box = document.getElementById("profiloAlert");
+    if (!box) return;
     box.classList.remove("hidden");
     if (type === "success") {
         box.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-emerald-950/70 border-emerald-600 text-emerald-200 flex items-center space-x-2";
@@ -855,9 +1275,9 @@ function showAlert(msg, type) {
     setTimeout(() => { box.classList.add("hidden"); }, 4000);
 }
 
-let editingAdId = null;
-let modalProvinceList = [];
-let modalSearchDebounce = null;
+// ==========================================
+// MODAL CAMBIO COMUNE RAPIDO
+// ==========================================
 
 async function loadModalProvince() {
     if (modalProvinceList.length > 0) return;
@@ -878,6 +1298,7 @@ async function loadModalProvince() {
 
 async function loadModalComuni(query = "", provinciaId = null) {
     const sel = document.getElementById("modalComuneSelect");
+    if (!sel) return;
     if (!query && !provinciaId) {
         sel.innerHTML = `<option value="">-- Seleziona una provincia o cerca sopra --</option>`;
         return;
@@ -896,9 +1317,7 @@ async function loadModalComuni(query = "", provinciaId = null) {
             } else {
                 sel.innerHTML = `<option value="">-- Seleziona tra i ${list.length} comuni trovati --</option>` +
                     list.map(c => `<option value="${c.id}">${c.nome} (${c.sigla_provincia || ''}) - CAP ${c.cap || ''}</option>`).join("");
-                if (list.length === 1) {
-                    sel.selectedIndex = 1;
-                }
+                if (list.length === 1) sel.selectedIndex = 1;
             }
         }
     } catch(e) {
@@ -922,20 +1341,24 @@ function openChangeComuneModal(adId, adTitle) {
 
 function closeChangeComuneModal() {
     const modal = document.getElementById("modalChangeComune");
-    modal.classList.add("hidden");
-    modal.classList.remove("flex");
+    if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    }
     editingAdId = null;
 }
 
 function onModalProvinciaChange(provId) {
-    const q = (document.getElementById("modalComuneSearch").value || "").trim();
+    const searchEl = document.getElementById("modalComuneSearch");
+    const q = searchEl ? searchEl.value.trim() : "";
     loadModalComuni(q, provId || null);
 }
 
 function onModalComuneSearch(query) {
     clearTimeout(modalSearchDebounce);
     modalSearchDebounce = setTimeout(() => {
-        const provId = document.getElementById("modalProvinciaSelect").value;
+        const provSelect = document.getElementById("modalProvinciaSelect");
+        const provId = provSelect ? provSelect.value : null;
         loadModalComuni(query.trim(), provId || null);
     }, 250);
 }
@@ -979,6 +1402,16 @@ async function saveAdComune() {
         btn.disabled = false;
         btn.innerHTML = `<i class="fa-solid fa-check mr-1"></i> Salva Comune`;
     }
+}
+
+function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 </script>
 {% endblock %}
