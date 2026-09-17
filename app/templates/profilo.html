@@ -248,8 +248,8 @@ function renderUserProfile(u) {
     const fullName = isAdmin ? 'Admin' : (isArmeria ? (u.ragione_sociale || u.nome) : `${u.nome} ${u.cognome || ''}`.trim());
     document.getElementById("userFullName").textContent = fullName;
     
-    // Per l'admin non mostriamo l'email personale ma un alias di sistema protetto
-    document.getElementById("userEmail").textContent = isAdmin ? "admin@armimarket.it (Canale Riservato)" : u.email;
+    // Per l'admin mostriamo la casella ufficiale configurata
+    document.getElementById("userEmail").textContent = isAdmin ? "armimarkt@gmail.com (Canale Ufficiale)" : u.email;
 
     // Avatar: foto profilo o icona default con stile militare
     const avatarEl = document.getElementById("userAvatar");

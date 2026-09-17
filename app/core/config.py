@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     # Default Superuser & Amministratore
     FIRST_SUPERUSER_EMAIL: str = "admin@armimarket.it"
     FIRST_SUPERUSER_PASSWORD: str = DEFAULT_SUPERUSER_DEV_PASSWORD
-    ADMIN_EMAIL: str = "admin@armimarket.it"
+    ADMIN_EMAIL: str = "armimarkt@gmail.com"
 
 
     # Dominio & Indirizzo Base Applicazione

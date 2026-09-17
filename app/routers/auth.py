@@ -397,9 +397,9 @@ async def contatta_admin(req: ContactAdminRequest, db: AsyncSession = Depends(ge
     </div>
     """
 
-    # Memorizza nella casella postale interna con tipologia "messaggio_admin"
+    # Memorizza nella casella postale interna con tipologia "richiesta_contatto" e inoltra via SMTP
     await EmailService.log_and_send_email(
-        to_email="admin@armimarket.it",
+        to_email=settings.ADMIN_EMAIL,
         subject=subject,
         html_body=html_body,
         text_body=text_body,
