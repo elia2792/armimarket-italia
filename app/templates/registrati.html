@@ -27,14 +27,14 @@
             <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Tipologia di Account *</label>
             <div class="grid grid-cols-2 gap-4">
                 <label class="cursor-pointer border-2 border-slate-700 hover:border-amber-500 rounded-xl p-4 flex flex-col items-center text-center transition-all bg-slate-900 select-none has-[:checked]:border-amber-500 has-[:checked]:bg-amber-950/20">
-                    <input type="radio" name="ruoloRadio" value="privato" checked class="hidden" onchange="toggleRuoloFields()">
+                    <input type="radio" name="ruoloRadio" value="privato" checked class="hidden">
                     <i class="fa-solid fa-user-shield text-2xl text-amber-400 mb-2"></i>
                     <span class="font-bold text-white text-sm">Privato con Titolo</span>
                     <span class="text-[11px] text-slate-400 mt-1">Cittadino con Porto d'Armi / Nulla Osta</span>
                 </label>
 
                 <label class="cursor-pointer border-2 border-slate-700 hover:border-amber-500 rounded-xl p-4 flex flex-col items-center text-center transition-all bg-slate-900 select-none has-[:checked]:border-amber-500 has-[:checked]:bg-amber-950/20">
-                    <input type="radio" name="ruoloRadio" value="armeria" class="hidden" onchange="toggleRuoloFields()">
+                    <input type="radio" name="ruoloRadio" value="armeria" class="hidden">
                     <i class="fa-solid fa-store text-2xl text-emerald-400 mb-2"></i>
                     <span class="font-bold text-white text-sm">Armeria Certificata</span>
                     <span class="text-[11px] text-slate-400 mt-1">Impresa con licenza T.U.L.P.S. Questura</span>
@@ -137,26 +137,26 @@
                             <label class="block text-xs font-semibold text-slate-300" id="lblComune">Comune di Riferimento *</label>
                             <span class="text-[10px] text-amber-400 font-mono">Tutti i 7.904 Comuni</span>
                         </div>
-                        <div class="space-y-2">
-                            <!-- Filtro Provincia -->
-                            <select id="regProvinciaFilter" onchange="onRegProvinciaChange(this.value)" class="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500">
-                                <option value="">-- Filtra per Provincia (Opzionale) --</option>
-                            </select>
-
-                            <!-- Cerca Nome o CAP -->
-                            <input type="text" id="comuneSearchInput" placeholder="Cerca comune o CAP (es. Roma, 25121...)" oninput="filterComuni(this.value)" class="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-amber-500">
-
-                            <!-- Dropdown standard Comuni -->
-                            <select id="regComune" required onchange="onComuneSelected()" class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500">
-                                <option value="">-- Scegli la tua Provincia o digita il Comune sopra --</option>
-                            </select>
-
-                            <div id="regComuneFeedback" class="hidden p-2 rounded-lg bg-emerald-950/60 border border-emerald-800 text-[11px] text-emerald-300 flex items-center justify-between">
-                                <span class="flex items-center gap-1.5 truncate">
-                                    <i class="fa-solid fa-circle-check text-emerald-400"></i>
-                                    <span id="regComuneFeedbackText"></span>
-                                </span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-300 mb-1">1. Scegli la tua Provincia *</label>
+                                <select id="regProvinciaFilter" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500 cursor-pointer">
+                                    <option value="">-- Seleziona una Provincia --</option>
+                                </select>
                             </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-slate-300 mb-1">2. Seleziona il tuo Comune *</label>
+                                <select id="regComune" required disabled class="w-full bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <option value="">-- Prima scegli una provincia --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="regComuneFeedback" class="hidden p-2.5 rounded-lg bg-emerald-950/60 border border-emerald-800 text-xs text-emerald-300 flex items-center justify-between">
+                            <span class="flex items-center gap-2 truncate">
+                                <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+                                <span id="regComuneFeedbackText"></span>
+                            </span>
                         </div>
                     </div>
                     <div id="indirizzoFieldWrapper">
@@ -261,12 +261,25 @@ document.addEventListener("DOMContentLoaded", async () => {
         regForm.addEventListener("submit", handleRegister);
     }
 
-    // 3. Caricamento anagrafica Province e Comuni
+    // 3. Event listeners per scelta ruolo (conformi a CSP)
+    document.querySelectorAll("input[name='ruoloRadio']").forEach(radio => {
+        radio.addEventListener("change", toggleRuoloFields);
+    });
+
+    // 4. Event listeners per anagrafica geografica
+    const provSelect = document.getElementById("regProvinciaFilter");
+    if (provSelect) {
+        provSelect.addEventListener("change", (e) => onRegProvinciaChange(e.target.value));
+    }
+    const comSelect = document.getElementById("regComune");
+    if (comSelect) {
+        comSelect.addEventListener("change", onComuneSelected);
+    }
+
+    // 5. Caricamento anagrafica Province
     loadRegProvince();
-    loadComuni();
 });
 
-let searchDebounceTimer = null;
 let regProvinceList = [];
 
 async function loadRegProvince() {
@@ -276,7 +289,7 @@ async function loadRegProvince() {
             regProvinceList = await res.json();
             const provSelect = document.getElementById("regProvinciaFilter");
             if (provSelect) {
-                provSelect.innerHTML = `<option value="">-- Tutte le Province d'Italia --</option>` +
+                provSelect.innerHTML = `<option value="">-- Seleziona una Provincia --</option>` +
                     regProvinceList.map(p => `<option value="${p.id}">${p.nome} (${p.sigla_automobilistica})</option>`).join("");
             }
         }
@@ -285,54 +298,39 @@ async function loadRegProvince() {
     }
 }
 
-async function loadComuni(searchQuery = "", provinciaId = null) {
+async function onRegProvinciaChange(provId) {
     const selectEl = document.getElementById("regComune");
-    if (!searchQuery && !provinciaId) {
-        selectEl.innerHTML = `<option value="">-- Scegli la tua Provincia o digita il Comune sopra --</option>`;
+    if (!selectEl) return;
+    if (!provId) {
+        selectEl.disabled = true;
+        selectEl.innerHTML = `<option value="">-- Prima scegli una provincia --</option>`;
         aggiornaFeedbackRegComune(null);
         return;
     }
 
-    selectEl.innerHTML = `<option value="">Ricerca comuni in corso...</option>`;
-    try {
-        let url = `/api/v1/geo/comuni?limit=500`;
-        if (provinciaId) url += `&provincia_id=${provinciaId}`;
-        if (searchQuery) url += `&q=${encodeURIComponent(searchQuery)}`;
+    selectEl.disabled = false;
+    selectEl.innerHTML = `<option value="">Caricamento comuni della provincia...</option>`;
+    aggiornaFeedbackRegComune(null);
 
-        const res = await fetch(url);
+    try {
+        const res = await fetch(`/api/v1/geo/comuni?provincia_id=${encodeURIComponent(provId)}&limit=1000`);
         if (res.ok) {
             comuniList = await res.json();
             if (!comuniList || comuniList.length === 0) {
-                selectEl.innerHTML = `<option value="" disabled>Nessun comune trovato. Prova con il CAP o un altro nome.</option>`;
-                aggiornaFeedbackRegComune(null);
+                selectEl.innerHTML = `<option value="" disabled>Nessun comune trovato per questa provincia</option>`;
             } else {
-                selectEl.innerHTML = `<option value="">-- Scegli tra i ${comuniList.length} comuni trovati --</option>` +
+                selectEl.innerHTML = `<option value="">-- Seleziona il Comune (${comuniList.length} disponibili) --</option>` +
                     comuniList.map(c => 
-                        `<option value="${c.id}" data-lat="${c.latitudine}" data-lon="${c.longitudine}" data-nome="${c.nome}" data-prov="${c.sigla_provincia || ''}" data-cap="${c.cap || ''}">${c.nome} (${c.sigla_provincia || ''}) - CAP ${c.cap || ''} - ${c.nome_regione || ''}</option>`
+                        `<option value="${c.id}" data-lat="${c.latitudine}" data-lon="${c.longitudine}" data-nome="${c.nome}" data-prov="${c.sigla_provincia || ''}">${c.nome} (${c.sigla_provincia || ''})</option>`
                     ).join("");
-                
-                if (comuniList.length === 1 || (searchQuery && comuniList[0].nome.toLowerCase() === searchQuery.toLowerCase())) {
-                    selectEl.selectedIndex = 1;
-                    onComuneSelected();
-                }
             }
+        } else {
+            selectEl.innerHTML = `<option value="" disabled>Errore caricamento comuni</option>`;
         }
     } catch (e) {
         console.error("Errore caricamento comuni:", e);
+        selectEl.innerHTML = `<option value="" disabled>Errore di connessione</option>`;
     }
-}
-
-function onRegProvinciaChange(provId) {
-    const q = (document.getElementById("comuneSearchInput").value || "").trim();
-    loadComuni(q, provId || null);
-}
-
-function filterComuni(query) {
-    clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(() => {
-        const provId = document.getElementById("regProvinciaFilter").value;
-        loadComuni(query.trim(), provId || null);
-    }, 250);
 }
 
 function onComuneSelected() {
@@ -345,8 +343,7 @@ function onComuneSelected() {
 
     const nome = opt.getAttribute("data-nome") || opt.text;
     const prov = opt.getAttribute("data-prov") || "";
-    const cap = opt.getAttribute("data-cap") || "";
-    aggiornaFeedbackRegComune({ nome, prov, cap });
+    aggiornaFeedbackRegComune({ nome, prov });
 
     const lat = parseFloat(opt.getAttribute("data-lat"));
     const lon = parseFloat(opt.getAttribute("data-lon"));

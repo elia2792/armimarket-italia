@@ -83,23 +83,22 @@
             <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-[#6B7064]"></i>
             <input id="searchInput" type="text" placeholder="Cerca per nome, email, nickname..."
                    class="w-full pl-8 pr-3 py-2 rounded-lg text-xs text-[#252821] focus:outline-none"
-                   style="background:#F7F5EF;border:1px solid #DDD9CD;"
-                   oninput="debounceSearch()">
+                   style="background:#F7F5EF;border:1px solid #DDD9CD;">
         </div>
-        <select id="filterRuolo" onchange="loadUtenti()" class="text-xs px-3 py-2 rounded-lg focus:outline-none"
+        <select id="filterRuolo" class="text-xs px-3 py-2 rounded-lg focus:outline-none cursor-pointer"
                 style="background:#F7F5EF;border:1px solid #DDD9CD;color:#252821;">
             <option value="">Tutti i ruoli</option>
             <option value="privato">Privato</option>
             <option value="armeria">Armeria</option>
             <option value="admin">Admin</option>
         </select>
-        <select id="filterAttivo" onchange="loadUtenti()" class="text-xs px-3 py-2 rounded-lg focus:outline-none"
+        <select id="filterAttivo" class="text-xs px-3 py-2 rounded-lg focus:outline-none cursor-pointer"
                 style="background:#F7F5EF;border:1px solid #DDD9CD;color:#252821;">
             <option value="">Tutti gli stati</option>
             <option value="true">Attivi</option>
             <option value="false">Disabilitati</option>
         </select>
-        <button onclick="loadUtenti()" class="text-xs font-bold px-4 py-2 rounded-lg uppercase tracking-wide btn-tactical">
+        <button type="button" id="btnRefreshUtenti" class="text-xs font-bold px-4 py-2 rounded-lg uppercase tracking-wide btn-tactical cursor-pointer">
             <i class="fa-solid fa-rotate mr-1"></i>Aggiorna
         </button>
     </div>
@@ -168,6 +167,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         const u = await me.json();
         if (u.ruolo !== "admin") { window.location.href = "/"; return; }
     } catch(e) { window.location.href = "/login"; return; }
+
+    document.getElementById("searchInput")?.addEventListener("input", debounceSearch);
+    document.getElementById("filterRuolo")?.addEventListener("change", () => { currentPage = 1; loadUtenti(); });
+    document.getElementById("filterAttivo")?.addEventListener("change", () => { currentPage = 1; loadUtenti(); });
+    document.getElementById("btnRefreshUtenti")?.addEventListener("click", () => { currentPage = 1; loadUtenti(); });
 
     await loadUtenti();
     await loadStats();

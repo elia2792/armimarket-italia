@@ -141,32 +141,24 @@
                             <span class="text-[10px] text-amber-400/90 font-mono">7.904 Comuni Italiani</span>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">1. Scegli la tua Provincia</label>
-                                <select id="adProvinciaFilter" onchange="onProvinciaFilterChange(this.value)" class="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-amber-500">
-                                    <option value="">-- Tutte le Province d'Italia --</option>
+                                <label class="block text-[11px] font-semibold text-slate-300 mb-1">1. Scegli la tua Provincia *</label>
+                                <select id="adProvinciaFilter" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-500 cursor-pointer">
+                                    <option value="">-- Scegli la tua Provincia --</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">2. Oppure cerca Comune o CAP</label>
-                                <div class="relative">
-                                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-500 text-[10px]"></i>
-                                    <input type="text" id="adComuneSearch" placeholder="es. Roma, Brescia, 20121, Firenze..." oninput="filterAdComuni(this.value)" class="w-full bg-slate-950 border border-slate-700 text-white rounded-lg pl-7 pr-2.5 py-1.5 text-xs focus:outline-none focus:border-amber-500">
-                                </div>
+                                <label class="block text-[11px] font-semibold text-slate-300 mb-1">2. Seleziona il tuo Comune *</label>
+                                <select id="adComune" required disabled class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500 font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <option value="">-- Prima scegli la tua Provincia --</option>
+                                </select>
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">3. Seleziona il tuo Comune dall'elenco *</label>
-                            <select id="adComune" required onchange="onComuneSelectChange(this)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-500 font-medium">
-                                <option value="">-- Scegli la Provincia sopra o digita il nome del Comune --</option>
-                            </select>
-                        </div>
-
-                        <div id="adComuneFeedback" class="hidden p-2 rounded-lg bg-emerald-950/60 border border-emerald-800 text-[11px] text-emerald-300 flex items-center justify-between">
-                            <span class="flex items-center gap-1.5 truncate">
-                                <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                        <div id="adComuneFeedback" class="hidden p-2.5 rounded-lg bg-emerald-950/60 border border-emerald-800 text-xs text-emerald-300 flex items-center justify-between">
+                            <span class="flex items-center gap-2 truncate">
+                                <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
                                 <span id="adComuneFeedbackText"></span>
                             </span>
                         </div>
@@ -447,7 +439,7 @@ async function loadAdProvince() {
             adProvinceList = await res.json();
             const provSelect = document.getElementById("adProvinciaFilter");
             if (provSelect) {
-                provSelect.innerHTML = `<option value="">-- Tutte le Province d'Italia --</option>` +
+                provSelect.innerHTML = `<option value="">-- Scegli la tua Provincia --</option>` +
                     adProvinceList.map(p => `<option value="${p.id}">${p.nome} (${p.sigla_automobilistica})</option>`).join("");
             }
         }
@@ -456,60 +448,40 @@ async function loadAdProvince() {
     }
 }
 
-async function loadAdComuni(query = "", provinciaId = null) {
-    try {
-        const selectComune = document.getElementById("adComune");
-        if (!query && !provinciaId) {
-            selectComune.innerHTML = `<option value="">-- Scegli la tua Provincia o digita il nome del Comune sopra --</option>`;
-            aggiornaFeedbackComune(null);
-            return;
-        }
+async function onProvinciaFilterChange(provId) {
+    const selectComune = document.getElementById("adComune");
+    if (!selectComune) return;
 
-        selectComune.innerHTML = `<option value="">Ricerca comuni in corso...</option>`;
-        
-        let url = `/api/v1/geo/comuni?limit=500`;
-        if (provinciaId) {
-            url += `&provincia_id=${provinciaId}`;
-        }
-        if (query) {
-            url += `&q=${encodeURIComponent(query)}`;
-        }
-        
-        const resComuni = await fetch(url);
-        if (resComuni.ok) {
-            adComuniList = await resComuni.json();
-            if (adComuniList.length === 0) {
-                selectComune.innerHTML = `<option value="" disabled>Nessun comune trovato. Prova con un nome diverso o con il CAP.</option>`;
-                aggiornaFeedbackComune(null);
+    if (!provId) {
+        selectComune.disabled = true;
+        selectComune.innerHTML = `<option value="">-- Prima scegli la tua Provincia --</option>`;
+        aggiornaFeedbackComune(null);
+        return;
+    }
+
+    selectComune.disabled = false;
+    selectComune.innerHTML = `<option value="">Caricamento comuni della provincia...</option>`;
+    aggiornaFeedbackComune(null);
+
+    try {
+        const res = await fetch(`/api/v1/geo/comuni?provincia_id=${encodeURIComponent(provId)}&limit=1000`);
+        if (res.ok) {
+            const comuni = await res.json();
+            if (comuni.length === 0) {
+                selectComune.innerHTML = `<option value="" disabled>Nessun comune trovato per questa provincia</option>`;
             } else {
-                selectComune.innerHTML = `<option value="">-- Scegli tra i ${adComuniList.length} comuni trovati --</option>` +
-                    adComuniList.map(c => 
-                        `<option value="${c.id}" data-nome="${c.nome}" data-prov="${c.sigla_provincia || ''}" data-cap="${c.cap || ''}" data-reg="${c.nome_regione || ''}">${c.nome} (${c.sigla_provincia || ''}) - CAP ${c.cap || ''} - ${c.nome_regione || ''}</option>`
+                selectComune.innerHTML = `<option value="">-- Seleziona il Comune (${comuni.length} comuni) --</option>` +
+                    comuni.map(c => 
+                        `<option value="${c.id}" data-nome="${c.nome}" data-prov="${c.sigla_provincia || ''}">${c.nome} (${c.sigla_provincia || ''})</option>`
                     ).join("");
-                
-                // Se c'è solo un risultato o corrispondenza esatta, selezionalo automaticamente
-                if (adComuniList.length === 1 || (query && adComuniList[0].nome.toLowerCase() === query.toLowerCase())) {
-                    selectComune.selectedIndex = 1;
-                    onComuneSelectChange(selectComune);
-                }
             }
+        } else {
+            selectComune.innerHTML = `<option value="" disabled>Errore caricamento comuni</option>`;
         }
     } catch (e) {
         console.error("Errore recupero comuni:", e);
+        selectComune.innerHTML = `<option value="" disabled>Errore di connessione</option>`;
     }
-}
-
-function onProvinciaFilterChange(provId) {
-    const searchVal = (document.getElementById("adComuneSearch").value || "").trim();
-    loadAdComuni(searchVal, provId || null);
-}
-
-function filterAdComuni(val) {
-    clearTimeout(adComuniDebounce);
-    adComuniDebounce = setTimeout(() => {
-        const provId = document.getElementById("adProvinciaFilter").value;
-        loadAdComuni(val.trim(), provId || null);
-    }, 250);
 }
 
 function onComuneSelectChange(selectEl) {
@@ -520,8 +492,7 @@ function onComuneSelectChange(selectEl) {
     }
     const nome = selOpt.getAttribute("data-nome") || selOpt.text;
     const prov = selOpt.getAttribute("data-prov") || "";
-    const cap = selOpt.getAttribute("data-cap") || "";
-    aggiornaFeedbackComune({ nome, prov, cap });
+    aggiornaFeedbackComune({ nome, prov });
 }
 
 function aggiornaFeedbackComune(info) {
@@ -529,7 +500,7 @@ function aggiornaFeedbackComune(info) {
     const fbText = document.getElementById("adComuneFeedbackText");
     if (!fb || !fbText) return;
     if (info && info.nome) {
-        fbText.innerHTML = `Comune selezionato: <strong>${info.nome} (${info.prov})</strong> — CAP ${info.cap}`;
+        fbText.innerHTML = `Comune selezionato: <strong>${info.nome} (${info.prov})</strong>`;
         fb.classList.remove("hidden");
     } else {
         fb.classList.add("hidden");
@@ -540,11 +511,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     // 1. Inizializza upload foto
     initFotoUpload();
 
-    // 2. Caricamento anagrafica province e inizializzazione comuni
+    // 2. Caricamento anagrafica province
     loadAdProvince();
-    loadAdComuni();
 
-    // 3. Event listener invio annuncio
+    // 3. Event listeners per selezione geografica (conformi a CSP)
+    const provSelect = document.getElementById("adProvinciaFilter");
+    if (provSelect) {
+        provSelect.addEventListener("change", (e) => {
+            onProvinciaFilterChange(e.target.value);
+        });
+    }
+
+    const comSelect = document.getElementById("adComune");
+    if (comSelect) {
+        comSelect.addEventListener("change", (e) => {
+            onComuneSelectChange(e.target);
+        });
+    }
+
+    // 4. Event listener invio annuncio
     const form = document.getElementById("createAdForm");
     if (form) {
         form.addEventListener("submit", handleCreateAnnuncio);

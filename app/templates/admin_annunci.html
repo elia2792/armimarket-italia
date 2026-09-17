@@ -287,16 +287,20 @@
                 <div class="font-bold text-[#252821] flex items-center justify-between">
                     <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot text-[#8C734B]"></i> Ubicazione Comune ISTAT *</span>
                     <span id="editComuneCurrentLabel" class="text-[11px] font-mono text-[#4F5A30] font-bold"></span>
-                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <select id="editProvinciaSelect" class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none cursor-pointer">
-                        <option value="">-- Filtra per Provincia --</option>
-                    </select>
-                    <input type="text" id="editComuneSearch" placeholder="Cerca comune o CAP..." class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none">
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">1. Scegli Provincia</label>
+                        <select id="editProvinciaSelect" class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none cursor-pointer">
+                            <option value="">-- Filtra per Provincia --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-500 mb-0.5">2. Scegli Comune *</label>
+                        <select id="editComuneSelect" required class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none cursor-pointer">
+                            <option value="">-- Seleziona comune --</option>
+                        </select>
+                    </div>
                 </div>
-                <select id="editComuneSelect" required class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none cursor-pointer">
-                    <option value="">-- Seleziona comune --</option>
-                </select>
             </div>
 
             <!-- Dati Armeria Esterna & Contatti -->
@@ -765,43 +769,28 @@ function closeEditModal() {
     }
 }
 
-async function loadModalComuni(query = "", provId = null) {
+async function onEditProvinciaChange(provId) {
     const sel = document.getElementById("editComuneSelect");
     if (!sel) return;
-    if (!query && !provId) return;
-    sel.innerHTML = `<option value="">Ricerca comuni in corso...</option>`;
+    if (!provId) {
+        sel.innerHTML = `<option value="">-- Seleziona prima una provincia --</option>`;
+        return;
+    }
+    sel.innerHTML = `<option value="">Caricamento comuni...</option>`;
     try {
-        let url = `/api/v1/geo/comuni?limit=300`;
-        if (provId) url += `&provincia_id=${provId}`;
-        if (query) url += `&q=${encodeURIComponent(query)}`;
-
-        const res = await fetch(url);
+        const res = await fetch(`/api/v1/geo/comuni?provincia_id=${encodeURIComponent(provId)}&limit=1000`);
         if (res.ok) {
             const list = await res.json();
             if (list.length === 0) {
                 sel.innerHTML = `<option value="" disabled>Nessun comune trovato</option>`;
             } else {
-                sel.innerHTML = `<option value="">-- Scegli comune tra i ${list.length} trovati --</option>` +
-                    list.map(c => `<option value="${c.id}">${c.nome} (${c.sigla_provincia || ''}) - CAP ${c.cap || ''}</option>`).join("");
-                if (list.length === 1) sel.selectedIndex = 1;
+                sel.innerHTML = `<option value="">-- Scegli comune (${list.length} comuni) --</option>` +
+                    list.map(c => `<option value="${c.id}">${c.nome} (${c.sigla_provincia || ''})</option>`).join("");
             }
         }
-    } catch(e) {}
-}
-
-function onEditProvinciaChange(provId) {
-    const searchEl = document.getElementById("editComuneSearch");
-    const q = searchEl ? searchEl.value.trim() : "";
-    loadModalComuni(q, provId || null);
-}
-
-function onEditComuneSearch(query) {
-    clearTimeout(modalComuniDebounce);
-    modalComuniDebounce = setTimeout(() => {
-        const provSelect = document.getElementById("editProvinciaSelect");
-        const provId = provSelect ? provSelect.value : null;
-        loadModalComuni(query.trim(), provId || null);
-    }, 250);
+    } catch(e) {
+        sel.innerHTML = `<option value="" disabled>Errore di connessione</option>`;
+    }
 }
 
 async function handleSaveEditAnnuncio(e) {
