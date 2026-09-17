@@ -512,15 +512,23 @@ document.addEventListener("DOMContentLoaded", async () => {
                 return;
             }
 
+            if (!resp.ok) {
+                throw new Error(`HTTP ${resp.status}`);
+            }
+
             const data = await resp.json();
             renderStatistiche(data);
             renderElencoEmail(data.emails);
 
-            const maxPagine = Math.ceil(data.totale / data.elementi_per_pagina) || 1;
-            document.getElementById("pageIndicator").innerText = `Pag. ${data.pagina} di ${maxPagine}`;
-            document.getElementById("btnPrevPage").disabled = (data.pagina <= 1);
-            document.getElementById("btnNextPage").disabled = (data.pagina >= maxPagine);
-            document.getElementById("msgCounterText").innerText = `${data.totale} messaggi`;
+            const maxPagine = Math.ceil((data.totale || 0) / (data.elementi_per_pagina || 20)) || 1;
+            const pInd = document.getElementById("pageIndicator");
+            if (pInd) pInd.innerText = `Pag. ${data.pagina || 1} di ${maxPagine}`;
+            const btnP = document.getElementById("btnPrevPage");
+            if (btnP) btnP.disabled = ((data.pagina || 1) <= 1);
+            const btnN = document.getElementById("btnNextPage");
+            if (btnN) btnN.disabled = ((data.pagina || 1) >= maxPagine);
+            const msgCount = document.getElementById("msgCounterText");
+            if (msgCount) msgCount.innerText = `${data.totale || 0} messaggi`;
 
         } catch (err) {
             console.error("Errore caricamento email:", err);
@@ -531,10 +539,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function renderStatistiche(data) {
-        document.getElementById("badgeTotal").innerText = data.totale;
-        document.getElementById("badgeRecupero").innerText = data.conteggio_recupero;
-        document.getElementById("badgeContatti").innerText = data.conteggio_contatti;
-        document.getElementById("badgeAltre").innerText = data.conteggio_altre;
+        if (!data) return;
+        const bTot = document.getElementById("badgeTotal");
+        if (bTot) bTot.innerText = (data.totale !== undefined) ? data.totale : 0;
+        const bRec = document.getElementById("badgeRecupero");
+        if (bRec) bRec.innerText = (data.conteggio_recupero !== undefined) ? data.conteggio_recupero : 0;
+        const bCon = document.getElementById("badgeContatti");
+        if (bCon) bCon.innerText = (data.conteggio_contatti !== undefined) ? data.conteggio_contatti : 0;
+        const bAlt = document.getElementById("badgeAltre");
+        if (bAlt) bAlt.innerText = (data.conteggio_altre !== undefined) ? data.conteggio_altre : 0;
 
         // Recupera conteggio segnalazioni non risolte
         fetch("/api/v1/admin/segnalazioni?solo_aperte=true", {
@@ -720,9 +733,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             btn.innerHTML = `<i class="fa-regular fa-paper-plane"></i> Invia Risposta`;
         }
     }
-
-    let listaSegnalazioni = [];
-    let segnalazioneCorrente = null;
 
     async function caricaSegnalazioni() {
         const listDiv = document.getElementById("emailList");

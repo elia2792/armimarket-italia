@@ -16,6 +16,7 @@ from app.models.segnalazione import SegnalazioneAnnuncio
 from app.models.poligono import PoligonoTiro, TipologiaPoligono
 from app.models.ricerca_salvata import RicercaSalvata
 from app.models.password_reset import PasswordResetToken
+from app.models.valutazione import Valutazione
 
 __all__ = [
     "Base",
@@ -38,6 +39,7 @@ __all__ = [
     "TipologiaPoligono",
     "RicercaSalvata",
     "PasswordResetToken",
+    "Valutazione",
 ]
 
 

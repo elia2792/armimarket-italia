@@ -150,13 +150,13 @@ async def lifespan(app: FastAPI):
     is_production = settings.ENVIRONMENT.lower().strip() in ("production", "prod")
     # Assicura le estensioni e le colonne necessarie in modo idempotente all'avvio
     async with engine.begin() as conn:
-        if not is_production:
-            await conn.run_sync(Base.metadata.create_all)
         if not is_sqlite:
             try:
                 await conn.execute(__import__("sqlalchemy").text("CREATE EXTENSION IF NOT EXISTS postgis;"))
             except Exception:
                 pass
+        await conn.run_sync(Base.metadata.create_all)
+        if not is_sqlite:
             # Aggiornamento idempotente dello schema PostgreSQL di produzione (disaccoppiamento scraping da utenti)
             for migration_sql in [
                 "ALTER TABLE annunci ALTER COLUMN utente_id DROP NOT NULL;",
