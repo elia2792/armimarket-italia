@@ -291,6 +291,11 @@ if settings.AVATAR_UPLOAD_DIR:
     _persistent_avatar_dir.mkdir(parents=True, exist_ok=True)
     app.mount("/static/uploads/avatars", StaticFiles(directory=str(_persistent_avatar_dir)), name="avatars_persistent")
 
+if settings.UPLOAD_DIR and Path(settings.UPLOAD_DIR).resolve() != (_STATIC_DIR / "uploads").resolve():
+    _persistent_annunci_dir = Path(settings.UPLOAD_DIR).resolve() / "annunci"
+    _persistent_annunci_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/static/uploads/annunci", StaticFiles(directory=str(_persistent_annunci_dir)), name="annunci_persistent")
+
 app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
 

@@ -184,9 +184,9 @@
 </div>
 
 <!-- Modal Modifica Annuncio (Admin) -->
-<div id="modalEditAnnuncio" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden overflow-y-auto p-2 sm:p-4 flex items-center justify-center">
-    <div class="bg-white border border-[#DDD9CD] rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[92vh] my-auto overflow-hidden">
-        <form id="formEditAnnuncio" class="flex flex-col h-full max-h-[92vh] overflow-hidden text-xs">
+<div id="modalEditAnnuncio" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex flex-col items-center justify-center p-2 sm:p-4 overflow-hidden">
+    <div class="bg-white border border-[#DDD9CD] rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col h-[90vh] max-h-[90vh] overflow-hidden">
+        <form id="formEditAnnuncio" class="flex flex-col h-full overflow-hidden text-xs">
             <!-- Header fisso in alto -->
             <div class="flex items-center justify-between border-b border-[#DDD9CD] px-6 py-4 bg-[#F7F5EF] flex-shrink-0">
                 <h3 class="text-sm font-bold text-[#252821] flex items-center gap-2">
@@ -199,7 +199,7 @@
             </div>
 
             <!-- Corpo del form scorrevole liberamente su e giù -->
-            <div class="p-6 overflow-y-auto flex-1 min-h-0 space-y-4 overscroll-contain">
+            <div id="editAnnuncioScrollBody" class="p-6 overflow-y-auto flex-1 min-h-0 space-y-4">
                 <input type="hidden" id="editAdId">
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -335,15 +335,70 @@
                     <textarea id="editDescrizione" rows="4" required minlength="10" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg p-2.5 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]"></textarea>
                 </div>
 
-                <div>
-                    <label class="block font-bold text-[#252821] mb-1">Galleria Immagini (Un URL per riga)</label>
-                    <textarea id="editGalleriaImmagini" rows="2" placeholder="https://...&#10;https://..." class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg p-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F] font-mono"></textarea>
+                <!-- Galleria Fotografica Annuncio con Caricamento Diretto da Dispositivo -->
+                <div class="p-4 bg-[#F7F5EF] border border-[#DDD9CD] rounded-xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="font-bold text-[#252821] flex items-center gap-1.5">
+                            <i class="fa-solid fa-camera text-[#8C734B]"></i>
+                            <span>Fotografie Annuncio</span>
+                        </label>
+                        <span id="editAdminFotoCount" class="text-[11px] text-[#6B7064] font-mono font-bold">0 foto</span>
+                    </div>
+
+                    <!-- Drop Zone e Selettore File Dispositivo -->
+                    <div id="editAdminDropZone" 
+                         class="border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all bg-white hover:bg-[#EBEFE0] group"
+                         style="border-color:#68733F;">
+                        <input type="file" id="editAdminFileInput" multiple accept="image/jpeg,image/png,image/webp" class="hidden">
+                        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pointer-events-none">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg shadow-sm"
+                                 style="background:linear-gradient(135deg, #68733F 0%, #4F5A30 100%);">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                            </div>
+                            <div class="text-left">
+                                <span class="btn-tactical py-1.5 px-3 rounded-lg font-bold text-[11px] uppercase tracking-wide inline-flex items-center gap-1.5 shadow-sm">
+                                    <i class="fa-solid fa-images"></i>
+                                    <span>Carica Foto dal Dispositivo</span>
+                                </span>
+                                <p class="text-[10px] text-[#6B7064] mt-1 font-medium">
+                                    oppure trascina qui i file (JPG, PNG, WebP &bull; max 5MB ciascuna)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progresso Upload in corso -->
+                    <div id="editAdminUploadProgress" class="hidden p-2.5 rounded-lg border flex items-center space-x-2 text-xs font-semibold"
+                         style="background:#EBEFE0;border-color:#A4B882;color:#27471E;">
+                        <i class="fa-solid fa-spinner fa-spin text-sm text-[#68733F]"></i>
+                        <span id="editAdminUploadProgressText">Caricamento foto in corso...</span>
+                    </div>
+
+                    <!-- Griglia Miniature Foto con eliminazione e copertina -->
+                    <div id="editAdminFotoGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5"></div>
+
+                    <!-- Opzione secondaria: Gestisci o aggiungi da URL -->
+                    <details class="pt-1">
+                        <summary class="text-[11px] font-semibold text-[#68733F] cursor-pointer hover:underline flex items-center gap-1">
+                            <i class="fa-solid fa-link"></i>
+                            <span>Oppure inserisci / visualizza URL foto manualmente</span>
+                        </summary>
+                        <div class="mt-2 space-y-1">
+                            <p class="text-[10px] text-[#6B7064]">Un URL per riga (sincronizzato in tempo reale con le miniature sopra):</p>
+                            <textarea id="editGalleriaImmagini" rows="2" placeholder="https://...&#10;https://..." class="w-full bg-white border border-[#DDD9CD] rounded-lg p-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F] font-mono"></textarea>
+                        </div>
+                    </details>
                 </div>
             </div>
 
             <!-- Footer fisso in basso con bottone Salva SEMPRE visibile e cliccabile -->
             <div class="flex items-center justify-between border-t border-[#DDD9CD] px-6 py-3.5 bg-[#F7F5EF] flex-shrink-0">
-                <span class="text-[11px] text-[#6B7064]">* Campi obbligatori</span>
+                <div class="flex items-center gap-3">
+                    <span class="text-[11px] text-[#6B7064]">* Campi obbligatori</span>
+                    <button type="button" id="btnScrollTopAdmin" class="text-[11px] text-[#68733F] hover:text-[#4F5A30] font-bold flex items-center gap-1 cursor-pointer transition-colors" title="Torna all'inizio del modulo">
+                        <i class="fa-solid fa-arrow-up"></i> Torna in cima
+                    </button>
+                </div>
                 <div class="flex items-center gap-2">
                     <button type="button" class="btn-close-modal px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-[#DDD9CD] text-[#4A4E44] hover:bg-[#F1EFE7] transition-all cursor-pointer">
                         Annulla
@@ -438,10 +493,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         editProvSelect.addEventListener("change", (e) => onEditProvinciaChange(e.target.value));
     }
 
-    const editComSearch = document.getElementById("editComuneSearch");
-    if (editComSearch) {
-        editComSearch.addEventListener("input", (e) => onEditComuneSearch(e.target.value));
+    const btnTop = document.getElementById("btnScrollTopAdmin");
+    if (btnTop) {
+        btnTop.addEventListener("click", () => {
+            const sb = document.getElementById("editAnnuncioScrollBody");
+            if (sb) sb.scrollTo({ top: 0, behavior: "smooth" });
+        });
     }
+
+    initEditAdminFoto();
 
     // Event delegation for table action buttons and modal close
     document.addEventListener("click", (e) => {
@@ -745,7 +805,10 @@ async function openEditModal(adId) {
         document.getElementById("editEmailContatto").value = a.email_contatto || "";
         document.getElementById("editTelefonoContatto").value = a.telefono_contatto || "";
         document.getElementById("editDescrizione").value = a.descrizione || "";
-        document.getElementById("editGalleriaImmagini").value = (a.galleria_immagini || []).join("\n");
+
+        // Foto annuncio
+        editAdminFotoUrls = Array.isArray(a.galleria_immagini) ? [...a.galleria_immagini] : [];
+        renderEditAdminFoto(true);
 
         // Comune corrente
         const currentComuneName = a.comune ? `${a.comune.nome} (${a.comune.sigla_provincia || ''})` : "Nessuno";
@@ -762,6 +825,10 @@ async function openEditModal(adId) {
         const modal = document.getElementById("modalEditAnnuncio");
         modal.classList.remove("hidden");
         modal.classList.add("flex");
+        document.body.classList.add("overflow-hidden");
+
+        const sb = document.getElementById("editAnnuncioScrollBody");
+        if (sb) sb.scrollTop = 0;
 
     } catch (e) {
         console.error("Errore apertura modale edit:", e);
@@ -775,6 +842,139 @@ function closeEditModal() {
         modal.classList.add("hidden");
         modal.classList.remove("flex");
     }
+    document.body.classList.remove("overflow-hidden");
+}
+
+let editAdminFotoUrls = [];
+
+function initEditAdminFoto() {
+    const dropZone = document.getElementById("editAdminDropZone");
+    const fileInput = document.getElementById("editAdminFileInput");
+    const grid = document.getElementById("editAdminFotoGrid");
+    const textarea = document.getElementById("editGalleriaImmagini");
+
+    if (grid) {
+        grid.addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-remove-admin-foto]");
+            if (btn) {
+                const idx = parseInt(btn.getAttribute("data-remove-admin-foto"), 10);
+                if (!isNaN(idx) && idx >= 0 && idx < editAdminFotoUrls.length) {
+                    editAdminFotoUrls.splice(idx, 1);
+                    renderEditAdminFoto(true);
+                }
+            }
+        });
+    }
+
+    if (textarea) {
+        textarea.addEventListener("input", () => {
+            const raw = textarea.value;
+            editAdminFotoUrls = raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+            renderEditAdminFoto(false);
+        });
+    }
+
+    if (dropZone && fileInput) {
+        dropZone.addEventListener("click", () => fileInput.click());
+
+        dropZone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = "#4F5A30";
+            dropZone.style.background = "#EBEFE0";
+        });
+
+        dropZone.addEventListener("dragleave", () => {
+            dropZone.style.borderColor = "#68733F";
+            dropZone.style.background = "#FFFFFF";
+        });
+
+        dropZone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = "#68733F";
+            dropZone.style.background = "#FFFFFF";
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                uploadEditAdminFiles(e.dataTransfer.files);
+            }
+        });
+
+        fileInput.addEventListener("change", () => {
+            if (fileInput.files && fileInput.files.length > 0) {
+                uploadEditAdminFiles(fileInput.files);
+                fileInput.value = "";
+            }
+        });
+    }
+}
+
+async function uploadEditAdminFiles(fileList) {
+    const currentToken = getAuthToken();
+    if (!currentToken) {
+        alert("Sessione scaduta. Effettua nuovamente l'accesso.");
+        return;
+    }
+
+    const progressBox = document.getElementById("editAdminUploadProgress");
+    const progressText = document.getElementById("editAdminUploadProgressText");
+    if (progressBox) progressBox.classList.remove("hidden");
+    if (progressText) progressText.textContent = `Caricamento di ${fileList.length} immagine/i...`;
+
+    const formData = new FormData();
+    for (let i = 0; i < fileList.length; i++) {
+        formData.append("files", fileList[i]);
+    }
+
+    try {
+        const resp = await fetch("/api/v1/annunci/upload-foto", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${currentToken}`
+            },
+            body: formData
+        });
+
+        const data = await resp.json();
+        if (progressBox) progressBox.classList.add("hidden");
+
+        if (resp.ok && data.urls) {
+            data.urls.forEach(url => {
+                if (!editAdminFotoUrls.includes(url)) {
+                    editAdminFotoUrls.push(url);
+                }
+            });
+            renderEditAdminFoto(true);
+        } else {
+            alert(data.detail || "Errore durante il caricamento delle fotografie.");
+        }
+    } catch (e) {
+        if (progressBox) progressBox.classList.add("hidden");
+        alert("Errore di connessione durante l'upload delle immagini.");
+    }
+}
+
+function renderEditAdminFoto(syncTextarea = true) {
+    const grid = document.getElementById("editAdminFotoGrid");
+    const counter = document.getElementById("editAdminFotoCount");
+    const textarea = document.getElementById("editGalleriaImmagini");
+
+    if (counter) counter.textContent = `${editAdminFotoUrls.length} foto`;
+    if (syncTextarea && textarea) textarea.value = editAdminFotoUrls.join("\n");
+
+    if (!grid) return;
+
+    if (editAdminFotoUrls.length === 0) {
+        grid.innerHTML = `<p class="col-span-full text-[11px] text-[#6B7064] italic py-2 text-center">Nessuna foto presente. Caricane una dal dispositivo o inserisci un URL.</p>`;
+        return;
+    }
+
+    grid.innerHTML = editAdminFotoUrls.map((url, idx) => `
+        <div class="relative group rounded-xl overflow-hidden border border-[#DDD9CD] bg-white shadow-xs aspect-square">
+            <img src="${encodeURI(url)}" class="w-full h-full object-cover" alt="Foto ${idx+1}">
+            ${idx === 0 ? '<span class="absolute bottom-1 left-1 bg-[#68733F] text-white font-bold text-[8.5px] px-1.5 py-0.5 rounded shadow">Copertina</span>' : ''}
+            <button type="button" data-remove-admin-foto="${idx}" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white hover:bg-rose-700 flex items-center justify-center text-[10px] shadow cursor-pointer transition-all" title="Rimuovi foto">
+                <i class="fa-solid fa-xmark pointer-events-none"></i>
+            </button>
+        </div>
+    `).join("");
 }
 
 async function onEditProvinciaChange(provId) {
@@ -810,8 +1010,13 @@ async function handleSaveEditAnnuncio(e) {
     btn.disabled = true;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvataggio...`;
 
+    // Sincronizza eventuali URL digitati a mano nella textarea
     const rawImgs = document.getElementById("editGalleriaImmagini").value;
-    const immagini = rawImgs ? rawImgs.split(/[\n,]+/).map(s => s.trim()).filter(Boolean) : [];
+    const manuallyTyped = rawImgs ? rawImgs.split(/[\n,]+/).map(s => s.trim()).filter(Boolean) : [];
+    manuallyTyped.forEach(u => {
+        if (!editAdminFotoUrls.includes(u)) editAdminFotoUrls.push(u);
+    });
+    const immagini = [...editAdminFotoUrls];
 
     const selComuneVal = document.getElementById("editComuneSelect").value;
     const comuneId = selComuneVal ? parseInt(selComuneVal) : null;
