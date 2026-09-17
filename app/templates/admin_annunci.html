@@ -1,0 +1,816 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · Gestione Annunci (Privati & Armerie) — ArmiMarket Italia{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- Header Sezione Admin -->
+    <div class="mb-8 p-6 rounded-2xl shadow relative overflow-hidden bg-white border border-[#DDD9CD]"
+         style="background:linear-gradient(135deg,#FFFFFF 0%,#F7F5EF 100%);">
+        <div class="absolute -right-8 -bottom-8 opacity-5 pointer-events-none text-[180px] text-[#4F5A30]">
+            <i class="fa-solid fa-bullhorn"></i>
+        </div>
+        <div class="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-3 mb-1">
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+                         style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
+                        <i class="fa-solid fa-bullhorn"></i>
+                    </div>
+                    <h1 class="mil-brand text-2xl font-bold text-[#252821] tracking-wide">GESTIONE ANNUNCI</h1>
+                </div>
+                <p class="text-xs font-mono text-[#68733F]">
+                    ◆ Pannello riservato ADMIN · Distinzione Privati vs Armerie, revisione e modifica completa inserzioni
+                </p>
+            </div>
+            <div class="flex items-center flex-wrap gap-2">
+                <a href="/admin"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
+                   style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;">
+                    <i class="fa-solid fa-chart-pie"></i><span class="hidden sm:inline">Statistiche</span>
+                </a>
+                <a href="/admin/utenti"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
+                   style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;">
+                    <i class="fa-solid fa-users-gear"></i><span class="hidden sm:inline">Utenti</span>
+                </a>
+                <a href="/admin/posta"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
+                   style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;">
+                    <i class="fa-solid fa-envelope"></i><span class="hidden sm:inline">Webmail</span>
+                </a>
+                <a href="/"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
+                   style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;">
+                    <i class="fa-solid fa-house"></i><span class="hidden sm:inline">Home</span>
+                </a>
+                <a href="/logout" id="btnAdminLogout" data-action="logout"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 cursor-pointer"
+                   title="Esci dal pannello amministratore">
+                    <i class="fa-solid fa-right-from-bracket"></i><span>Esci</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Notifiche -->
+    <div id="adminAlert" class="hidden mb-6 p-4 rounded-xl text-xs font-semibold border"></div>
+
+    <!-- Statistiche rapide KPI -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <div class="p-4 rounded-xl text-center bg-white border border-[#DDD9CD] shadow-sm">
+            <div id="statTotale" class="text-2xl font-black text-[#8C734B]">—</div>
+            <div class="text-[10px] uppercase tracking-widest mt-1 font-mono text-[#6B7064]">Totale Annunci</div>
+        </div>
+        <div class="p-4 rounded-xl text-center bg-white border border-[#DDD9CD] shadow-sm">
+            <div id="statPrivati" class="text-2xl font-black text-sky-600">—</div>
+            <div class="text-[10px] uppercase tracking-widest mt-1 font-mono text-[#6B7064]">Annunci Privati</div>
+        </div>
+        <div class="p-4 rounded-xl text-center bg-white border border-[#DDD9CD] shadow-sm">
+            <div id="statArmerie" class="text-2xl font-black text-emerald-600">—</div>
+            <div class="text-[10px] uppercase tracking-widest mt-1 font-mono text-[#6B7064]">Annunci Armerie</div>
+        </div>
+        <div class="p-4 rounded-xl text-center bg-white border border-[#DDD9CD] shadow-sm">
+            <div id="statModerazione" class="text-2xl font-black text-amber-600">—</div>
+            <div class="text-[10px] uppercase tracking-widest mt-1 font-mono text-[#6B7064]">In Moderazione</div>
+        </div>
+    </div>
+
+    <!-- Barra Tab Suddivisione Inserzionisti (Tutti / Privati / Armerie / Moderazione / Venduti) -->
+    <div class="flex items-center space-x-2 overflow-x-auto pb-2 mb-4 border-b border-[#DDD9CD]">
+        <button type="button" onclick="setFilterCategory('', '')" id="tabAll"
+                class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 bg-[#68733F] text-white border border-[#4F5A30] shadow-xs whitespace-nowrap cursor-pointer">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Tutti gli Annunci</span>
+            <span id="tabCountAll" class="ml-1 text-[10px] bg-white text-[#252821] px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+        </button>
+        <button type="button" onclick="setFilterCategory('privato', '')" id="tabPrivati"
+                class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap cursor-pointer">
+            <i class="fa-solid fa-user text-sky-600"></i>
+            <span>Solo Privati</span>
+            <span id="tabCountPrivati" class="ml-1 text-[10px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+        </button>
+        <button type="button" onclick="setFilterCategory('armeria', '')" id="tabArmerie"
+                class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap cursor-pointer">
+            <i class="fa-solid fa-store text-emerald-600"></i>
+            <span>Solo Armerie</span>
+            <span id="tabCountArmerie" class="ml-1 text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+        </button>
+        <button type="button" onclick="setFilterCategory('', 'in_moderazione')" id="tabModerazione"
+                class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap cursor-pointer">
+            <i class="fa-solid fa-clock text-amber-600"></i>
+            <span>In Moderazione</span>
+            <span id="tabCountModerazione" class="ml-1 text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+        </button>
+        <button type="button" onclick="setFilterCategory('', 'venduto')" id="tabVenduti"
+                class="tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap cursor-pointer">
+            <i class="fa-solid fa-check-double text-slate-600"></i>
+            <span>Venduti</span>
+        </button>
+    </div>
+
+    <!-- Barra Filtri & Ricerca Live -->
+    <div class="p-4 rounded-xl mb-6 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center bg-white border border-[#DDD9CD] shadow-sm">
+        <div class="flex-1 relative">
+            <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-[11px] text-[#6B7064]"></i>
+            <input id="searchInput" type="text" placeholder="Cerca per titolo, marca, modello, calibro, armeria o ID..."
+                   class="w-full pl-8 pr-3 py-2 rounded-lg text-xs text-[#252821] focus:outline-none"
+                   style="background:#F7F5EF;border:1px solid #DDD9CD;"
+                   oninput="debounceSearch()">
+        </div>
+        <select id="filterStato" onchange="loadAnnunci(1)" class="text-xs px-3 py-2 rounded-lg focus:outline-none"
+                style="background:#F7F5EF;border:1px solid #DDD9CD;color:#252821;">
+            <option value="">Tutti gli stati</option>
+            <option value="pubblicato">Pubblicato</option>
+            <option value="in_moderazione">In Moderazione</option>
+            <option value="venduto">Venduto</option>
+            <option value="rifiutato">Rifiutato</option>
+            <option value="archiviato">Archiviato</option>
+        </select>
+        <button onclick="loadAnnunci(1)" class="text-xs font-bold px-4 py-2 rounded-lg uppercase tracking-wide transition-all shadow-sm cursor-pointer"
+                style="background:#68733F;color:#FFFFFF;border:1px solid #4F5A30;">
+            <i class="fa-solid fa-rotate mr-1"></i>Aggiorna
+        </button>
+    </div>
+
+    <!-- Contenitore Tabella Annunci -->
+    <div class="bg-white border border-[#DDD9CD] rounded-2xl shadow-sm overflow-hidden mb-6">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b border-[#DDD9CD] bg-[#F7F5EF] text-[11px] uppercase tracking-wider font-mono text-[#6B7064]">
+                        <th class="py-3 px-4">Articolo / Annuncio</th>
+                        <th class="py-3 px-4">Prezzo</th>
+                        <th class="py-3 px-4">Inserzionista</th>
+                        <th class="py-3 px-4">Ubicazione</th>
+                        <th class="py-3 px-4">Stato</th>
+                        <th class="py-3 px-4 text-right">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody id="annunciTableBody" class="divide-y divide-[#E8E5DB]">
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-slate-500">
+                            <i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-[#68733F]"></i>
+                            <p>Caricamento annunci in corso...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginazione -->
+        <div class="p-3.5 border-t border-[#DDD9CD] flex items-center justify-between bg-[#F7F5EF] text-xs">
+            <span class="text-[#6B7064] font-mono text-[11px]" id="pagingInfo">0 annunci trovati</span>
+            <div class="flex items-center space-x-2">
+                <button type="button" id="btnPrevPage" onclick="changePage(-1)" disabled
+                        class="px-3 py-1.5 bg-white hover:bg-[#F1EFE7] disabled:opacity-40 border border-[#DDD9CD] text-[#252821] rounded-lg font-semibold transition-all cursor-pointer">
+                    <i class="fa-solid fa-chevron-left text-[10px]"></i> Prec
+                </button>
+                <span id="pageIndicator" class="text-[11px] text-[#252821] font-mono font-bold px-2">Pag. 1 di 1</span>
+                <button type="button" id="btnNextPage" onclick="changePage(1)" disabled
+                        class="px-3 py-1.5 bg-white hover:bg-[#F1EFE7] disabled:opacity-40 border border-[#DDD9CD] text-[#252821] rounded-lg font-semibold transition-all cursor-pointer">
+                    Succ <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal Modifica Annuncio (Admin) -->
+<div id="modalEditAnnuncio" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white border border-[#DDD9CD] rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-[#DDD9CD] pb-3">
+            <h3 class="text-sm font-bold text-[#252821] flex items-center gap-2">
+                <i class="fa-solid fa-pen-to-square text-[#8C734B]"></i>
+                <span>Modifica Annuncio Admin &bull; #<span id="editAdIdLabel">—</span></span>
+            </h3>
+            <button type="button" onclick="closeEditModal()" class="text-[#6B7064] hover:text-[#252821] p-1 cursor-pointer">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form id="formEditAnnuncio" onsubmit="handleSaveEditAnnuncio(event)" class="space-y-4 text-xs">
+            <input type="hidden" id="editAdId">
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="sm:col-span-2">
+                    <label class="block font-bold text-[#252821] mb-1">Titolo Annuncio *</label>
+                    <input type="text" id="editTitolo" required minlength="3" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                </div>
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Prezzo Attuale (€) *</label>
+                    <input type="number" step="0.01" min="0" id="editPrezzo" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F] font-bold">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Tipologia Inserzionista *</label>
+                    <select id="editTipoInserzionista" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                        <option value="privato">Privato</option>
+                        <option value="armeria">Armeria</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Stato Annuncio *</label>
+                    <select id="editStato" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                        <option value="pubblicato">Pubblicato (Attivo)</option>
+                        <option value="in_moderazione">In Moderazione</option>
+                        <option value="venduto">Venduto</option>
+                        <option value="rifiutato">Rifiutato</option>
+                        <option value="archiviato">Archiviato</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Prezzo Originale (€)</label>
+                    <input type="number" step="0.01" min="0" id="editPrezzoOriginale" placeholder="es. 850.00" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Marca *</label>
+                    <input type="text" id="editMarca" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                </div>
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Modello *</label>
+                    <input type="text" id="editModello" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                </div>
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Calibro *</label>
+                    <input type="text" id="editCalibro" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F] font-mono">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Tipologia Arma *</label>
+                    <select id="editTipologiaArma" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                        <option value="arma_corta">Arma Corta</option>
+                        <option value="arma_lunga_rigata">Arma Lunga Rigata</option>
+                        <option value="canna_liscia">Canna Liscia</option>
+                        <option value="aria_compressa_libera">Aria Compressa (&lt; 7.5J)</option>
+                        <option value="accessorio_ottica">Accessori & Ottiche</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Condizione *</label>
+                    <select id="editCondizione" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                        <option value="nuovo">Nuovo / Mai Sparato</option>
+                        <option value="usato_eccellente">Usato Eccellente</option>
+                        <option value="usato_ottimo">Usato Ottimo</option>
+                        <option value="usato_buono">Usato Buono</option>
+                        <option value="d_epoca">D'Epoca / Collezione</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Classificazione *</label>
+                    <select id="editClassificazione" required class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                        <option value="comune">Arma Comune da Sparo</option>
+                        <option value="sportiva">Arma Sportiva (CONI/FITDS)</option>
+                        <option value="caccia">Arma da Caccia</option>
+                        <option value="antica_artistica">Antica o Artistica</option>
+                        <option value="libera_vendita">Libera Vendita (&lt; 7.5J)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Posizione Geografica / Comune ISTAT -->
+            <div class="p-3 bg-[#F7F5EF] border border-[#DDD9CD] rounded-xl space-y-2">
+                <div class="font-bold text-[#252821] flex items-center justify-between">
+                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot text-[#8C734B]"></i> Ubicazione Comune ISTAT *</span>
+                    <span id="editComuneCurrentLabel" class="text-[11px] font-mono text-[#4F5A30] font-bold"></span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <select id="editProvinciaSelect" onchange="onEditProvinciaChange(this.value)" class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none">
+                        <option value="">-- Filtra per Provincia --</option>
+                    </select>
+                    <input type="text" id="editComuneSearch" placeholder="Cerca comune o CAP..." oninput="onEditComuneSearch(this.value)" class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none">
+                </div>
+                <select id="editComuneSelect" required class="w-full bg-white border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] focus:outline-none">
+                    <option value="">-- Seleziona comune --</option>
+                </select>
+            </div>
+
+            <!-- Dati Armeria Esterna & Contatti -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Nome Armeria o Fonte Esterna</label>
+                    <input type="text" id="editFonteEsterna" placeholder="es. Armeria Reggiana (opzionale)" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                </div>
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Link Diretto Esterno Scheda</label>
+                    <input type="url" id="editLinkEsterno" placeholder="https://www.armeria.it/prodotto..." class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Email Contatto</label>
+                    <input type="email" id="editEmailContatto" placeholder="email@contatto.it" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                </div>
+                <div>
+                    <label class="block font-bold text-[#252821] mb-1">Telefono Contatto</label>
+                    <input type="text" id="editTelefonoContatto" placeholder="+39 340 1234567" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-3 py-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-[#252821] mb-1">Descrizione Dettagliata *</label>
+                <textarea id="editDescrizione" rows="4" required minlength="10" class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg p-2.5 text-xs text-[#252821] focus:outline-none focus:border-[#68733F]"></textarea>
+            </div>
+
+            <div>
+                <label class="block font-bold text-[#252821] mb-1">Galleria Immagini (Un URL per riga)</label>
+                <textarea id="editGalleriaImmagini" rows="2" placeholder="https://...&#10;https://..." class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg p-2 text-xs text-[#252821] focus:outline-none focus:border-[#68733F] font-mono"></textarea>
+            </div>
+
+            <div class="pt-3 border-t border-[#DDD9CD] flex justify-end gap-2">
+                <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-[#DDD9CD] text-[#4A4E44] hover:bg-[#F1EFE7] transition-all cursor-pointer">
+                    Annulla
+                </button>
+                <button type="submit" id="btnSubmitEdit" class="px-5 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                        style="background:#68733F;border:1px solid #4F5A30;">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>Salva Modifiche</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script nonce="{{ request.scope.get('csp_nonce', '') }}">
+function getAuthToken() {
+    const ls = localStorage.getItem("armimarket_token");
+    if (ls) return ls;
+    const match = document.cookie.match(/(?:^|;\s*)armimarket_token=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+}
+
+let token = getAuthToken();
+let currentPagina = 1;
+let currentTipologia = "";
+let currentStato = "";
+let currentSearch = "";
+let debounceTimer = null;
+let provinceList = [];
+let modalComuniDebounce = null;
+
+document.addEventListener("DOMContentLoaded", async () => {
+    token = getAuthToken();
+    if (!token) {
+        window.location.href = "/login?redirect=/admin/annunci";
+        return;
+    }
+
+    try {
+        const meResp = await fetch("/api/v1/auth/me", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!meResp.ok) {
+            window.location.href = "/login?redirect=/admin/annunci";
+            return;
+        }
+        const meData = await meResp.json();
+        if (meData.ruolo !== "admin" && meData.ruolo !== "moderatore") {
+            alert("Accesso negato: quest'area è riservata all'amministratore.");
+            window.location.href = "/";
+            return;
+        }
+    } catch(e) {
+        console.error("Errore verifica admin:", e);
+    }
+
+    loadProvince();
+    loadAnnunci(1);
+});
+
+async function loadProvince() {
+    try {
+        const res = await fetch("/api/v1/geo/province");
+        if (res.ok) {
+            provinceList = await res.json();
+            const provSelect = document.getElementById("editProvinciaSelect");
+            if (provSelect) {
+                provSelect.innerHTML = `<option value="">-- Filtra per Provincia --</option>` +
+                    provinceList.map(p => `<option value="${p.id}">${p.nome} (${p.sigla_automobilistica})</option>`).join("");
+            }
+        }
+    } catch(e) {}
+}
+
+function setFilterCategory(tipo, stato) {
+    currentTipologia = tipo;
+    currentStato = stato;
+    document.getElementById("filterStato").value = stato;
+
+    // Aggiorna stile dei bottoni tab
+    const tabs = [
+        { el: document.getElementById("tabAll"), active: !tipo && !stato },
+        { el: document.getElementById("tabPrivati"), active: tipo === "privato" },
+        { el: document.getElementById("tabArmerie"), active: tipo === "armeria" },
+        { el: document.getElementById("tabModerazione"), active: stato === "in_moderazione" },
+        { el: document.getElementById("tabVenduti"), active: stato === "venduto" }
+    ];
+
+    tabs.forEach(t => {
+        if (!t.el) return;
+        if (t.active) {
+            t.el.className = "tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 bg-[#68733F] text-white border border-[#4F5A30] shadow-xs whitespace-nowrap cursor-pointer";
+        } else {
+            t.el.className = "tab-btn px-4 py-2 rounded-xl text-xs font-semibold text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] border border-transparent transition-all flex items-center space-x-2 whitespace-nowrap cursor-pointer";
+        }
+    });
+
+    loadAnnunci(1);
+}
+
+function debounceSearch() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        currentSearch = document.getElementById("searchInput").value.trim();
+        loadAnnunci(1);
+    }, 300);
+}
+
+async function loadAnnunci(pagina = 1) {
+    currentPagina = pagina;
+    const tbody = document.getElementById("annunciTableBody");
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="6" class="p-8 text-center text-slate-500">
+                <i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-[#68733F]"></i>
+                <p>Caricamento annunci in corso...</p>
+            </td>
+        </tr>
+    `;
+
+    currentStato = document.getElementById("filterStato").value;
+
+    let url = `/api/v1/admin/annunci?pagina=${pagina}&elementi_per_pagina=20`;
+    if (currentTipologia) url += `&tipologia_inserzionista=${encodeURIComponent(currentTipologia)}`;
+    if (currentStato) url += `&stato=${encodeURIComponent(currentStato)}`;
+    if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
+
+    try {
+        const resp = await fetch(url, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (!resp.ok) {
+            tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-rose-600">Errore nel caricamento annunci.</td></tr>`;
+            return;
+        }
+
+        const data = await resp.json();
+        renderStatistiche(data);
+        renderAnnunciTable(data.annunci);
+
+        // Paginazione
+        document.getElementById("pagingInfo").innerText = `${data.totale} annunci filtrati`;
+        document.getElementById("pageIndicator").innerText = `Pag. ${data.pagina} di ${data.pagine_totali}`;
+        document.getElementById("btnPrevPage").disabled = (data.pagina <= 1);
+        document.getElementById("btnNextPage").disabled = (data.pagina >= data.pagine_totali);
+
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-rose-600">Errore di connessione.</td></tr>`;
+    }
+}
+
+function renderStatistiche(data) {
+    document.getElementById("statTotale").innerText = data.totale !== undefined ? data.totale : 0;
+    document.getElementById("statPrivati").innerText = data.totale_privati !== undefined ? data.totale_privati : 0;
+    document.getElementById("statArmerie").innerText = data.totale_armerie !== undefined ? data.totale_armerie : 0;
+    document.getElementById("statModerazione").innerText = data.totale_in_moderazione !== undefined ? data.totale_in_moderazione : 0;
+
+    document.getElementById("tabCountAll").innerText = data.totale !== undefined ? data.totale : 0;
+    document.getElementById("tabCountPrivati").innerText = data.totale_privati !== undefined ? data.totale_privati : 0;
+    document.getElementById("tabCountArmerie").innerText = data.totale_armerie !== undefined ? data.totale_armerie : 0;
+    document.getElementById("tabCountModerazione").innerText = data.totale_in_moderazione !== undefined ? data.totale_in_moderazione : 0;
+}
+
+function renderAnnunciTable(annunci) {
+    const tbody = document.getElementById("annunciTableBody");
+    if (!annunci || annunci.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="p-8 text-center text-[#6B7064]">
+                    <i class="fa-regular fa-folder-open text-3xl mb-2 text-[#8C734B]"></i>
+                    <p class="font-bold">Nessun annuncio trovato per i filtri selezionati.</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = annunci.map(a => {
+        const isArmeria = (a.tipologia_inserzionista === "armeria");
+        const thumb = (a.galleria_immagini && a.galleria_immagini.length > 0) ? encodeURI(a.galleria_immagini[0]) : null;
+
+        // Inserzionista badge
+        let insBadge = "";
+        if (isArmeria) {
+            const nomeArm = a.fonte_esterna || "Armeria Registrata";
+            insBadge = `
+                <div class="flex items-center gap-1.5">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                        <i class="fa-solid fa-store text-[9px]"></i> Armeria
+                    </span>
+                    <span class="text-[#252821] font-semibold truncate max-w-[130px]" title="${escapeHtml(nomeArm)}">${escapeHtml(nomeArm)}</span>
+                </div>
+            `;
+        } else {
+            insBadge = `
+                <div class="flex items-center gap-1.5">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-300 flex items-center gap-1">
+                        <i class="fa-solid fa-user text-[9px]"></i> Privato
+                    </span>
+                    <span class="text-[#6B7064] font-mono text-[11px] truncate max-w-[130px]">${a.email_contatto || 'Utente #' + (a.utente_id || '')}</span>
+                </div>
+            `;
+        }
+
+        // Stato badge
+        let stBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300">Pubblicato</span>`;
+        if (a.stato === "in_moderazione") {
+            stBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-300"><i class="fa-solid fa-clock mr-1"></i> In Moderazione</span>`;
+        } else if (a.stato === "venduto") {
+            stBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300"><i class="fa-solid fa-check-double mr-1"></i> Venduto</span>`;
+        } else if (a.stato === "rifiutato") {
+            stBadge = `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-300"><i class="fa-solid fa-ban mr-1"></i> Rifiutato</span>`;
+        }
+
+        const comuneStr = a.comune ? `${a.comune.nome} (${a.comune.sigla_provincia || ''})` : "Italia";
+
+        return `
+            <tr class="hover:bg-[#F7F5EF] transition-colors">
+                <td class="py-3 px-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-lg bg-stone-100 border border-[#DDD9CD] overflow-hidden flex-shrink-0 flex items-center justify-center">
+                            ${thumb ? `<img src="${thumb}" alt="${escapeHtml(a.titolo)}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-gun text-stone-400"></i>`}
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="font-bold text-[#252821] truncate max-w-[240px] text-xs" title="${escapeHtml(a.titolo)}">
+                                ${escapeHtml(a.titolo)}
+                            </div>
+                            <div class="text-[11px] text-[#6B7064] font-mono mt-0.5">
+                                #${a.id} &bull; ${escapeHtml(a.marca)} &bull; Cal. ${escapeHtml(a.calibro)}
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td class="py-3 px-4 font-bold text-[#8C734B] text-xs font-mono">
+                    € ${a.prezzo.toLocaleString('it-IT', { minimumFractionDigits: 2 })}
+                </td>
+                <td class="py-3 px-4">
+                    ${insBadge}
+                </td>
+                <td class="py-3 px-4 text-[#4A4E44]">
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-location-dot text-[#8C734B] text-[10px]"></i> ${escapeHtml(comuneStr)}</span>
+                </td>
+                <td class="py-3 px-4">
+                    ${stBadge}
+                </td>
+                <td class="py-3 px-4 text-right whitespace-nowrap">
+                    <div class="flex items-center justify-end space-x-1.5">
+                        <button type="button" onclick="openEditModal(${a.id})" class="px-2.5 py-1 text-xs font-bold text-[#27471E] bg-[#EBEFE0] hover:bg-[#DDE5CC] border border-[#A4B882] rounded-lg transition-all flex items-center gap-1 cursor-pointer" title="Modifica l'annuncio">
+                            <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                            <span>Modifica</span>
+                        </button>
+                        <a href="/scheda/${a.id}" target="_blank" class="p-1.5 text-[#6B7064] hover:text-[#252821] hover:bg-stone-100 rounded-lg transition-all" title="Vedi scheda pubblica">
+                            <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                        </a>
+                        <button type="button" onclick="deleteAdAdmin(${a.id}, '${escapeHtml(a.titolo).replace(/'/g, "\\'")}')" class="p-1.5 text-[#6B7064] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer" title="Elimina annuncio">
+                            <i class="fa-regular fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join("");
+}
+
+function changePage(delta) {
+    loadAnnunci(currentPagina + delta);
+}
+
+// ==========================================
+// MODAL DI MODIFICA ANNUNCIO (ADMIN)
+// ==========================================
+
+async function openEditModal(adId) {
+    token = getAuthToken();
+    try {
+        const resp = await fetch(`/api/v1/admin/annunci/${adId}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!resp.ok) {
+            alert("Impossibile caricare i dati dell'annuncio.");
+            return;
+        }
+
+        const a = await resp.json();
+        document.getElementById("editAdId").value = a.id;
+        document.getElementById("editAdIdLabel").innerText = a.id;
+        document.getElementById("editTitolo").value = a.titolo || "";
+        document.getElementById("editPrezzo").value = a.prezzo || 0;
+        document.getElementById("editPrezzoOriginale").value = a.prezzo_originale || "";
+        document.getElementById("editTipoInserzionista").value = a.tipologia_inserzionista || "privato";
+        document.getElementById("editStato").value = a.stato || "pubblicato";
+        document.getElementById("editMarca").value = a.marca || "";
+        document.getElementById("editModello").value = a.modello || "";
+        document.getElementById("editCalibro").value = a.calibro || "";
+        document.getElementById("editTipologiaArma").value = a.tipologia_arma || "arma_corta";
+        document.getElementById("editCondizione").value = a.condizione || "usato_ottimo";
+        document.getElementById("editClassificazione").value = a.classificazione || "comune";
+        document.getElementById("editFonteEsterna").value = a.fonte_esterna || "";
+        document.getElementById("editLinkEsterno").value = a.link_esterno || "";
+        document.getElementById("editEmailContatto").value = a.email_contatto || "";
+        document.getElementById("editTelefonoContatto").value = a.telefono_contatto || "";
+        document.getElementById("editDescrizione").value = a.descrizione || "";
+        document.getElementById("editGalleriaImmagini").value = (a.galleria_immagini || []).join("\n");
+
+        // Comune corrente
+        const currentComuneName = a.comune ? `${a.comune.nome} (${a.comune.sigla_provincia || ''})` : "Nessuno";
+        document.getElementById("editComuneCurrentLabel").innerText = `Attuale: ${currentComuneName}`;
+        
+        // Imposta opzione predefinita per comune select
+        const selCom = document.getElementById("editComuneSelect");
+        if (a.comune) {
+            selCom.innerHTML = `<option value="${a.comune.id}" selected>${a.comune.nome} (${a.comune.sigla_provincia || ''}) - CAP ${a.comune.cap || ''}</option>`;
+        } else {
+            selCom.innerHTML = `<option value="">-- Seleziona comune --</option>`;
+        }
+
+        const modal = document.getElementById("modalEditAnnuncio");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+
+    } catch (e) {
+        console.error("Errore apertura modale edit:", e);
+        alert("Errore nel recupero dell'annuncio.");
+    }
+}
+
+function closeEditModal() {
+    const modal = document.getElementById("modalEditAnnuncio");
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+}
+
+async function loadModalComuni(query = "", provId = null) {
+    const sel = document.getElementById("editComuneSelect");
+    if (!query && !provId) return;
+    sel.innerHTML = `<option value="">Ricerca comuni in corso...</option>`;
+    try {
+        let url = `/api/v1/geo/comuni?limit=300`;
+        if (provId) url += `&provincia_id=${provId}`;
+        if (query) url += `&q=${encodeURIComponent(query)}`;
+
+        const res = await fetch(url);
+        if (res.ok) {
+            const list = await res.json();
+            if (list.length === 0) {
+                sel.innerHTML = `<option value="" disabled>Nessun comune trovato</option>`;
+            } else {
+                sel.innerHTML = `<option value="">-- Scegli comune tra i ${list.length} trovati --</option>` +
+                    list.map(c => `<option value="${c.id}">${c.nome} (${c.sigla_provincia || ''}) - CAP ${c.cap || ''}</option>`).join("");
+                if (list.length === 1) sel.selectedIndex = 1;
+            }
+        }
+    } catch(e) {}
+}
+
+function onEditProvinciaChange(provId) {
+    const q = (document.getElementById("editComuneSearch").value || "").trim();
+    loadModalComuni(q, provId || null);
+}
+
+function onEditComuneSearch(query) {
+    clearTimeout(modalComuniDebounce);
+    modalComuniDebounce = setTimeout(() => {
+        const provId = document.getElementById("editProvinciaSelect").value;
+        loadModalComuni(query.trim(), provId || null);
+    }, 250);
+}
+
+async function handleSaveEditAnnuncio(e) {
+    e.preventDefault();
+    const adId = parseInt(document.getElementById("editAdId").value);
+    if (!adId) return;
+
+    const btn = document.getElementById("btnSubmitEdit");
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Salvataggio...`;
+
+    const rawImgs = document.getElementById("editGalleriaImmagini").value;
+    const immagini = rawImgs ? rawImgs.split(/[\n,]+/).map(s => s.trim()).filter(Boolean) : [];
+
+    const selComuneVal = document.getElementById("editComuneSelect").value;
+    const comuneId = selComuneVal ? parseInt(selComuneVal) : null;
+
+    const pOrigVal = document.getElementById("editPrezzoOriginale").value;
+    const prezzoOriginale = pOrigVal ? parseFloat(pOrigVal) : null;
+
+    const payload = {
+        titolo: document.getElementById("editTitolo").value.trim(),
+        prezzo: parseFloat(document.getElementById("editPrezzo").value) || 0,
+        prezzo_originale: prezzoOriginale,
+        tipologia_inserzionista: document.getElementById("editTipoInserzionista").value,
+        stato: document.getElementById("editStato").value,
+        marca: document.getElementById("editMarca").value.trim(),
+        modello: document.getElementById("editModello").value.trim(),
+        calibro: document.getElementById("editCalibro").value.trim(),
+        tipologia_arma: document.getElementById("editTipologiaArma").value,
+        condizione: document.getElementById("editCondizione").value,
+        classificazione: document.getElementById("editClassificazione").value,
+        fonte_esterna: document.getElementById("editFonteEsterna").value.trim() || null,
+        link_esterno: document.getElementById("editLinkEsterno").value.trim() || null,
+        email_contatto: document.getElementById("editEmailContatto").value.trim() || null,
+        telefono_contatto: document.getElementById("editTelefonoContatto").value.trim() || null,
+        descrizione: document.getElementById("editDescrizione").value.trim(),
+        galleria_immagini: immagini
+    };
+
+    if (comuneId) {
+        payload.comune_id = comuneId;
+    }
+
+    try {
+        const resp = await fetch(`/api/v1/admin/annunci/${adId}`, {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await resp.json();
+        if (!resp.ok) {
+            alert(data.detail || "Errore durante il salvataggio delle modifiche.");
+            return;
+        }
+
+        showAlert(`Annuncio #${adId} aggiornato con successo!`, "success");
+        closeEditModal();
+        await loadAnnunci(currentPagina);
+
+    } catch (e) {
+        console.error("Errore salvataggio:", e);
+        alert("Errore di connessione durante il salvataggio.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-floppy-disk mr-1"></i> Salva Modifiche`;
+    }
+}
+
+async function deleteAdAdmin(adId, title) {
+    if (!confirm(`Sei sicuro di voler eliminare definitivamente l'annuncio #${adId} "${title}"?`)) return;
+
+    try {
+        const resp = await fetch(`/api/v1/admin/annunci/${adId}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (resp.ok) {
+            showAlert(`Annuncio #${adId} eliminato definitivamente.`, "success");
+            loadAnnunci(currentPagina);
+        } else {
+            const err = await resp.json().catch(() => ({}));
+            alert(err.detail || "Impossibile eliminare l'annuncio.");
+        }
+    } catch(e) {
+        alert("Errore di connessione durante l'eliminazione.");
+    }
+}
+
+function showAlert(msg, type = "success") {
+    const box = document.getElementById("adminAlert");
+    box.classList.remove("hidden");
+    if (type === "success") {
+        box.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-emerald-50 border-emerald-300 text-emerald-800 flex items-center space-x-2";
+        box.innerHTML = `<i class="fa-solid fa-circle-check text-base"></i> <span>${msg}</span>`;
+    } else {
+        box.className = "mb-6 p-4 rounded-xl text-xs font-semibold border bg-rose-50 border-rose-300 text-rose-800 flex items-center space-x-2";
+        box.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-base"></i> <span>${msg}</span>`;
+    }
+    setTimeout(() => { box.classList.add("hidden"); }, 4000);
+}
+
+function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+</script>
+{% endblock %}

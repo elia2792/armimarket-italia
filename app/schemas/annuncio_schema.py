@@ -256,3 +256,38 @@ class UpdateComuneResponse(BaseModel):
     comune_nome: str
     sigla_provincia: str
 
+
+class AdminAnnuncioUpdateRequest(BaseModel):
+    titolo: Optional[str] = Field(None, min_length=3, max_length=255)
+    descrizione: Optional[str] = Field(None, min_length=10)
+    prezzo: Optional[float] = Field(None, ge=0.0)
+    prezzo_originale: Optional[float] = Field(None, ge=0.0)
+    marca: Optional[str] = Field(None, max_length=100)
+    modello: Optional[str] = Field(None, max_length=100)
+    calibro: Optional[str] = Field(None, max_length=50)
+    tipologia_arma: Optional[TipologiaArma] = None
+    classificazione: Optional[ClassificazioneArma] = None
+    condizione: Optional[CondizioneArma] = None
+    tipologia_inserzionista: Optional[TipologiaInserzionista] = None
+    comune_id: Optional[int] = Field(None, ge=1)
+    stato: Optional[StatoAnnuncio] = None
+    email_contatto: Optional[EmailStr] = None
+    telefono_contatto: Optional[str] = None
+    mostra_telefono_pubblico: Optional[bool] = None
+    galleria_immagini: Optional[List[str]] = None
+    fonte_esterna: Optional[str] = Field(None, max_length=200)
+    link_esterno: Optional[str] = None
+    note_moderazione: Optional[str] = None
+
+
+class AdminAnnunciListResponse(BaseModel):
+    totale: int
+    totale_privati: int
+    totale_armerie: int
+    totale_in_moderazione: int
+    pagina: int
+    elementi_per_pagina: int
+    pagine_totali: int
+    annunci: List[AnnuncioAdminOut]
+
+

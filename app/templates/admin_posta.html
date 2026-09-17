@@ -48,6 +48,12 @@
                     <i class="fa-solid fa-chart-pie"></i>
                     <span class="hidden sm:inline">Statistiche</span>
                 </a>
+                <a href="/admin/annunci"
+                   class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
+                   style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;" title="Gestione Annunci">
+                    <i class="fa-solid fa-bullhorn"></i>
+                    <span class="hidden sm:inline">Annunci</span>
+                </a>
                 <a href="/admin/utenti"
                    class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm"
                    style="background:#FFFFFF;border:1px solid #DDD9CD;color:#4A4E44;" title="Gestione Account Utenti">
@@ -87,7 +93,7 @@
                     <span class="text-[#6B7064]">Stato Server SMTP:</span>
                     <span id="smtpBadge" class="font-bold flex items-center gap-1.5" style="color:#27471E;">
                         <span class="w-2 h-2 rounded-full inline-block animate-pulse" style="background:#68733F;"></span>
-                        Locale / DB
+                        Cloud DB (Neon) & Gmail
                     </span>
                 </div>
             </div>
@@ -597,8 +603,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
 
             const statusIcon = e.inviata
-                ? `<span class="text-[10px] font-bold" style="color:#27471E;" title="Inviata tramite SMTP"><i class="fa-solid fa-check"></i> Inviata</span>`
-                : `<span class="text-[10px] font-bold" style="color:#8C734B;" title="Registrata in locale"><i class="fa-solid fa-inbox"></i> Locale</span>`;
+                ? `<span class="text-[10px] font-bold" style="color:#27471E;" title="Inviata tramite Google Gmail SMTP"><i class="fa-solid fa-check"></i> Inviata Gmail</span>`
+                : `<span class="text-[10px] font-bold" style="color:#8C734B;" title="Archiviata su Cloud Database (Neon)"><i class="fa-solid fa-cloud"></i> Cloud DB</span>`;
 
             const d = new Date(e.data_invio);
             const timeStr = d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
@@ -648,9 +654,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             const badgeDiv = document.getElementById("readStatoBadge");
             if (email.inviata) {
-                badgeDiv.innerHTML = `<span class="text-[#27471E] font-bold bg-[#EBEFE0] px-2 py-0.5 rounded border border-[#A4B882] text-[10px]"><i class="fa-solid fa-circle-check"></i> Inviata via SMTP</span>`;
+                badgeDiv.innerHTML = `<span class="text-[#27471E] font-bold bg-[#EBEFE0] px-2 py-0.5 rounded border border-[#A4B882] text-[10px]"><i class="fa-solid fa-circle-check"></i> Inviata via Google Gmail SMTP</span>`;
             } else {
-                badgeDiv.innerHTML = `<span class="text-[#8C734B] font-bold bg-[#F7F3EA] px-2 py-0.5 rounded border border-[#D4C29B] text-[10px]"><i class="fa-solid fa-database"></i> Registrata in locale</span>`;
+                badgeDiv.innerHTML = `<span class="text-[#8C734B] font-bold bg-[#F7F3EA] px-2 py-0.5 rounded border border-[#D4C29B] text-[10px]"><i class="fa-solid fa-cloud"></i> Archiviata su Cloud DB (Neon)</span>`;
             }
 
             const boxLink = document.getElementById("boxLinkAzione");

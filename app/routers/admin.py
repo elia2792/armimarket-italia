@@ -3,18 +3,30 @@ from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
-from app.models.annuncio import Annuncio, StatoAnnuncio
+from app.models.annuncio import (
+    Annuncio,
+    ClassificazioneArma,
+    CondizioneArma,
+    StatoAnnuncio,
+    TipologiaArma,
+    TipologiaInserzionista,
+)
 from app.models.email_log import EmailLog, TipologiaEmail
 from app.models.geo import Comune, Provincia
 from app.models.segnalazione import SegnalazioneAnnuncio
 from app.models.user import RuoloUtente, User
 from app.routers.auth import get_current_moderator, get_current_user
-from app.schemas.annuncio_schema import AnnuncioAdminOut, ComuneOut
+from app.schemas.annuncio_schema import (
+    AdminAnnuncioUpdateRequest,
+    AdminAnnunciListResponse,
+    AnnuncioAdminOut,
+    ComuneOut,
+)
 from app.services.email_service import EmailService
 from app.services.moderation_service import ModerationService, mask_matricola
 
@@ -95,6 +107,55 @@ class AdminReplyRequest(BaseModel):
     destinatario: Optional[str] = Field(None, description="Destinatario alternativo se diverso dal mittente originale")
 
 
+def _build_annuncio_admin_out(a: Annuncio) -> AnnuncioAdminOut:
+    comune_out = None
+    if a.comune:
+        sigla = a.comune.provincia.sigla_automobilistica if a.comune.provincia else None
+        regione_nome = a.comune.provincia.regione.nome if a.comune.provincia and a.comune.provincia.regione else None
+        comune_out = ComuneOut(
+            id=a.comune.id,
+            nome=a.comune.nome,
+            cap=a.comune.cap,
+            provincia_id=a.comune.provincia_id,
+            latitudine=a.comune.latitudine,
+            longitudine=a.comune.longitudine,
+            sigla_provincia=sigla,
+            nome_regione=regione_nome,
+        )
+
+    return AnnuncioAdminOut(
+        id=a.id,
+        titolo=a.titolo,
+        slug=a.slug,
+        descrizione=a.descrizione,
+        prezzo=a.prezzo,
+        prezzo_originale=a.prezzo_originale,
+        stato=a.stato,
+        tipologia_inserzionista=a.tipologia_inserzionista,
+        tipologia_arma=a.tipologia_arma,
+        marca=a.marca,
+        modello=a.modello,
+        calibro=a.calibro,
+        classificazione=a.classificazione,
+        condizione=a.condizione,
+        comune_id=a.comune_id,
+        galleria_immagini=a.galleria_immagini or [],
+        link_esterno=a.link_esterno,
+        email_contatto=a.email_contatto,
+        telefono_contatto=a.telefono_contatto,
+        visualizzazioni=a.visualizzazioni,
+        data_creazione=a.data_creazione,
+        data_aggiornamento=a.data_aggiornamento,
+        comune=comune_out,
+        fonte_esterna=a.fonte_esterna,
+        is_scraped=bool(a.fonte_esterna or a.link_esterno),
+        matricola_mascherata=mask_matricola(a.matricola_riservata),
+        matricola_originale_disponibile=bool(a.matricola_riservata),
+        note_moderazione=a.note_moderazione,
+        utente_id=a.utente_id,
+    )
+
+
 @router.get("/moderazione", response_model=List[AnnuncioAdminOut])
 async def list_pending_ads(
     pagina: int = Query(1, ge=1),
@@ -114,54 +175,7 @@ async def list_pending_ads(
     )
     result = await db.execute(stmt)
     annunci = result.scalars().all()
-
-    output = []
-    for a in annunci:
-        comune_out = None
-        if a.comune:
-            sigla = a.comune.provincia.sigla_automobilistica if a.comune.provincia else None
-            regione_nome = a.comune.provincia.regione.nome if a.comune.provincia and a.comune.provincia.regione else None
-            comune_out = ComuneOut(
-                id=a.comune.id,
-                nome=a.comune.nome,
-                cap=a.comune.cap,
-                provincia_id=a.comune.provincia_id,
-                latitudine=a.comune.latitudine,
-                longitudine=a.comune.longitudine,
-                sigla_provincia=sigla,
-                nome_regione=regione_nome,
-            )
-
-        output.append(
-            AnnuncioAdminOut(
-                id=a.id,
-                titolo=a.titolo,
-                slug=a.slug,
-                descrizione=a.descrizione,
-                prezzo=a.prezzo,
-                stato=a.stato,
-                tipologia_inserzionista=a.tipologia_inserzionista,
-                tipologia_arma=a.tipologia_arma,
-                marca=a.marca,
-                modello=a.modello,
-                calibro=a.calibro,
-                classificazione=a.classificazione,
-                condizione=a.condizione,
-                comune_id=a.comune_id,
-                galleria_immagini=a.galleria_immagini or [],
-                email_contatto=a.email_contatto,
-                telefono_contatto=a.telefono_contatto,
-                visualizzazioni=a.visualizzazioni,
-                data_creazione=a.data_creazione,
-                data_aggiornamento=a.data_aggiornamento,
-                comune=comune_out,
-                matricola_mascherata=mask_matricola(a.matricola_riservata),
-                matricola_originale_disponibile=bool(a.matricola_riservata),
-                note_moderazione=a.note_moderazione,
-                utente_id=a.utente_id,
-            )
-        )
-    return output
+    return [_build_annuncio_admin_out(a) for a in annunci]
 
 
 @router.post("/moderazione/{id}/approva")
@@ -221,6 +235,205 @@ async def reject_annuncio(
         "motivo": req.motivo_rifiuto,
         "stato": annuncio.stato
     }
+
+
+# =========================================================================
+# GESTIONE COMPLETA ANNUNCI (Privati vs Armerie, Modifica & Rimozione)
+# =========================================================================
+
+@router.get("/annunci", response_model=AdminAnnunciListResponse)
+async def list_all_annunci_admin(
+    tipologia_inserzionista: Optional[str] = Query(None, description="Filtro 'privato' o 'armeria'"),
+    stato: Optional[str] = Query(None, description="Filtro stato: pubblicato, in_moderazione, venduto, rifiutato"),
+    search: Optional[str] = Query(None, description="Ricerca testuale per titolo, marca, modello, calibro, armeria"),
+    pagina: int = Query(1, ge=1),
+    elementi_per_pagina: int = Query(20, ge=1, le=100),
+    admin: User = Depends(get_current_moderator),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Restituisce l'elenco completo degli annunci con suddivisione tra Privati e Armerie,
+    filtri per stato, ricerca testuale libera e contatori KPI aggregati.
+    """
+    # Contatori globali per schede riassuntive
+    cnt_totale = (await db.execute(select(func.count(Annuncio.id)))).scalar() or 0
+    cnt_privati = (await db.execute(
+        select(func.count(Annuncio.id)).where(Annuncio.tipologia_inserzionista == TipologiaInserzionista.PRIVATO)
+    )).scalar() or 0
+    cnt_armerie = (await db.execute(
+        select(func.count(Annuncio.id)).where(Annuncio.tipologia_inserzionista == TipologiaInserzionista.ARMERIA)
+    )).scalar() or 0
+    cnt_moderazione = (await db.execute(
+        select(func.count(Annuncio.id)).where(Annuncio.stato == StatoAnnuncio.IN_MODERAZIONE)
+    )).scalar() or 0
+
+    stmt = (
+        select(Annuncio)
+        .options(selectinload(Annuncio.comune).selectinload(Comune.provincia).selectinload(Provincia.regione))
+    )
+
+    if tipologia_inserzionista:
+        tipo_clean = tipologia_inserzionista.lower().strip()
+        if tipo_clean == "privato":
+            stmt = stmt.where(Annuncio.tipologia_inserzionista == TipologiaInserzionista.PRIVATO)
+        elif tipo_clean == "armeria":
+            stmt = stmt.where(Annuncio.tipologia_inserzionista == TipologiaInserzionista.ARMERIA)
+
+    if stato:
+        try:
+            st_enum = StatoAnnuncio(stato.lower().strip())
+            stmt = stmt.where(Annuncio.stato == st_enum)
+        except ValueError:
+            pass
+
+    if search:
+        term = f"%{search.strip().lower()}%"
+        stmt = stmt.where(
+            or_(
+                Annuncio.titolo.ilike(term),
+                Annuncio.marca.ilike(term),
+                Annuncio.modello.ilike(term),
+                Annuncio.calibro.ilike(term),
+                Annuncio.fonte_esterna.ilike(term),
+            )
+        )
+
+    # Conteggio filtrato
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    filtered_total = (await db.execute(count_stmt)).scalar() or 0
+
+    pagine_totali = max(1, (filtered_total + elementi_per_pagina - 1) // elementi_per_pagina)
+    offset = (pagina - 1) * elementi_per_pagina
+    stmt = stmt.order_by(Annuncio.data_creazione.desc()).offset(offset).limit(elementi_per_pagina)
+
+    annunci = (await db.execute(stmt)).scalars().all()
+    results = [_build_annuncio_admin_out(a) for a in annunci]
+
+    return AdminAnnunciListResponse(
+        totale=filtered_total,
+        totale_privati=cnt_privati,
+        totale_armerie=cnt_armerie,
+        totale_in_moderazione=cnt_moderazione,
+        pagina=pagina,
+        elementi_per_pagina=elementi_per_pagina,
+        pagine_totali=pagine_totali,
+        annunci=results
+    )
+
+
+@router.get("/annunci/{id}", response_model=AnnuncioAdminOut)
+async def get_annuncio_admin(
+    id: int,
+    admin: User = Depends(get_current_moderator),
+    db: AsyncSession = Depends(get_db)
+):
+    """Recupera i dettagli completi di un singolo annuncio per l'amministratore."""
+    stmt = (
+        select(Annuncio)
+        .options(selectinload(Annuncio.comune).selectinload(Comune.provincia).selectinload(Provincia.regione))
+        .where(Annuncio.id == id)
+    )
+    annuncio = (await db.execute(stmt)).scalar_one_or_none()
+    if not annuncio:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Annuncio non trovato.")
+    return _build_annuncio_admin_out(annuncio)
+
+
+@router.put("/annunci/{id}", response_model=AnnuncioAdminOut)
+async def update_annuncio_admin(
+    id: int,
+    req: AdminAnnuncioUpdateRequest,
+    admin: User = Depends(get_current_moderator),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Modifica qualsiasi campo di un annuncio esistente (es. titolo, prezzo, marca, calibro, comune, stato).
+    Riservato a utenti amministratori o moderatori di Pubblica Sicurezza.
+    """
+    stmt = (
+        select(Annuncio)
+        .options(selectinload(Annuncio.comune).selectinload(Comune.provincia).selectinload(Provincia.regione))
+        .where(Annuncio.id == id)
+    )
+    annuncio = (await db.execute(stmt)).scalar_one_or_none()
+    if not annuncio:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Annuncio non trovato.")
+
+    # Se il comune viene modificato, verifichiamo la sua presenza anagrafica ISTAT
+    if req.comune_id is not None and req.comune_id != annuncio.comune_id:
+        stmt_c = select(Comune).where(Comune.id == req.comune_id)
+        comune = (await db.execute(stmt_c)).scalar_one_or_none()
+        if not comune:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comune ISTAT selezionato non valido.")
+        annuncio.comune_id = req.comune_id
+
+    # Aggiornamento campi scalari
+    if req.titolo is not None:
+        annuncio.titolo = req.titolo.strip()
+    if req.descrizione is not None:
+        annuncio.descrizione = req.descrizione.strip()
+    if req.prezzo is not None:
+        annuncio.prezzo = req.prezzo
+    if req.prezzo_originale is not None:
+        annuncio.prezzo_originale = req.prezzo_originale
+    if req.marca is not None:
+        annuncio.marca = req.marca.strip()
+    if req.modello is not None:
+        annuncio.modello = req.modello.strip()
+    if req.calibro is not None:
+        annuncio.calibro = req.calibro.strip()
+    if req.tipologia_arma is not None:
+        annuncio.tipologia_arma = req.tipologia_arma
+    if req.classificazione is not None:
+        annuncio.classificazione = req.classificazione
+    if req.condizione is not None:
+        annuncio.condizione = req.condizione
+    if req.tipologia_inserzionista is not None:
+        annuncio.tipologia_inserzionista = req.tipologia_inserzionista
+    if req.stato is not None:
+        annuncio.stato = req.stato
+    if req.email_contatto is not None:
+        annuncio.email_contatto = req.email_contatto
+    if req.telefono_contatto is not None:
+        annuncio.telefono_contatto = req.telefono_contatto
+    if req.mostra_telefono_pubblico is not None:
+        annuncio.mostra_telefono_pubblico = req.mostra_telefono_pubblico
+    if req.galleria_immagini is not None:
+        annuncio.galleria_immagini = req.galleria_immagini
+    if req.fonte_esterna is not None:
+        annuncio.fonte_esterna = req.fonte_esterna.strip() or None
+    if req.link_esterno is not None:
+        annuncio.link_esterno = req.link_esterno.strip() or None
+    if req.note_moderazione is not None:
+        annuncio.note_moderazione = req.note_moderazione.strip() or None
+
+    annuncio.data_aggiornamento = datetime.utcnow()
+    await db.commit()
+
+    # Ricarica l'annuncio con relazioni fresche per la serializzazione
+    stmt_reload = (
+        select(Annuncio)
+        .options(selectinload(Annuncio.comune).selectinload(Comune.provincia).selectinload(Provincia.regione))
+        .where(Annuncio.id == id)
+    )
+    annuncio_aggiornato = (await db.execute(stmt_reload)).scalar_one()
+    return _build_annuncio_admin_out(annuncio_aggiornato)
+
+
+@router.delete("/annunci/{id}")
+async def delete_annuncio_admin(
+    id: int,
+    admin: User = Depends(get_current_moderator),
+    db: AsyncSession = Depends(get_db)
+):
+    """Elimina definitivamente un annuncio dal portale."""
+    stmt = select(Annuncio).where(Annuncio.id == id)
+    annuncio = (await db.execute(stmt)).scalar_one_or_none()
+    if not annuncio:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Annuncio non trovato.")
+    await db.delete(annuncio)
+    await db.commit()
+    return {"status": "success", "success": True, "message": f"Annuncio #{id} eliminato con successo dall'amministratore."}
 
 
 # =========================================================================

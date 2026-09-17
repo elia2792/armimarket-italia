@@ -83,8 +83,8 @@
                     </div>
                 </div>
 
-                <!-- Riga 2: Posizione & Tipologia -->
-                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                <!-- Riga 2: Posizione, Tipologia & Inserzionista -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
                     <div>
                         <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Regione / Territorio</label>
                         <select name="regione_id" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200">
@@ -102,7 +102,16 @@
                             <option value="arma_corta" {% if current_tipo == 'arma_corta' %}selected{% endif %}>Arma Corta</option>
                             <option value="arma_lunga_rigata" {% if current_tipo == 'arma_lunga_rigata' %}selected{% endif %}>Arma Lunga Rigata</option>
                             <option value="canna_liscia" {% if current_tipo == 'canna_liscia' %}selected{% endif %}>Canna Liscia</option>
-                            <option value="aria_compressa_libera" {% if current_tipo == 'aria_compressa_libera' %}selected{% endif %}>Aria Compressa (<7.5J)</option>
+                            <option value="aria_compressa_libera" {% if current_tipo == 'aria_compressa_libera' %}selected{% endif %}>Aria Compressa (&lt;7.5J)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Inserzionista</label>
+                        <select name="tipologia_inserzionista" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200">
+                            <option value="" {% if not current_ins %}selected{% endif %}>Tutti (Privati & Armerie)</option>
+                            <option value="privato" {% if current_ins == 'privato' %}selected{% endif %}>Solo Privati</option>
+                            <option value="armeria" {% if current_ins == 'armeria' %}selected{% endif %}>Solo Armerie</option>
                         </select>
                     </div>
 
@@ -195,6 +204,36 @@
                     <i class="fa-solid fa-map-marked-alt mr-1"></i> Mappa
                 </a>
             </div>
+        </div>
+
+        <!-- Filtro Rapido Inserzionisti (Tutti / Solo Privati / Solo Armerie) -->
+        {% set filter_params = [] %}
+        {% if current_q %}{% set _ = filter_params.append('q=' ~ current_q|urlencode) %}{% endif %}
+        {% if current_marca %}{% set _ = filter_params.append('marca=' ~ current_marca|urlencode) %}{% endif %}
+        {% if current_modello %}{% set _ = filter_params.append('modello=' ~ current_modello|urlencode) %}{% endif %}
+        {% if current_calibro %}{% set _ = filter_params.append('calibro=' ~ current_calibro|urlencode) %}{% endif %}
+        {% if current_regione_id %}{% set _ = filter_params.append('regione_id=' ~ current_regione_id) %}{% endif %}
+        {% if current_tipo %}{% set _ = filter_params.append('tipologia_arma=' ~ current_tipo|urlencode) %}{% endif %}
+        {% if current_pmin %}{% set _ = filter_params.append('prezzo_min=' ~ current_pmin) %}{% endif %}
+        {% if current_pmax %}{% set _ = filter_params.append('prezzo_max=' ~ current_pmax) %}{% endif %}
+        {% if not auto_scrape_active %}{% set _ = filter_params.append('auto_scrape=0') %}{% endif %}
+        {% set base_tab_url = pagination_base_path or '/' %}
+        {% set qs_prefix = ('?' ~ filter_params|join('&') ~ '&') if filter_params else '?' %}
+
+        <div class="flex items-center gap-2 mb-6 border-b border-slate-800 pb-3 overflow-x-auto">
+            <span class="text-xs font-mono uppercase text-slate-400 mr-2 shrink-0">Filtra per:</span>
+            <a href="{{ base_tab_url }}{% if filter_params %}?{{ filter_params|join('&') }}{% endif %}#annunci-grid"
+               class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 {% if not current_ins %}bg-amber-500 text-slate-950 shadow-md{% else %}bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-700{% endif %}">
+                <i class="fa-solid fa-layer-group mr-1.5"></i>Tutti gli Annunci
+            </a>
+            <a href="{{ base_tab_url }}{{ qs_prefix }}tipologia_inserzionista=privato#annunci-grid"
+               class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 {% if current_ins == 'privato' %}bg-blue-600 text-white shadow-md{% else %}bg-slate-900 text-blue-400 hover:bg-slate-800 border border-slate-700{% endif %}">
+                <i class="fa-solid fa-user mr-1.5"></i>Solo Privati
+            </a>
+            <a href="{{ base_tab_url }}{{ qs_prefix }}tipologia_inserzionista=armeria#annunci-grid"
+               class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 {% if current_ins == 'armeria' %}bg-amber-600 text-white shadow-md{% else %}bg-slate-900 text-amber-400 hover:bg-slate-800 border border-slate-700{% endif %}">
+                <i class="fa-solid fa-shop mr-1.5"></i>Solo Armerie
+            </a>
         </div>
 
         {% if annunci and annunci|length > 0 %}

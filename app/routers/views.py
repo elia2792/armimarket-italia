@@ -832,6 +832,17 @@ async def admin_utenti_view(request: Request):
     )
 
 
+@views_router.get("/admin/annunci", response_class=HTMLResponse)
+async def admin_annunci_view(request: Request):
+    """Pannello admin: gestione annunci con distinzione Privati vs Armerie e modifica completa."""
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_annunci.html",
+        context={"version": settings.VERSION}
+    )
+
+
+
 @views_router.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard_view(request: Request):
     """Pannello admin principale: panoramica di tutte le statistiche della piattaforma."""
