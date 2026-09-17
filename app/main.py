@@ -155,7 +155,8 @@ async def lifespan(app: FastAPI):
                 await conn.execute(__import__("sqlalchemy").text("CREATE EXTENSION IF NOT EXISTS postgis;"))
             except Exception:
                 pass
-        await conn.run_sync(Base.metadata.create_all)
+        if not is_production:
+            await conn.run_sync(Base.metadata.create_all)
         if not is_sqlite:
             # Aggiornamento idempotente dello schema PostgreSQL di produzione (disaccoppiamento scraping da utenti)
             for migration_sql in [

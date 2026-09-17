@@ -39,6 +39,8 @@ from app.schemas.annuncio_schema import (
     GeoJSONFeatureCollection,
     RicercaSalvataCreate,
     SegnalazioneCreate,
+    UpdateComuneRequest,
+    UpdateComuneResponse,
 )
 from app.services.email_service import EmailService
 from app.services.moderation_service import ModerationService
@@ -527,6 +529,51 @@ async def update_annuncio_stato(
     annuncio.stato = nuovo_stato
     await db.commit()
     return {"message": f"Stato annuncio aggiornato a '{nuovo_stato.value}'.", "id": id, "stato": nuovo_stato.value}
+
+
+@router.patch("/{id}/comune", response_model=UpdateComuneResponse, status_code=status.HTTP_200_OK)
+async def update_annuncio_comune(
+    id: int,
+    req: UpdateComuneRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Aggiorna il comune di ubicazione di un annuncio esistente."""
+    stmt = select(Annuncio).where(Annuncio.id == id)
+    annuncio = (await db.execute(stmt)).scalar_one_or_none()
+
+    if not annuncio:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Annuncio non trovato."
+        )
+
+    if annuncio.utente_id != current_user.id and current_user.ruolo not in [RuoloUtente.ADMIN, RuoloUtente.MODERATORE]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Non hai i permessi per modificare questo annuncio."
+        )
+
+    # Verifica validità comune ISTAT
+    stmt_comune = select(Comune).options(selectinload(Comune.provincia)).where(Comune.id == req.comune_id)
+    comune = (await db.execute(stmt_comune)).scalar_one_or_none()
+    if not comune:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Il comune selezionato non è presente nell'anagrafica ISTAT."
+        )
+
+    annuncio.comune_id = req.comune_id
+    await db.commit()
+    sigla_prov = comune.provincia.sigla_automobilistica if comune.provincia else ""
+    return UpdateComuneResponse(
+        message=f"Comune aggiornato con successo a {comune.nome} ({sigla_prov}).",
+        id=id,
+        comune_id=req.comune_id,
+        comune_nome=comune.nome,
+        sigla_provincia=sigla_prov
+    )
+
 
 
 @router.post(

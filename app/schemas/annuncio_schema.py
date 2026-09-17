@@ -243,3 +243,16 @@ class ContactFormResponse(BaseModel):
     success: bool
     message: str
     disclaimer: str = LEGAL_DISCLAIMER_FOOTER
+
+
+class UpdateComuneRequest(BaseModel):
+    comune_id: int = Field(..., ge=1, description="ID del nuovo comune di riferimento ISTAT")
+
+
+class UpdateComuneResponse(BaseModel):
+    message: str
+    id: int
+    comune_id: int
+    comune_nome: str
+    sigla_provincia: str
+

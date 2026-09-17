@@ -146,3 +146,49 @@ async def test_annuncio_detail_and_contact_form(client, db_session):
     )
     assert res_ok.status_code == 200
     assert res_ok.json()["success"] is True
+
+
+@pytest.mark.asyncio
+async def test_update_annuncio_comune(client, private_token_headers, db_session):
+    # Annuncio creato con comune_id = 1 (Milano)
+    ad = Annuncio(
+        titolo="Carabina CZ 457 Varmint .22 LR",
+        slug="cz-457-varmint-test",
+        descrizione="Carabina a ripetizione semplice in condizioni eccellenti pari al nuovo.",
+        prezzo=590.0,
+        stato=StatoAnnuncio.PUBBLICATO,
+        tipologia_inserzionista=TipologiaInserzionista.PRIVATO,
+        tipologia_arma=TipologiaArma.ARMA_LUNGA_RIGATA,
+        marca="CZ",
+        modello="457 Varmint",
+        calibro=".22 LR",
+        classificazione=ClassificazioneArma.SPORTIVA,
+        condizione=CondizioneArma.USATO_OTTIMO,
+        matricola_riservata="CZ457TEST",
+        comune_id=1,  # Inizialmente Milano
+        utente_id=2,  # Utente privato nei fixture
+        email_contatto="privato.test@armimarket.it",
+    )
+    db_session.add(ad)
+    await db_session.commit()
+    await db_session.refresh(ad)
+
+    # 1. Aggiorna comune con successo a Roma (comune_id = 2 nel seed)
+    res_patch = await client.patch(
+        f"/api/v1/annunci/{ad.id}/comune",
+        json={"comune_id": 2},
+        headers=private_token_headers
+    )
+    assert res_patch.status_code == 200
+    patch_data = res_patch.json()
+    assert patch_data["comune_id"] == 2
+    assert "comune_nome" in patch_data
+
+    # 2. Comune inesistente -> 404
+    res_404 = await client.patch(
+        f"/api/v1/annunci/{ad.id}/comune",
+        json={"comune_id": 999999},
+        headers=private_token_headers
+    )
+    assert res_404.status_code == 404
+
