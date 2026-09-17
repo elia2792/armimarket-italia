@@ -214,3 +214,40 @@ async def test_invio_email_resend_http(monkeypatch):
     assert err is None
     assert any("api.resend.com" in u for u in called_url)
 
+
+@pytest.mark.asyncio
+async def test_invio_email_smtp2go_http(monkeypatch):
+    from app.core.config import settings
+    from app.services.email_service import EmailService
+    import httpx
+
+    monkeypatch.setattr(settings, "BREVO_API_KEY", None)
+    monkeypatch.setattr(settings, "RESEND_API_KEY", None)
+    monkeypatch.setattr(settings, "SMTP2GO_API_KEY", "api-smtp2go-test-key-123")
+
+    called_url = []
+
+    async def mock_post(self, url, *args, **kwargs):
+        called_url.append(str(url))
+        return httpx.Response(200, json={
+            "request_id": "req-123",
+            "data": {
+                "succeeded": 1,
+                "failed": 0,
+                "failures": []
+            }
+        })
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
+
+    success, err = await EmailService._send_http_email(
+        to_email="utente@destinatario.it",
+        subject="Oggetto Test SMTP2GO",
+        html_body="<p>Test</p>",
+        text_body="Test"
+    )
+    assert success is True
+    assert err is None
+    assert any("api.smtp2go.com" in u for u in called_url)
+
+

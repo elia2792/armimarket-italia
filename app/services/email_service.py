@@ -133,7 +133,44 @@ class EmailService:
                 logger.error(f"Eccezione chiamata Resend API: {e}")
                 return False, str(e)
 
-        return False, "Nessun provider HTTP configurato (imposta BREVO_API_KEY o RESEND_API_KEY)."
+        # 3. Prova SMTP2GO API se configurata
+        if settings.SMTP2GO_API_KEY:
+            try:
+                headers = {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                }
+                sender = f"{settings.EMAILS_FROM_NAME} <{settings.EMAILS_FROM_EMAIL}>" if settings.EMAILS_FROM_NAME else (settings.EMAILS_FROM_EMAIL or "armimarkt@gmail.com")
+                payload = {
+                    "api_key": settings.SMTP2GO_API_KEY.strip(),
+                    "to": [to_email],
+                    "sender": sender,
+                    "subject": subject,
+                    "html_body": html_body,
+                    "text_body": text_body
+                }
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    resp = await client.post("https://api.smtp2go.com/v3/email/send", json=payload, headers=headers)
+                    if resp.status_code == 200:
+                        res_json = resp.json()
+                        data = res_json.get("data", {})
+                        if data.get("succeeded", 0) > 0:
+                            logger.info(f"Email inviata con successo via SMTP2GO API a {to_email}")
+                            return True, None
+                        else:
+                            failures = data.get("failures", [])
+                            err_msg = ", ".join(failures) if failures else str(data.get("error", "Invio non riuscito"))
+                            logger.error(f"Errore risposta SMTP2GO API: {err_msg}")
+                            return False, f"SMTP2GO error: {err_msg}"
+                    else:
+                        err_text = resp.text
+                        logger.error(f"Errore SMTP2GO API HTTP {resp.status_code}: {err_text}")
+                        return False, f"SMTP2GO API error ({resp.status_code}): {err_text}"
+            except Exception as e:
+                logger.error(f"Eccezione chiamata SMTP2GO API: {e}")
+                return False, str(e)
+
+        return False, "Nessun provider HTTP configurato (imposta SMTP2GO_API_KEY o BREVO_API_KEY)."
 
     @classmethod
     async def log_and_send_email(
@@ -150,8 +187,8 @@ class EmailService:
         """Invia l email (via HTTP API o SMTP) e ne registra la copia su database per la casella postale dell amministratore."""
         sender = from_email or f"{settings.EMAILS_FROM_NAME} <{settings.EMAILS_FROM_EMAIL}>"
         
-        # Se presente chiave HTTP (Brevo o Resend), invia via HTTPS porta 443
-        if settings.BREVO_API_KEY or settings.RESEND_API_KEY:
+        # Se presente chiave HTTP (SMTP2GO, Brevo o Resend), invia via HTTPS porta 443
+        if settings.SMTP2GO_API_KEY or settings.BREVO_API_KEY or settings.RESEND_API_KEY:
             success, error = await cls._send_http_email(to_email, subject, html_body, text_body)
         elif settings.SMTP_HOST:
             loop = asyncio.get_running_loop()
@@ -673,7 +710,7 @@ class EmailService:
         if not email_obj:
             return False, "Email non trovata nel database."
 
-        if settings.BREVO_API_KEY or settings.RESEND_API_KEY:
+        if settings.SMTP2GO_API_KEY or settings.BREVO_API_KEY or settings.RESEND_API_KEY:
             success, error = await cls._send_http_email(
                 email_obj.destinatario,
                 email_obj.oggetto,
@@ -691,7 +728,7 @@ class EmailService:
                 email_obj.corpo_testo
             )
         else:
-            success, error = False, "Nessun provider email configurato (imposta BREVO_API_KEY su Render)."
+            success, error = False, "Nessun provider email configurato (imposta SMTP2GO_API_KEY o BREVO_API_KEY su Render)."
 
         if success:
             email_obj.inviata = True
