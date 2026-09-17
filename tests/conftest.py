@@ -149,3 +149,9 @@ def admin_token_headers():
 def private_token_headers():
     token = create_access_token(subject=2, extra_claims={"ruolo": "privato"})
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(autouse=True)
+def mock_smtp_fast(monkeypatch):
+    from app.services.email_service import EmailService
+    monkeypatch.setattr(EmailService, "_send_smtp_email_sync", lambda *args, **kwargs: (True, None))

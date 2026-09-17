@@ -1,10 +1,15 @@
 import asyncio
-import logging
-import smtplib
-from email.header import Header
+from datetime import datetime, timezone
+import email
+from email.header import Header, decode_header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Optional, Tuple
+import email.utils
+import imaplib
+import logging
+import smtplib
+from typing import Any, Dict, List, Optional, Tuple
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -359,4 +364,257 @@ class EmailService:
             tipologia=TipologiaEmail.RISPOSTA_ADMIN.value,
             db=db
         )
+
+    @staticmethod
+    def _decode_header(val: Optional[str]) -> str:
+        """Decodifica gli header MIME (Subject, From) gestendo charset multipli."""
+        if not val:
+            return ""
+        try:
+            parts = decode_header(val)
+            decoded_parts = []
+            for piece, enc in parts:
+                if isinstance(piece, bytes):
+                    decoded_parts.append(piece.decode(enc or "utf-8", errors="replace"))
+                else:
+                    decoded_parts.append(str(piece))
+            return " ".join(decoded_parts).strip()
+        except Exception:
+            return str(val)
+
+    @classmethod
+    def _extract_email_body(cls, msg: email.message.Message) -> Tuple[str, str]:
+        """Estrae corpo HTML e testo piano dal messaggio MIME ricorsivamente."""
+        html_body = ""
+        text_body = ""
+        if msg.is_multipart():
+            for part in msg.walk():
+                content_type = part.get_content_type()
+                content_disposition = str(part.get("Content-Disposition", ""))
+                if "attachment" in content_disposition:
+                    continue
+                charset = part.get_content_charset() or "utf-8"
+                try:
+                    payload = part.get_payload(decode=True)
+                    if not payload:
+                        continue
+                    text = payload.decode(charset, errors="replace")
+                    if content_type == "text/html" and not html_body:
+                        html_body = text
+                    elif content_type == "text/plain" and not text_body:
+                        text_body = text
+                except Exception:
+                    pass
+        else:
+            charset = msg.get_content_charset() or "utf-8"
+            try:
+                payload = msg.get_payload(decode=True)
+                if payload:
+                    text = payload.decode(charset, errors="replace")
+                    if msg.get_content_type() == "text/html":
+                        html_body = text
+                    else:
+                        text_body = text
+            except Exception:
+                pass
+        return html_body, text_body
+
+    @classmethod
+    def _fetch_imap_emails_sync(cls, max_emails: int = 50) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        """Recupera le email da Google Gmail via IMAP in modo sincrono."""
+        if not settings.IMAP_USER or not settings.IMAP_PASSWORD:
+            logger.info("IMAP_USER o IMAP_PASSWORD non configurati.")
+            return [], "Credenziali IMAP non configurate nel server."
+
+        try:
+            host = settings.IMAP_HOST or "imap.gmail.com"
+            port = settings.IMAP_PORT or 993
+            use_ssl = settings.IMAP_SSL if settings.IMAP_SSL is not None else (port == 993)
+
+            if use_ssl:
+                mail = imaplib.IMAP4_SSL(host, port)
+            else:
+                mail = imaplib.IMAP4(host, port)
+
+            with mail:
+                mail.login(settings.IMAP_USER, settings.IMAP_PASSWORD)
+                status, _ = mail.select("INBOX", readonly=True)
+                if status != "OK":
+                    return [], "Impossibile aprire la cartella INBOX su Gmail."
+
+                status, data = mail.search(None, "ALL")
+                if status != "OK" or not data or not data[0]:
+                    return [], None
+
+                msg_ids = data[0].split()
+                recent_ids = list(reversed(msg_ids[-max_emails:]))
+
+                results = []
+                for mid in recent_ids:
+                    try:
+                        res_status, mdata = mail.fetch(mid, "(RFC822)")
+                        if res_status != "OK" or not mdata or not mdata[0] or not isinstance(mdata[0], tuple):
+                            continue
+
+                        raw_email = mdata[0][1]
+                        msg = email.message_from_bytes(raw_email)
+
+                        subject = cls._decode_header(msg.get("Subject", "(Senza Oggetto)"))
+                        from_header = cls._decode_header(msg.get("From", ""))
+                        real_name, clean_email = email.utils.parseaddr(from_header)
+                        from_str = f"{real_name} <{clean_email}>" if real_name else (clean_email or from_header)
+
+                        date_header = msg.get("Date")
+                        email_date = None
+                        if date_header:
+                            try:
+                                email_date = email.utils.parsedate_to_datetime(date_header)
+                                if email_date.tzinfo is None:
+                                    email_date = email_date.replace(tzinfo=timezone.utc)
+                            except Exception:
+                                email_date = datetime.now(timezone.utc)
+                        else:
+                            email_date = datetime.now(timezone.utc)
+
+                        msg_id_header = msg.get("Message-ID", "").strip()
+                        html_body, text_body = cls._extract_email_body(msg)
+
+                        subj_lower = subject.lower()
+                        if "segnalazione" in subj_lower:
+                            tipo = TipologiaEmail.SEGNALAZIONE.value
+                        elif any(k in subj_lower for k in ["contatto", "richiesta", "annuncio"]):
+                            tipo = TipologiaEmail.RICHIESTA_CONTATTO.value
+                        else:
+                            tipo = TipologiaEmail.IN_ARRIVO.value
+
+                        results.append({
+                            "message_id": msg_id_header,
+                            "mittente": from_str,
+                            "destinatario": settings.ADMIN_EMAIL,
+                            "oggetto": subject,
+                            "corpo_html": html_body or f"<div style='font-family:sans-serif;white-space:pre-wrap;padding:12px;'>{text_body}</div>",
+                            "corpo_testo": text_body or html_body,
+                            "tipologia": tipo,
+                            "data_invio": email_date,
+                            "inviata": True,
+                            "link_azione": f"msgid:{msg_id_header}" if msg_id_header else None
+                        })
+                    except Exception as parse_err:
+                        logger.warning(f"Errore parsing email IMAP: {parse_err}")
+                        continue
+
+                return results, None
+        except Exception as e:
+            err_str = str(e)
+            logger.error(f"Errore connessione IMAP Gmail: {err_str}")
+            return [], err_str
+
+    @classmethod
+    async def sync_imap_emails(cls, db: AsyncSession, max_emails: int = 60) -> Dict[str, Any]:
+        """Sincronizza le email in arrivo da Google Gmail salvandole nel database."""
+        loop = asyncio.get_running_loop()
+        emails_data, error = await loop.run_in_executor(
+            None,
+            cls._fetch_imap_emails_sync,
+            max_emails
+        )
+        if error:
+            return {"success": False, "synced_count": 0, "message": f"Errore IMAP: {error}"}
+
+        if not emails_data:
+            return {"success": True, "synced_count": 0, "message": "Nessun nuovo messaggio da sincronizzare su Gmail."}
+
+        # Deduplicazione
+        msg_ids = [e["link_azione"] for e in emails_data if e.get("link_azione")]
+        existing_keys = set()
+        if msg_ids:
+            stmt = select(EmailLog.link_azione).where(EmailLog.link_azione.in_(msg_ids))
+            res = await db.execute(stmt)
+            for row in res.scalars():
+                if row:
+                    existing_keys.add(row)
+
+        synced_count = 0
+        for item in emails_data:
+            key = item.get("link_azione")
+            if key and key in existing_keys:
+                continue
+
+            # Controllo di sicurezza per data e mittente
+            check_stmt = select(EmailLog.id).where(
+                EmailLog.mittente == item["mittente"],
+                EmailLog.oggetto == item["oggetto"],
+                EmailLog.data_invio == item["data_invio"]
+            ).limit(1)
+            existing_dupe = (await db.execute(check_stmt)).scalar_one_or_none()
+            if existing_dupe:
+                continue
+
+            log_entry = EmailLog(
+                mittente=item["mittente"],
+                destinatario=item["destinatario"],
+                oggetto=item["oggetto"],
+                corpo_html=item["corpo_html"],
+                corpo_testo=item["corpo_testo"],
+                tipologia=item["tipologia"],
+                inviata=True,
+                errore=None,
+                link_azione=item.get("link_azione"),
+                data_invio=item["data_invio"]
+            )
+            db.add(log_entry)
+            if key:
+                existing_keys.add(key)
+            synced_count += 1
+
+        if synced_count > 0:
+            await db.commit()
+
+        return {
+            "success": True,
+            "synced_count": synced_count,
+            "message": f"Sincronizzazione completata: {synced_count} nuove email importate da Google Gmail."
+        }
+
+    @classmethod
+    async def retry_send_email(cls, email_id: int, db: AsyncSession) -> Tuple[bool, Optional[str]]:
+        """Riprova l'invio via SMTP Gmail di un'email fallita."""
+        stmt = select(EmailLog).where(EmailLog.id == email_id)
+        email_obj = (await db.execute(stmt)).scalar_one_or_none()
+        if not email_obj:
+            return False, "Email non trovata nel database."
+
+        loop = asyncio.get_running_loop()
+        success, error = await loop.run_in_executor(
+            None,
+            cls._send_smtp_email_sync,
+            email_obj.destinatario,
+            email_obj.oggetto,
+            email_obj.corpo_html,
+            email_obj.corpo_testo
+        )
+
+        if success:
+            email_obj.inviata = True
+            email_obj.errore = None
+        else:
+            email_obj.errore = error
+        await db.commit()
+        return success, error
+
+    @classmethod
+    async def resolve_all_errors(cls, db: AsyncSession) -> int:
+        """Segna tutte le email con errore come risolte/archiviate per azzerare il contatore errori."""
+        stmt = select(EmailLog).where(
+            or_(EmailLog.inviata == False, EmailLog.errore.isnot(None))
+        )
+        emails = (await db.execute(stmt)).scalars().all()
+        count = 0
+        for e in emails:
+            e.inviata = True
+            e.errore = None
+            count += 1
+        if count > 0:
+            await db.commit()
+        return count
 

@@ -72,6 +72,13 @@ class Settings(BaseSettings):
     EMAILS_FROM_EMAIL: str = "no-reply@armimarket.it"
     EMAILS_FROM_NAME: str = "ArmiMarket Italia"
 
+    # Configurazione Ricezione Email IMAP (Google Gmail)
+    IMAP_HOST: str = "imap.gmail.com"
+    IMAP_PORT: int = 993
+    IMAP_USER: Optional[str] = None
+    IMAP_PASSWORD: Optional[str] = None
+    IMAP_SSL: bool = True
+
     @model_validator(mode="after")
     def validate_production_security(self) -> "Settings":
         env_clean = self.ENVIRONMENT.lower().strip()

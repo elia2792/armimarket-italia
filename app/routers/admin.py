@@ -1,12 +1,14 @@
+import email.utils
 import re
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.annuncio import (
     Annuncio,
@@ -78,7 +80,60 @@ class EmailListResponse(BaseModel):
     conteggio_recupero: int
     conteggio_contatti: int
     conteggio_altre: int
+    conteggio_in_arrivo: int = 0
+    conteggio_errori: int = 0
     emails: List[EmailLogOut]
+
+
+class ConversazioneItem(BaseModel):
+    user_email: str
+    user_name: str
+    ultimo_oggetto: str
+    anteprima: str
+    data_ultimo_messaggio: datetime
+    totale_messaggi: int
+    ha_errori: bool
+    ultima_tipologia: str
+    ultimo_id: int
+
+
+class ConversazioniResponse(BaseModel):
+    totale: int
+    pagina: int
+    elementi_per_pagina: int
+    conteggio_errori: int
+    conteggio_recupero: int
+    conteggio_contatti: int
+    conteggio_in_arrivo: int
+    conteggio_altre: int
+    conversazioni: List[ConversazioneItem]
+
+
+class MessaggioConversazione(BaseModel):
+    id: int
+    mittente: str
+    destinatario: str
+    oggetto: str
+    corpo_html: str
+    corpo_testo: str
+    tipologia: str
+    inviata: bool
+    errore: Optional[str] = None
+    link_azione: Optional[str] = None
+    data_invio: datetime
+    is_from_admin: bool
+
+
+class DettaglioConversazioneResponse(BaseModel):
+    user_email: str
+    user_name: str
+    totale_messaggi: int
+    messaggi: List[MessaggioConversazione]
+
+
+class ConversazioneReplyRequest(BaseModel):
+    messaggio: str = Field(..., min_length=1, max_length=10000)
+    oggetto: Optional[str] = None
 
 
 class SegnalazioneOut(BaseModel):
@@ -440,11 +495,48 @@ async def delete_annuncio_admin(
 # CASELLA EMAIL / WEBMAIL AMMINISTRATORE (Consultazione e invio email)
 # =========================================================================
 
+def get_email_counterpart(email_obj: EmailLog) -> Tuple[str, str]:
+    """Determina l'interlocutore (email e nome) contrapposto all'amministratore/sistema."""
+    admin_markers = [
+        (settings.ADMIN_EMAIL or "").lower(),
+        (settings.EMAILS_FROM_EMAIL or "").lower(),
+        "admin",
+        "no-reply",
+        "armimarket"
+    ]
+
+    mittente_raw = email_obj.mittente or ""
+    destinatario_raw = email_obj.destinatario or ""
+
+    real_name, mittente_email = email.utils.parseaddr(mittente_raw)
+    if not mittente_email:
+        m = re.search(r"[\w\.\-+]+@[\w\.\-]+", mittente_raw)
+        mittente_email = m.group(0) if m else mittente_raw
+
+    _, dest_email = email.utils.parseaddr(destinatario_raw)
+    if not dest_email:
+        m = re.search(r"[\w\.\-+]+@[\w\.\-]+", destinatario_raw)
+        dest_email = m.group(0) if m else destinatario_raw
+
+    mittente_email = mittente_email.strip().lower()
+    dest_email = dest_email.strip().lower()
+
+    is_mittente_admin = any(marker and marker in mittente_email for marker in admin_markers) or "admin" in mittente_raw.lower()
+    if is_mittente_admin:
+        counter_email = dest_email
+        counter_name = dest_email.split("@")[0].replace(".", " ").capitalize() if "@" in dest_email else dest_email
+    else:
+        counter_email = mittente_email
+        counter_name = real_name if real_name else (mittente_email.split("@")[0].replace(".", " ").capitalize() if "@" in mittente_email else mittente_email)
+
+    return counter_email, counter_name
+
+
 @router.get("/email", response_model=EmailListResponse)
 async def list_admin_emails(
     pagina: int = Query(1, ge=1),
     elementi_per_pagina: int = Query(25, ge=1, le=100),
-    tipologia: Optional[str] = Query(None, description="Filtra per tipologia (es. recupero_password, richiesta_contatto)"),
+    tipologia: Optional[str] = Query(None, description="Filtra per tipologia (es. recupero_password, richiesta_contatto, in_arrivo, errori)"),
     search: Optional[str] = Query(None, description="Cerca per destinatario, mittente o oggetto"),
     admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
@@ -455,7 +547,17 @@ async def list_admin_emails(
     """
     stmt = select(EmailLog)
     if tipologia:
-        stmt = stmt.where(EmailLog.tipologia == tipologia)
+        if tipologia == "errori":
+            stmt = stmt.where(or_(EmailLog.inviata == False, EmailLog.errore.isnot(None)))
+        elif tipologia == "altre":
+            stmt = stmt.where(EmailLog.tipologia.notin_([
+                TipologiaEmail.RECUPERO_PASSWORD.value,
+                TipologiaEmail.RICHIESTA_CONTATTO.value,
+                TipologiaEmail.IN_ARRIVO.value
+            ]))
+        else:
+            stmt = stmt.where(EmailLog.tipologia == tipologia)
+
     if search and search.strip():
         q_term = f"%{search.strip()}%"
         stmt = stmt.where(
@@ -464,7 +566,6 @@ async def list_admin_emails(
             (EmailLog.oggetto.ilike(q_term)) |
             (EmailLog.corpo_testo.ilike(q_term))
         )
-
 
     # Conteggio totale filtrato
     count_stmt = select(func.count()).select_from(stmt.subquery())
@@ -479,7 +580,13 @@ async def list_admin_emails(
     # Conteggi cartelle globali
     c_recupero = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia == TipologiaEmail.RECUPERO_PASSWORD.value))).scalar() or 0
     c_contatti = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia == TipologiaEmail.RICHIESTA_CONTATTO.value))).scalar() or 0
-    c_altre = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia.notin_([TipologiaEmail.RECUPERO_PASSWORD.value, TipologiaEmail.RICHIESTA_CONTATTO.value])))).scalar() or 0
+    c_in_arrivo = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia == TipologiaEmail.IN_ARRIVO.value))).scalar() or 0
+    c_errori = (await db.execute(select(func.count(EmailLog.id)).where(or_(EmailLog.inviata == False, EmailLog.errore.isnot(None))))).scalar() or 0
+    c_altre = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia.notin_([
+        TipologiaEmail.RECUPERO_PASSWORD.value,
+        TipologiaEmail.RICHIESTA_CONTATTO.value,
+        TipologiaEmail.IN_ARRIVO.value
+    ])))).scalar() or 0
 
     return EmailListResponse(
         totale=totale,
@@ -487,9 +594,247 @@ async def list_admin_emails(
         elementi_per_pagina=elementi_per_pagina,
         conteggio_recupero=c_recupero,
         conteggio_contatti=c_contatti,
+        conteggio_in_arrivo=c_in_arrivo,
+        conteggio_errori=c_errori,
         conteggio_altre=c_altre,
         emails=[EmailLogOut.model_validate(e) for e in emails]
     )
+
+
+@router.get("/email/conversazioni", response_model=ConversazioniResponse)
+async def list_admin_conversazioni(
+    pagina: int = Query(1, ge=1),
+    elementi_per_pagina: int = Query(25, ge=1, le=100),
+    tipologia: Optional[str] = Query(None, description="Filtra per tipologia"),
+    solo_errori: bool = Query(False, description="Mostra solo conversazioni con errori"),
+    search: Optional[str] = Query(None, description="Cerca per testo, email o oggetto"),
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Raggruppa le email in conversazioni unificate per utente (stile Gmail/Outlook),
+    integrando messaggi ricevuti, inviati e risposte.
+    """
+    stmt = select(EmailLog)
+    if tipologia:
+        if tipologia == "errori":
+            stmt = stmt.where(or_(EmailLog.inviata == False, EmailLog.errore.isnot(None)))
+        elif tipologia == "altre":
+            stmt = stmt.where(EmailLog.tipologia.notin_([
+                TipologiaEmail.RECUPERO_PASSWORD.value,
+                TipologiaEmail.RICHIESTA_CONTATTO.value,
+                TipologiaEmail.IN_ARRIVO.value
+            ]))
+        else:
+            stmt = stmt.where(EmailLog.tipologia == tipologia)
+    elif solo_errori:
+        stmt = stmt.where(or_(EmailLog.inviata == False, EmailLog.errore.isnot(None)))
+
+    if search and search.strip():
+        q = f"%{search.strip()}%"
+        stmt = stmt.where(
+            (EmailLog.destinatario.ilike(q)) |
+            (EmailLog.mittente.ilike(q)) |
+            (EmailLog.oggetto.ilike(q)) |
+            (EmailLog.corpo_testo.ilike(q))
+        )
+
+    stmt = stmt.order_by(EmailLog.data_invio.desc())
+    all_emails = (await db.execute(stmt)).scalars().all()
+
+    # Raggruppamento in conversazioni
+    conversations_map: Dict[str, Dict[str, Any]] = {}
+    for em in all_emails:
+        c_email, c_name = get_email_counterpart(em)
+        if not c_email:
+            c_email = em.destinatario.lower()
+            c_name = c_email
+
+        if c_email not in conversations_map:
+            conversations_map[c_email] = {
+                "user_email": c_email,
+                "user_name": c_name,
+                "ultimo_oggetto": em.oggetto,
+                "anteprima": (em.corpo_testo or em.oggetto)[:120],
+                "data_ultimo_messaggio": em.data_invio,
+                "totale_messaggi": 0,
+                "ha_errori": False,
+                "ultima_tipologia": em.tipologia,
+                "ultimo_id": em.id
+            }
+
+        conversations_map[c_email]["totale_messaggi"] += 1
+        if not em.inviata or em.errore:
+            conversations_map[c_email]["ha_errori"] = True
+
+    conv_list = list(conversations_map.values())
+    conv_list.sort(key=lambda x: x["data_ultimo_messaggio"], reverse=True)
+
+    totale = len(conv_list)
+    offset = (pagina - 1) * elementi_per_pagina
+    paginated_convs = conv_list[offset:offset + elementi_per_pagina]
+
+    # Conteggi globali
+    c_recupero = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia == TipologiaEmail.RECUPERO_PASSWORD.value))).scalar() or 0
+    c_contatti = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia == TipologiaEmail.RICHIESTA_CONTATTO.value))).scalar() or 0
+    c_in_arrivo = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia == TipologiaEmail.IN_ARRIVO.value))).scalar() or 0
+    c_errori = (await db.execute(select(func.count(EmailLog.id)).where(or_(EmailLog.inviata == False, EmailLog.errore.isnot(None))))).scalar() or 0
+    c_altre = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia.notin_([
+        TipologiaEmail.RECUPERO_PASSWORD.value,
+        TipologiaEmail.RICHIESTA_CONTATTO.value,
+        TipologiaEmail.IN_ARRIVO.value
+    ])))).scalar() or 0
+
+    return ConversazioniResponse(
+        totale=totale,
+        pagina=pagina,
+        elementi_per_pagina=elementi_per_pagina,
+        conteggio_errori=c_errori,
+        conteggio_recupero=c_recupero,
+        conteggio_contatti=c_contatti,
+        conteggio_in_arrivo=c_in_arrivo,
+        conteggio_altre=c_altre,
+        conversazioni=[ConversazioneItem(**c) for c in paginated_convs]
+    )
+
+
+@router.get("/email/conversazioni/{user_email:path}", response_model=DettaglioConversazioneResponse)
+async def get_admin_conversazione_detail(
+    user_email: str,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Restituisce l'intero thread cronologico di messaggi scambiati con uno specifico utente.
+    """
+    target = user_email.strip().lower()
+    stmt = select(EmailLog).where(
+        (EmailLog.destinatario.ilike(target)) |
+        (EmailLog.mittente.ilike(f"%{target}%"))
+    ).order_by(EmailLog.data_invio.asc())
+
+    result = await db.execute(stmt)
+    emails = result.scalars().all()
+    if not emails:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nessun messaggio trovato per questa conversazione.")
+
+    admin_markers = [
+        (settings.ADMIN_EMAIL or "").lower(),
+        (settings.EMAILS_FROM_EMAIL or "").lower(),
+        "admin",
+        "no-reply"
+    ]
+
+    messaggi = []
+    user_name = target
+    for e in emails:
+        m_lower = (e.mittente or "").lower()
+        is_admin = any(marker in m_lower for marker in admin_markers) or "admin" in m_lower
+        if not is_admin:
+            r_name, _ = email.utils.parseaddr(e.mittente)
+            if r_name:
+                user_name = r_name
+
+        messaggi.append(MessaggioConversazione(
+            id=e.id,
+            mittente=e.mittente,
+            destinatario=e.destinatario,
+            oggetto=e.oggetto,
+            corpo_html=e.corpo_html,
+            corpo_testo=e.corpo_testo,
+            tipologia=e.tipologia,
+            inviata=e.inviata,
+            errore=e.errore,
+            link_azione=e.link_azione,
+            data_invio=e.data_invio,
+            is_from_admin=is_admin
+        ))
+
+    return DettaglioConversazioneResponse(
+        user_email=target,
+        user_name=user_name,
+        totale_messaggi=len(messaggi),
+        messaggi=messaggi
+    )
+
+
+@router.post("/email/conversazioni/{user_email:path}/rispondi")
+async def reply_admin_conversazione(
+    user_email: str,
+    req: ConversazioneReplyRequest,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Invia una risposta integrata nel thread della conversazione dell'utente via Google SMTP."""
+    target = user_email.strip().lower()
+    subject = req.oggetto or f"Risposta Amministrazione ArmiMarket Italia"
+    sent = await EmailService.send_admin_reply_email(
+        to_email=target,
+        subject=subject,
+        reply_message=req.messaggio,
+        db=db
+    )
+    return {
+        "success": True,
+        "inviata_smtp": sent,
+        "destinatario": target,
+        "message": f"Risposta inviata con successo a {target}."
+    }
+
+
+@router.post("/email/sincronizza")
+async def sync_google_emails(
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Sincronizza le email in arrivo dall'account Google Gmail (IMAP)."""
+    res = await EmailService.sync_imap_emails(db=db)
+    return res
+
+
+@router.post("/email/{id}/riprova")
+async def retry_failed_email(
+    id: int,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Riprova l'invio via SMTP Gmail di un'email fallita precedentemente."""
+    success, error = await EmailService.retry_send_email(email_id=id, db=db)
+    if success:
+        return {"success": True, "message": f"Email #{id} inviata con successo tramite Gmail SMTP."}
+    else:
+        return {"success": False, "error": error, "message": f"Tentativo di invio non riuscito: {error}"}
+
+
+@router.post("/email/{id}/risolvi")
+async def resolve_single_email_error(
+    id: int,
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Segna un'email con errore come risolta/archiviata."""
+    stmt = select(EmailLog).where(EmailLog.id == id)
+    email_obj = (await db.execute(stmt)).scalar_one_or_none()
+    if not email_obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email non trovata.")
+    email_obj.inviata = True
+    email_obj.errore = None
+    await db.commit()
+    return {"success": True, "message": f"Errore per email #{id} contrassegnato come risolto."}
+
+
+@router.post("/email/errori/risolvi-tutti")
+async def resolve_all_email_errors(
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Segna tutte le email fallite o di test come risolte/archiviate, azzerando gli errori."""
+    count = await EmailService.resolve_all_errors(db=db)
+    return {
+        "success": True,
+        "risolti": count,
+        "message": f"{count} errori di invio sono stati risolti e azzerati con successo."
+    }
 
 
 @router.get("/email/{id}", response_model=EmailLogOut)

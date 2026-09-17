@@ -19,17 +19,24 @@
                         <i class="fa-solid fa-envelope-open-text"></i>
                     </div>
                     <h1 class="mil-brand text-2xl font-bold text-[#252821] tracking-wide flex items-center gap-2">
-                        CASELLA POSTALE & NOTIFICHE
+                        CASELLA POSTALE & CONVERSAZIONI
                         <span class="text-[11px] font-mono font-bold px-2 py-0.5 rounded border"
                               style="background:#EBEFE0;color:#27471E;border-color:#A4B882;">ADMIN ONLY</span>
                     </h1>
                 </div>
                 <p class="text-xs font-mono text-[#68733F]">
-                    ◆ Consulta in tempo reale tutte le email generate dal portale (recupero password, contatti annunci, segnalazioni).
+                    ◆ Conversazioni unificate per utente con storico integrato, sincronizzazione Google Gmail e gestione invii.
                 </p>
             </div>
 
             <div class="flex items-center flex-wrap gap-2">
+                <button type="button" id="btnSyncGoogleMail"
+                        class="text-xs font-bold px-3.5 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm cursor-pointer"
+                        style="background:#2563EB;border:1px solid #1D4ED8;color:#FFFFFF;"
+                        title="Sincronizza email in arrivo dall'account Google Gmail (armimarkt@gmail.com via IMAP)">
+                    <i class="fa-solid fa-cloud-arrow-down" id="syncGoogleIcon"></i>
+                    <span>Sincronizza Google</span>
+                </button>
                 <button type="button" id="btnRefreshMail"
                         class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm cursor-pointer"
                         style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
@@ -70,8 +77,16 @@
         </div>
     </div>
 
+    <!-- Alert / Banner Notifica Sincronizzazione -->
+    <div id="syncToast" class="hidden mb-4 p-3 rounded-xl border text-xs font-bold flex items-center justify-between transition-all">
+        <div class="flex items-center gap-2" id="syncToastContent"></div>
+        <button type="button" id="btnCloseSyncToast" class="text-xs opacity-70 hover:opacity-100 cursor-pointer">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+
     <!-- Webmail App Grid -->
-    <div id="webmailContainer" class="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div id="webmailContainer" class="mt-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
         <!-- Sidebar Cartelle & Filtri (3 col) -->
         <div class="lg:col-span-3 space-y-4">
@@ -85,16 +100,24 @@
                     </div>
                     <div class="overflow-hidden">
                         <div class="text-xs font-bold text-[#252821] truncate">Admin &bull; ArmiMarket</div>
-                        <div class="text-[11px] text-[#6B7064]">Posta Notifiche & Recuperi</div>
+                        <div class="text-[11px] text-[#6B7064] truncate">armimarkt@gmail.com</div>
                     </div>
                 </div>
 
-                <div class="pt-2 border-t border-[#E8E5DB] flex items-center justify-between text-[11px]">
-                    <span class="text-[#6B7064]">Stato Server SMTP:</span>
-                    <span id="smtpBadge" class="font-bold flex items-center gap-1.5" style="color:#27471E;">
-                        <span class="w-2 h-2 rounded-full inline-block animate-pulse" style="background:#68733F;"></span>
-                        Cloud DB (Neon) & Gmail
-                    </span>
+                <div class="pt-2 border-t border-[#E8E5DB] space-y-1.5 text-[11px]">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[#6B7064]">Google Gmail:</span>
+                        <span class="font-bold text-[#27471E] flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full inline-block bg-emerald-500 animate-pulse"></span>
+                            SMTP & IMAP Attivo
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[#6B7064]">Database Cloud:</span>
+                        <span class="font-bold text-[#4F5A30] flex items-center gap-1">
+                            <i class="fa-solid fa-cloud text-[10px]"></i> Neon PostgreSQL
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -105,9 +128,27 @@
                         style="background:#68733F;color:#FFFFFF;border-color:#4F5A30;">
                     <div class="flex items-center space-x-2.5">
                         <i class="fa-solid fa-inbox text-white"></i>
-                        <span>Tutti i Messaggi</span>
+                        <span>Tutte le Conversazioni</span>
                     </div>
                     <span id="badgeTotal" class="text-[10px] bg-white text-[#252821] px-2 py-0.5 rounded-full font-mono font-bold shadow-xs">0</span>
+                </button>
+
+                <button type="button" data-folder="in_arrivo" id="tabInArrivo"
+                        class="folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] transition-all text-left cursor-pointer border border-transparent">
+                    <div class="flex items-center space-x-2.5">
+                        <i class="fa-brands fa-google text-[#2563EB]"></i>
+                        <span>In Arrivo da Google</span>
+                    </div>
+                    <span id="badgeInArrivo" class="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+                </button>
+
+                <button type="button" data-folder="richiesta_contatto" id="tabContatti"
+                        class="folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] transition-all text-left cursor-pointer border border-transparent">
+                    <div class="flex items-center space-x-2.5">
+                        <i class="fa-solid fa-comments text-[#68733F]"></i>
+                        <span>Richieste Contatto</span>
+                    </div>
+                    <span id="badgeContatti" class="text-[10px] bg-[#EBEFE0] text-[#27471E] border border-[#A4B882] px-2 py-0.5 rounded-full font-mono font-bold">0</span>
                 </button>
 
                 <button type="button" data-folder="recupero_password" id="tabRecupero"
@@ -119,13 +160,13 @@
                     <span id="badgeRecupero" class="text-[10px] bg-[#F7F3EA] text-[#8C734B] border border-[#D4C29B] px-2 py-0.5 rounded-full font-mono font-bold">0</span>
                 </button>
 
-                <button type="button" data-folder="richiesta_contatto" id="tabContatti"
-                        class="folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] transition-all text-left cursor-pointer border border-transparent">
+                <button type="button" data-folder="errori" id="tabErrori"
+                        class="folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-rose-700 hover:bg-rose-50 transition-all text-left cursor-pointer border border-transparent">
                     <div class="flex items-center space-x-2.5">
-                        <i class="fa-solid fa-comments text-[#68733F]"></i>
-                        <span>Richieste Contatto</span>
+                        <i class="fa-solid fa-circle-exclamation text-rose-600"></i>
+                        <span class="font-bold">Errori di Invio</span>
                     </div>
-                    <span id="badgeContatti" class="text-[10px] bg-[#EBEFE0] text-[#27471E] border border-[#A4B882] px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+                    <span id="badgeErrori" class="text-[10px] bg-rose-100 text-rose-800 border border-rose-300 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
                 </button>
 
                 <button type="button" data-folder="altre" id="tabAltre"
@@ -151,24 +192,34 @@
             <div class="p-3 bg-white border border-[#DDD9CD] rounded-2xl shadow-sm">
                 <div class="relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-[#6B7064] text-xs"></i>
-                    <input type="text" id="inputSearchEmail" placeholder="Cerca email, destinatario..."
+                    <input type="text" id="inputSearchEmail" placeholder="Cerca conversazione, utente..."
                            class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-xl pl-9 pr-3 py-2 text-xs text-[#252821] placeholder-[#6B7064] focus:outline-none focus:border-[#68733F] transition-colors">
                 </div>
             </div>
 
         </div>
 
-        <!-- Elenco Messaggi (4 col) -->
-        <div class="lg:col-span-4 bg-white border border-[#DDD9CD] rounded-2xl shadow-sm flex flex-col h-[700px] overflow-hidden">
-            <div class="p-3.5 border-b border-[#DDD9CD] flex items-center justify-between bg-[#F7F5EF]">
-                <span class="text-xs font-bold text-[#252821]" id="currentFolderTitle">Tutti i messaggi</span>
-                <span class="text-[11px] text-[#6B7064] font-mono" id="msgCounterText">0 elementi</span>
+        <!-- Elenco Conversazioni / Messaggi (4 col) -->
+        <div class="lg:col-span-4 bg-white border border-[#DDD9CD] rounded-2xl shadow-sm flex flex-col h-[740px] overflow-hidden">
+            <div class="p-3.5 border-b border-[#DDD9CD] flex items-center justify-between bg-[#F7F5EF] gap-2">
+                <div>
+                    <span class="text-xs font-bold text-[#252821]" id="currentFolderTitle">Tutte le conversazioni</span>
+                    <span class="text-[11px] text-[#6B7064] font-mono ml-1" id="msgCounterText">0 elementi</span>
+                </div>
+                <div id="bulkErrorActions" class="hidden">
+                    <button type="button" id="btnRisolviTuttiErrori"
+                            class="text-[10px] font-bold px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-xs cursor-pointer flex items-center gap-1"
+                            title="Azzera tutti gli errori storici">
+                        <i class="fa-solid fa-check-double"></i>
+                        <span>Azzera Errori</span>
+                    </button>
+                </div>
             </div>
 
             <div id="emailList" class="flex-grow overflow-y-auto divide-y divide-[#E8E5DB] custom-scrollbar">
                 <div class="p-8 text-center text-[#6B7064] text-xs">
                     <i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-[#68733F]"></i>
-                    <p>Caricamento messaggi in corso...</p>
+                    <p>Caricamento conversazioni in corso...</p>
                 </div>
             </div>
 
@@ -186,92 +237,62 @@
             </div>
         </div>
 
-        <!-- Lettore Email / Anteprima Rendering (5 col) -->
-        <div class="lg:col-span-5 bg-white border border-[#DDD9CD] rounded-2xl shadow-sm flex flex-col h-[700px] overflow-hidden">
+        <!-- Lettore Conversazione / Thread Completo (5 col) -->
+        <div class="lg:col-span-5 bg-white border border-[#DDD9CD] rounded-2xl shadow-sm flex flex-col h-[740px] overflow-hidden">
             
             <div id="emptyReaderState" class="m-auto text-center p-8 space-y-3">
                 <div class="w-16 h-16 rounded-full bg-[#F1EFE7] border border-[#DDD9CD] flex items-center justify-center text-2xl text-[#68733F] mx-auto">
-                    <i class="fa-regular fa-envelope-open"></i>
+                    <i class="fa-regular fa-comments"></i>
                 </div>
-                <h4 class="text-sm font-bold text-[#252821]">Nessun messaggio selezionato</h4>
+                <h4 class="text-sm font-bold text-[#252821]">Nessuna conversazione selezionata</h4>
                 <p class="text-xs text-[#6B7064] max-w-xs">
-                    Seleziona un'email o una segnalazione dall'elenco per visualizzarne dettagli e contenuto.
+                    Seleziona un utente dall'elenco a sinistra per visualizzare l'intero scambio di messaggi e rispondere direttamente.
                 </p>
             </div>
 
             <div id="activeReader" class="hidden flex flex-col h-full">
-                <!-- Header Email -->
-                <div class="p-4 border-b border-[#DDD9CD] bg-[#F7F5EF] space-y-3">
-                    <div class="flex items-start justify-between gap-2">
-                        <h3 id="readOggetto" class="text-sm font-black text-[#252821] leading-snug"></h3>
-                        <div class="flex items-center space-x-1.5 shrink-0">
-                            <button type="button" id="btnDeleteEmail" class="px-2.5 py-1 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-xs" title="Elimina definitivamente questa email">
-                                <i class="fa-regular fa-trash-can text-xs"></i>
-                                <span>Elimina Email</span>
-                            </button>
+                <!-- Header Conversazione -->
+                <div class="p-3.5 border-b border-[#DDD9CD] bg-[#F7F5EF] flex items-center justify-between gap-3">
+                    <div class="flex items-center space-x-3 overflow-hidden">
+                        <div class="w-9 h-9 rounded-full bg-[#68733F] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs" id="readUserInitial">
+                            U
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="text-xs font-black text-[#252821] truncate flex items-center gap-1.5">
+                                <span id="readUserName">Utente</span>
+                                <span id="readThreadBadge" class="text-[9px] bg-[#EBEFE0] text-[#27471E] border border-[#A4B882] px-1.5 py-0.2 rounded-full font-mono font-bold">1 msg</span>
+                            </div>
+                            <div class="text-[11px] font-mono text-[#68733F] truncate" id="readUserEmail">utente@email.it</div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-[#DDD9CD]">
-                        <div>
-                            <span class="text-[#6B7064]">Da:</span>
-                            <span id="readMittente" class="text-[#252821] font-mono ml-1 font-semibold"></span>
-                        </div>
-                        <div>
-                            <span class="text-[#6B7064]">A:</span>
-                            <span id="readDestinatario" class="text-[#4F5A30] font-mono ml-1 font-bold"></span>
-                        </div>
-                        <div>
-                            <span class="text-[#6B7064]">Data/Ora:</span>
-                            <span id="readData" class="text-[#252821] ml-1"></span>
-                        </div>
-                        <div class="flex items-center">
-                            <span class="text-[#6B7064] mr-1">Stato:</span>
-                            <span id="readStatoBadge"></span>
-                        </div>
-                    </div>
-
-                    <!-- Box Azione Rapida (Link Recupero Password) -->
-                    <div id="boxLinkAzione" class="hidden p-2.5 bg-[#F7F3EA] border border-[#D4C29B] rounded-xl flex items-center justify-between gap-2">
-                        <div class="truncate text-xs">
-                            <span class="text-[#8C734B] font-bold flex items-center gap-1">
-                                <i class="fa-solid fa-link text-[10px]"></i> Link di Reset Password:
-                            </span>
-                            <a id="linkAzioneHref" href="#" target="_blank" class="text-[#252821] hover:underline font-mono text-[11px] truncate block"></a>
-                        </div>
-                        <button type="button" id="btnCopyLinkAzione" class="shrink-0 bg-[#B59A68] hover:bg-[#8C734B] text-white font-bold text-[10px] px-2.5 py-1 rounded transition-colors shadow-xs cursor-pointer">
-                            Copia Link
+                    <div class="flex items-center space-x-1.5 shrink-0">
+                        <button type="button" id="btnRefreshThread" class="p-1.5 text-xs text-[#68733F] hover:bg-[#F1EFE7] border border-[#DDD9CD] rounded-lg transition-all cursor-pointer" title="Ricarica questo thread">
+                            <i class="fa-solid fa-arrows-rotate"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- Schede Visualizzazione (HTML o Testo Piano) -->
-                <div class="px-4 pt-2 border-b border-[#DDD9CD] bg-white flex items-center space-x-3 text-xs">
-                    <button type="button" id="tabHtmlBtn" class="pb-2 border-b-2 border-[#68733F] text-[#252821] font-bold cursor-pointer">Anteprima Grafica (HTML)</button>
-                    <button type="button" id="tabTextBtn" class="pb-2 border-b-2 border-transparent text-[#6B7064] hover:text-[#252821] cursor-pointer">Testo Diretto</button>
+                <!-- Timeline Messaggi del Thread (Cronologico) -->
+                <div id="threadMessagesContainer" class="flex-grow p-4 overflow-y-auto space-y-4 bg-[#F7F5EF] custom-scrollbar">
+                    <!-- Messaggi renderizzati dinamicamente -->
                 </div>
 
-                <!-- Corpo Email -->
-                <div class="flex-grow p-4 overflow-y-auto bg-[#F7F5EF]">
-                    <div id="readCorpoHtml" class="bg-white rounded-xl p-3 border border-[#DDD9CD]">
-                        <iframe id="htmlIframe" class="w-full h-[300px] rounded-lg border-0 bg-white" sandbox=""></iframe>
-                    </div>
-                    <pre id="readCorpoTesto" class="hidden whitespace-pre-wrap font-mono text-xs text-[#252821] p-4 bg-white border border-[#DDD9CD] rounded-xl leading-relaxed"></pre>
-                </div>
-
-                <!-- Box Risposta Diretta dall'Amministratore -->
-                <div id="replySection" class="p-3.5 border-t border-[#DDD9CD] bg-white space-y-2">
+                <!-- Box Risposta Integrata nel Thread -->
+                <div id="replySection" class="p-3.5 border-t border-[#DDD9CD] bg-white space-y-2 shrink-0">
                     <div class="flex items-center justify-between text-xs">
                         <span class="font-bold text-[#4F5A30] flex items-center gap-1.5">
-                            <i class="fa-solid fa-reply"></i> Rispondi al Mittente come Admin
+                            <i class="fa-solid fa-reply"></i> Rispondi a questa conversazione come Admin
                         </span>
-                        <span class="text-[10px] text-[#6B7064] font-mono">Mittente: Admin ArmiMarket</span>
+                        <span class="text-[10px] text-[#6B7064] font-mono">Via Google Gmail SMTP</span>
                     </div>
+                    <input type="text" id="replySubjectText" placeholder="Oggetto risposta (opzionale)..."
+                           class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-lg px-2.5 py-1.5 text-xs text-[#252821] placeholder-[#6B7064] focus:outline-none focus:border-[#68733F]">
                     <textarea id="replyMessageText" rows="2" placeholder="Scrivi qui la tua risposta per l'utente..."
                               class="w-full bg-[#F7F5EF] border border-[#DDD9CD] rounded-xl p-2.5 text-xs text-[#252821] placeholder-[#6B7064] focus:outline-none focus:border-[#68733F] resize-none"></textarea>
                     <div class="flex items-center justify-between">
-                        <span id="replyStatus" class="text-[11px] text-[#6B7064]"></span>
-                        <button type="button" id="btnSendReply" class="px-3.5 py-1.5 bg-[#68733F] hover:bg-[#4F5A30] text-white font-bold text-xs rounded-lg shadow-xs flex items-center gap-1 cursor-pointer">
+                        <span id="replyStatus" class="text-[11px]"></span>
+                        <button type="button" id="btnSendReply" class="px-3.5 py-1.5 bg-[#68733F] hover:bg-[#4F5A30] text-white font-bold text-xs rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer">
                             <i class="fa-regular fa-paper-plane"></i> Invia Risposta
                         </button>
                     </div>
@@ -342,7 +363,7 @@
             </button>
         </div>
         <p class="text-xs text-[#4A4E44]">
-            Invia un messaggio per verificare la connessione al server SMTP e la visualizzazione nella casella postale.
+            Invia un messaggio per verificare la connessione SMTP Gmail (porta 465 SSL) e la memorizzazione nel database.
         </p>
         <div>
             <label class="block text-xs font-semibold text-[#252821] mb-1">Email Destinatario *</label>
@@ -376,9 +397,10 @@ let currentPagina = 1;
 let currentTipologia = "";
 let currentSearch = "";
 let debounceTimer = null;
-let emailCorrenteId = null;
+let currentConversazioneUserEmail = null;
 let listaSegnalazioni = [];
 let segnalazioneCorrente = null;
+let currentConversationData = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
     token = getAuthToken();
@@ -417,657 +439,943 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
     }
 
-        // Cartelle / Categorie
-        document.querySelectorAll(".folder-tab").forEach(btn => {
-            btn.addEventListener("click", () => {
-                const folder = btn.getAttribute("data-folder") || "";
-                selezionaCartella(folder);
-            });
+    // Cartelle / Categorie filtri
+    document.querySelectorAll(".folder-tab").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const folder = btn.getAttribute("data-folder") || "";
+            selezionaCartella(folder);
         });
-
-        // Ricerca
-        const inputSearch = document.getElementById("inputSearchEmail");
-        if (inputSearch) {
-            inputSearch.addEventListener("input", cercaDebounced);
-        }
-
-        // Paginazione
-        const btnPrev = document.getElementById("btnPrevPage");
-        if (btnPrev) btnPrev.addEventListener("click", () => cambiaPagina(-1));
-        const btnNext = document.getElementById("btnNextPage");
-        if (btnNext) btnNext.addEventListener("click", () => cambiaPagina(1));
-
-        // Refresh
-        const btnRefresh = document.getElementById("btnRefreshMail");
-        if (btnRefresh) {
-            btnRefresh.addEventListener("click", () => {
-                if (currentTipologia === "segnalazioni") {
-                    caricaSegnalazioni();
-                } else {
-                    caricaEmail(1);
-                }
-            });
-        }
-
-        // Modal Test
-        const btnOpenModal = document.getElementById("btnOpenTestModal");
-        if (btnOpenModal) btnOpenModal.addEventListener("click", apriModalTest);
-        const btnCloseModalX = document.getElementById("btnCloseTestModalX");
-        if (btnCloseModalX) btnCloseModalX.addEventListener("click", chiudiModalTest);
-        const btnCloseModalBtn = document.getElementById("btnCloseTestModalBtn");
-        if (btnCloseModalBtn) btnCloseModalBtn.addEventListener("click", chiudiModalTest);
-        const btnSendTest = document.getElementById("btnInviaTest");
-        if (btnSendTest) btnSendTest.addEventListener("click", eseguiInvioTest);
-
-        // Reader Email Azioni
-        const btnDeleteMail = document.getElementById("btnDeleteEmail");
-        if (btnDeleteMail) btnDeleteMail.addEventListener("click", eliminaEmailCorrente);
-        const btnCopyLink = document.getElementById("btnCopyLinkAzione");
-        if (btnCopyLink) btnCopyLink.addEventListener("click", copiaLinkAzione);
-        const btnTabHtml = document.getElementById("tabHtmlBtn");
-        if (btnTabHtml) btnTabHtml.addEventListener("click", () => mostraTabCorpo("html"));
-        const btnTabText = document.getElementById("tabTextBtn");
-        if (btnTabText) btnTabText.addEventListener("click", () => mostraTabCorpo("text"));
-        const btnSendRep = document.getElementById("btnSendReply");
-        if (btnSendRep) btnSendRep.addEventListener("click", inviaRispostaAdmin);
-
-        // Segnalazioni Azioni
-        const btnArchivia = document.getElementById("btnArchiviaSegnalazione");
-        if (btnArchivia) btnArchivia.addEventListener("click", () => risolviSegnalazioneCorrente("archiviata"));
-        const btnDeleteAnn = document.getElementById("btnDeleteAnnuncioSegnalato");
-        if (btnDeleteAnn) btnDeleteAnn.addEventListener("click", eliminaAnnuncioSegnalatoCorrente);
-
-        // Delegazione click per lista email e segnalazioni
-        const listContainer = document.getElementById("emailList");
-        if (listContainer) {
-            listContainer.addEventListener("click", (e) => {
-                const delBtn = e.target.closest(".btn-del-row");
-                if (delBtn) {
-                    e.stopPropagation();
-                    const id = parseInt(delBtn.getAttribute("data-id"), 10);
-                    if (id) eliminaEmailCorrente(id);
-                    return;
-                }
-                const mailItem = e.target.closest("[data-email-id]");
-                if (mailItem) {
-                    const id = parseInt(mailItem.getAttribute("data-email-id"), 10);
-                    if (id) apriDettaglioEmail(id);
-                    return;
-                }
-                const segItem = e.target.closest("[data-segnalazione-id]");
-                if (segItem) {
-                    const id = parseInt(segItem.getAttribute("data-segnalazione-id"), 10);
-                    if (id) apriDettaglioSegnalazione(id);
-                    return;
-                }
-            });
-        }
-
-        caricaEmail(1);
     });
 
-    async function caricaEmail(pagina = 1) {
-        currentPagina = pagina;
-        const icon = document.getElementById("refreshIcon");
-        if (icon) icon.classList.add("fa-spin");
-
-        const listDiv = document.getElementById("emailList");
-        let url = `/api/v1/admin/email?pagina=${pagina}&elementi_per_pagina=20`;
-        if (currentTipologia) url += `&tipologia=${encodeURIComponent(currentTipologia)}`;
-        if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
-
-        try {
-            const resp = await fetch(url, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-
-            if (resp.status === 401 || resp.status === 403) {
-                window.location.href = "/login?redirect=/admin/posta";
-                return;
-            }
-
-            if (!resp.ok) {
-                throw new Error(`HTTP ${resp.status}`);
-            }
-
-            const data = await resp.json();
-            renderStatistiche(data);
-            renderElencoEmail(data.emails);
-
-            const maxPagine = Math.ceil((data.totale || 0) / (data.elementi_per_pagina || 20)) || 1;
-            const pInd = document.getElementById("pageIndicator");
-            if (pInd) pInd.innerText = `Pag. ${data.pagina || 1} di ${maxPagine}`;
-            const btnP = document.getElementById("btnPrevPage");
-            if (btnP) btnP.disabled = ((data.pagina || 1) <= 1);
-            const btnN = document.getElementById("btnNextPage");
-            if (btnN) btnN.disabled = ((data.pagina || 1) >= maxPagine);
-            const msgCount = document.getElementById("msgCounterText");
-            if (msgCount) msgCount.innerText = `${data.totale || 0} messaggi`;
-
-        } catch (err) {
-            console.error("Errore caricamento email:", err);
-            listDiv.innerHTML = `<div class="p-6 text-center text-rose-400 text-xs">Errore nel caricamento della casella postale.</div>`;
-        } finally {
-            if (icon) icon.classList.remove("fa-spin");
-        }
+    // Ricerca
+    const inputSearch = document.getElementById("inputSearchEmail");
+    if (inputSearch) {
+        inputSearch.addEventListener("input", cercaDebounced);
     }
 
-    function renderStatistiche(data) {
-        if (!data) return;
-        const bTot = document.getElementById("badgeTotal");
-        if (bTot) bTot.innerText = (data.totale !== undefined) ? data.totale : 0;
-        const bRec = document.getElementById("badgeRecupero");
-        if (bRec) bRec.innerText = (data.conteggio_recupero !== undefined) ? data.conteggio_recupero : 0;
-        const bCon = document.getElementById("badgeContatti");
-        if (bCon) bCon.innerText = (data.conteggio_contatti !== undefined) ? data.conteggio_contatti : 0;
-        const bAlt = document.getElementById("badgeAltre");
-        if (bAlt) bAlt.innerText = (data.conteggio_altre !== undefined) ? data.conteggio_altre : 0;
+    // Paginazione
+    const btnPrev = document.getElementById("btnPrevPage");
+    if (btnPrev) btnPrev.addEventListener("click", () => cambiaPagina(-1));
+    const btnNext = document.getElementById("btnNextPage");
+    if (btnNext) btnNext.addEventListener("click", () => cambiaPagina(1));
 
-        // Recupera conteggio segnalazioni non risolte
-        fetch("/api/v1/admin/segnalazioni?solo_aperte=true", {
-            headers: { "Authorization": `Bearer ${token}` }
-        }).then(r => r.json()).then(segList => {
-            const badge = document.getElementById("badgeSegnalazioni");
-            if (badge && Array.isArray(segList)) {
-                badge.innerText = segList.length;
-            }
-        }).catch(() => {});
-    }
-
-
-    function renderElencoEmail(emails) {
-        const listDiv = document.getElementById("emailList");
-        if (!emails || emails.length === 0) {
-            listDiv.innerHTML = `
-                <div class="p-8 text-center text-slate-500 text-xs space-y-2">
-                    <i class="fa-regular fa-folder-open text-2xl"></i>
-                    <p>Nessun messaggio presente in questa cartella.</p>
-                </div>
-            `;
-            return;
-        }
-
-        listDiv.innerHTML = emails.map(e => {
-            const isSelected = (e.id === emailCorrenteId);
-            const activeClass = isSelected
-                ? "bg-[#EBEFE0] border-l-4 border-[#68733F]"
-                : "hover:bg-[#F7F5EF]";
-            
-            let typeBadge = `<span class="text-[9px] bg-[#EFF6FF] text-[#1E3A8A] border border-[#BFDBFE] px-1.5 py-0.5 rounded font-mono font-bold">Sistema</span>`;
-            if (e.tipologia === "recupero_password") {
-                typeBadge = `<span class="text-[9px] bg-[#F7F3EA] text-[#8C734B] border border-[#D4C29B] px-1.5 py-0.5 rounded font-bold">Recupero Password</span>`;
-            } else if (e.tipologia === "richiesta_contatto") {
-                typeBadge = `<span class="text-[9px] bg-[#EBEFE0] text-[#27471E] border border-[#A4B882] px-1.5 py-0.5 rounded font-bold">Richiesta Contatto</span>`;
-            } else if (e.tipologia === "test") {
-                typeBadge = `<span class="text-[9px] bg-[#EFF6FF] text-[#1E3A8A] border border-[#BFDBFE] px-1.5 py-0.5 rounded font-bold">Test</span>`;
-            }
-
-            const statusIcon = e.inviata
-                ? `<span class="text-[10px] font-bold" style="color:#27471E;" title="Inviata tramite Google Gmail SMTP"><i class="fa-solid fa-check"></i> Inviata Gmail</span>`
-                : `<span class="text-[10px] font-bold" style="color:#8C734B;" title="Archiviata su Cloud Database (Neon)"><i class="fa-solid fa-cloud"></i> Cloud DB</span>`;
-
-            const d = new Date(e.data_invio);
-            const timeStr = d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
-
-            return `
-                <div data-email-id="${e.id}" class="p-3 cursor-pointer transition-all ${activeClass} group relative">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-xs font-bold text-[#252821] truncate max-w-[150px]">${escapeHtml(e.destinatario)}</span>
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-[10px] text-[#6B7064] font-mono">${timeStr}</span>
-                            <button type="button" class="btn-del-row p-1 text-[#8C734B] hover:text-rose-600 hover:bg-rose-50 rounded transition-colors" data-id="${e.id}" title="Elimina questo messaggio">
-                                <i class="fa-regular fa-trash-can text-xs pointer-events-none"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="text-xs text-[#4A4E44] font-medium truncate mb-1.5">
-                        ${escapeHtml(e.oggetto)}
-                    </div>
-                    <div class="flex items-center justify-between">
-                        ${typeBadge}
-                        ${statusIcon}
-                    </div>
-                </div>
-            `;
-        }).join("");
-    }
-
-    async function apriDettaglioEmail(id) {
-        emailCorrenteId = id;
-        try {
-            const resp = await fetch(`/api/v1/admin/email/${id}`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (!resp.ok) return;
-
-            const email = await resp.json();
-
-            document.getElementById("emptyReaderState").classList.add("hidden");
-            document.getElementById("activeReader").classList.remove("hidden");
-
-            document.getElementById("readOggetto").innerText = email.oggetto;
-            document.getElementById("readMittente").innerText = email.mittente;
-            document.getElementById("readDestinatario").innerText = email.destinatario;
-            
-            const d = new Date(email.data_invio);
-            document.getElementById("readData").innerText = d.toLocaleString("it-IT");
-
-            const badgeDiv = document.getElementById("readStatoBadge");
-            if (email.inviata) {
-                badgeDiv.innerHTML = `<span class="text-[#27471E] font-bold bg-[#EBEFE0] px-2 py-0.5 rounded border border-[#A4B882] text-[10px]"><i class="fa-solid fa-circle-check"></i> Inviata via Google Gmail SMTP</span>`;
-            } else {
-                badgeDiv.innerHTML = `<span class="text-[#8C734B] font-bold bg-[#F7F3EA] px-2 py-0.5 rounded border border-[#D4C29B] text-[10px]"><i class="fa-solid fa-cloud"></i> Archiviata su Cloud DB (Neon)</span>`;
-            }
-
-            const boxLink = document.getElementById("boxLinkAzione");
-            const linkHref = document.getElementById("linkAzioneHref");
-            if (email.link_azione) {
-                boxLink.classList.remove("hidden");
-                linkHref.href = email.link_azione;
-                linkHref.innerText = email.link_azione;
-            } else {
-                boxLink.classList.add("hidden");
-            }
-
-            const iframe = document.getElementById("htmlIframe");
-            iframe.srcdoc = email.corpo_html || "";
-
-            document.getElementById("readCorpoTesto").innerText = email.corpo_testo || "";
-
-            // Highlight selezione
-            document.querySelectorAll("#emailList [data-email-id]").forEach(el => {
-                const elId = parseInt(el.getAttribute("data-email-id"), 10);
-                if (elId === id) {
-                    el.className = "p-3 cursor-pointer transition-all bg-[#EBEFE0] border-l-4 border-[#68733F]";
-                } else {
-                    el.className = "p-3 cursor-pointer transition-all hover:bg-[#F7F5EF]";
-                }
-            });
-
-        } catch (e) {
-            console.error("Errore lettura email:", e);
-        }
-    }
-
-    function mostraTabCorpo(tipo) {
-        const tabHtmlBtn = document.getElementById("tabHtmlBtn");
-        const tabTextBtn = document.getElementById("tabTextBtn");
-        const corpoHtml = document.getElementById("readCorpoHtml");
-        const corpoText = document.getElementById("readCorpoTesto");
-
-        if (tipo === "html") {
-            tabHtmlBtn.className = "pb-2 border-b-2 border-[#68733F] text-[#252821] font-bold cursor-pointer";
-            tabTextBtn.className = "pb-2 border-b-2 border-transparent text-[#6B7064] hover:text-[#252821] cursor-pointer";
-            corpoHtml.classList.remove("hidden");
-            corpoText.classList.add("hidden");
-        } else {
-            tabTextBtn.className = "pb-2 border-b-2 border-[#68733F] text-[#252821] font-bold cursor-pointer";
-            tabHtmlBtn.className = "pb-2 border-b-2 border-transparent text-[#6B7064] hover:text-[#252821] cursor-pointer";
-            corpoText.classList.remove("hidden");
-            corpoHtml.classList.add("hidden");
-        }
-    }
-
-    async function inviaRispostaAdmin() {
-        if (!emailCorrenteId) return;
-        const msgInput = document.getElementById("replyMessageText");
-        const statusSpan = document.getElementById("replyStatus");
-        const btn = document.getElementById("btnSendReply");
-        const text = msgInput.value.trim();
-
-        if (!text) {
-            alert("Inserisci il testo della risposta.");
-            return;
-        }
-
-        btn.disabled = true;
-        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Invio...`;
-        statusSpan.innerText = "";
-
-        try {
-            const resp = await fetch(`/api/v1/admin/email/${emailCorrenteId}/rispondi`, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ messaggio: text })
-            });
-            const data = await resp.json();
-
-            if (resp.ok) {
-                statusSpan.className = "text-[11px] text-[#27471E] font-bold";
-                statusSpan.innerHTML = `<i class="fa-solid fa-check mr-1"></i> Risposta inviata a ${escapeHtml(data.destinatario || "")}!`;
-                msgInput.value = "";
-                setTimeout(() => { statusSpan.innerText = ""; }, 4000);
-            } else {
-                statusSpan.className = "text-[11px] text-rose-700 font-bold";
-                statusSpan.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${escapeHtml(data.detail || "Errore invio")}`;
-            }
-        } catch(e) {
-            statusSpan.className = "text-[11px] text-rose-700 font-bold";
-            statusSpan.innerText = "Impossibile contattare il server.";
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = `<i class="fa-regular fa-paper-plane"></i> Invia Risposta`;
-        }
-    }
-
-    async function caricaSegnalazioni() {
-        const listDiv = document.getElementById("emailList");
-        listDiv.innerHTML = `<div class="p-8 text-center text-[#6B7064] text-xs"><i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-rose-600"></i><p>Caricamento segnalazioni...</p></div>`;
-
-        try {
-            const resp = await fetch("/api/v1/admin/segnalazioni?solo_aperte=false", {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (!resp.ok) return;
-
-            listaSegnalazioni = await resp.json();
-            const aperte = listaSegnalazioni.filter(s => !s.risolta);
-            document.getElementById("badgeSegnalazioni").innerText = aperte.length;
-            document.getElementById("msgCounterText").innerText = `${listaSegnalazioni.length} segnalazioni`;
-
-            if (listaSegnalazioni.length === 0) {
-                listDiv.innerHTML = `
-                    <div class="p-8 text-center text-[#6B7064] text-xs space-y-2">
-                        <i class="fa-regular fa-circle-check text-2xl text-[#68733F]"></i>
-                        <p>Nessun annuncio segnalato dagli utenti.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            listDiv.innerHTML = listaSegnalazioni.map(s => {
-                const isSelected = (segnalazioneCorrente && segnalazioneCorrente.id === s.id);
-                const activeClass = isSelected ? "bg-rose-50 border-l-4 border-rose-600" : "hover:bg-[#F7F5EF]";
-                const d = new Date(s.data_creazione);
-                const timeStr = d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
-
-                const badgeStato = s.risolta
-                    ? `<span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">Risolta (${escapeHtml(s.azione_intrapresa || '')})</span>`
-                    : `<span class="text-[9px] bg-rose-100 text-rose-700 border border-rose-300 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Aperta</span>`;
-
-                return `
-                    <div data-segnalazione-id="${s.id}" class="p-3 cursor-pointer transition-all ${activeClass}">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-xs font-bold text-rose-700 truncate max-w-[180px]">⚠️ Annuncio #${s.annuncio_id}</span>
-                            <span class="text-[10px] text-[#6B7064] font-mono">${timeStr}</span>
-                        </div>
-                        <div class="text-xs text-[#252821] font-medium truncate mb-1">
-                            ${escapeHtml(s.annuncio_titolo || 'Annuncio')}
-                        </div>
-                        <div class="text-[11px] text-[#4A4E44] truncate mb-1.5">
-                            Motivo: <strong class="text-[#8C734B]">${escapeHtml(s.motivo)}</strong>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            ${badgeStato}
-                            <span class="text-[10px] text-[#6B7064] truncate max-w-[120px]">${escapeHtml(s.email_segnalatore || 'Anonimo')}</span>
-                        </div>
-                    </div>
-                `;
-            }).join("");
-
-        } catch(e) {
-            console.error("Errore segnalazioni:", e);
-            listDiv.innerHTML = `<div class="p-6 text-center text-rose-600 text-xs">Errore nel caricamento delle segnalazioni.</div>`;
-        }
-    }
-
-    function apriDettaglioSegnalazione(id) {
-        segnalazioneCorrente = listaSegnalazioni.find(s => s.id === id);
-        if (!segnalazioneCorrente) return;
-
-        document.getElementById("emptyReaderState").classList.add("hidden");
-        document.getElementById("activeReader").classList.add("hidden");
-        document.getElementById("segnalazioneReader").classList.remove("hidden");
-
-        const s = segnalazioneCorrente;
-        document.getElementById("segTitolo").innerText = `Annuncio #${s.annuncio_id}: ${s.annuncio_titolo || 'Non disponibile'}`;
-        document.getElementById("segPrezzo").innerText = s.annuncio_prezzo ? `Prezzo: € ${s.annuncio_prezzo.toFixed(2)}` : "";
-        document.getElementById("segMotivo").innerText = s.motivo;
-        document.getElementById("segEmail").innerText = s.email_segnalatore || "Anonimo";
-        document.getElementById("segData").innerText = new Date(s.data_creazione).toLocaleString("it-IT");
-        document.getElementById("segDettagli").innerText = s.dettagli;
-        document.getElementById("segLinkScheda").href = `/scheda/${s.annuncio_id}`;
-
-        const badgeDiv = document.getElementById("segStatusBadge");
-        if (s.risolta) {
-            badgeDiv.innerHTML = `<span class="bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs px-2.5 py-1 rounded-full font-bold">Risolta (${escapeHtml(s.azione_intrapresa || '')})</span>`;
-        } else {
-            badgeDiv.innerHTML = `<span class="bg-rose-50 text-rose-700 border border-rose-300 text-xs px-2.5 py-1 rounded-full font-bold">In attesa di verifica</span>`;
-        }
-
-        // Highlight elemento nella lista
-        document.querySelectorAll("#emailList [data-segnalazione-id]").forEach(el => {
-            const elId = parseInt(el.getAttribute("data-segnalazione-id"), 10);
-            if (elId === id) {
-                el.className = "p-3 cursor-pointer transition-all bg-rose-50 border-l-4 border-rose-600";
-            } else {
-                el.className = "p-3 cursor-pointer transition-all hover:bg-[#F7F5EF]";
-            }
-        });
-    }
-
-    async function eliminaAnnuncioSegnalatoCorrente() {
-        if (!segnalazioneCorrente) return;
-        const confirmMsg = `ATTENZIONE: Confermi di voler rimuovere DEFINITIVAMENTE l'annuncio #${segnalazioneCorrente.annuncio_id} dal portale ArmiMarket Italia?\n\nL'annuncio non sarà più visibile agli utenti e verrà cancellato.`;
-        if (!confirm(confirmMsg)) return;
-
-        try {
-            const resp = await fetch(`/api/v1/admin/segnalazioni/${segnalazioneCorrente.id}/elimina-annuncio`, {
-                method: "DELETE",
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            const data = await resp.json();
-            if (resp.ok) {
-                alert(`SUCCESS: ${data.message}`);
-                await caricaSegnalazioni();
-                if (segnalazioneCorrente) apriDettaglioSegnalazione(segnalazioneCorrente.id);
-            } else {
-                alert(`ERRORE: ${data.detail || "Impossibile rimuovere l'annuncio."}`);
-            }
-        } catch(e) {
-            alert("Errore di connessione con il server.");
-        }
-    }
-
-    async function risolviSegnalazioneCorrente(azione) {
-        if (!segnalazioneCorrente) return;
-        try {
-            const resp = await fetch(`/api/v1/admin/segnalazioni/${segnalazioneCorrente.id}/risolvi`, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ azione: azione })
-            });
-            if (resp.ok) {
-                await caricaSegnalazioni();
-                if (segnalazioneCorrente) apriDettaglioSegnalazione(segnalazioneCorrente.id);
-            }
-        } catch(e) {
-            console.error("Errore risoluzione:", e);
-        }
-    }
-
-    function selezionaCartella(tipologia) {
-        currentTipologia = tipologia;
-        emailCorrenteId = null;
-
-        // Reset classi su tutti i tab
-        document.querySelectorAll(".folder-tab").forEach(tab => {
-            tab.className = "folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] transition-all text-left cursor-pointer border border-transparent";
-            tab.style.backgroundColor = "";
-            tab.style.color = "";
-            tab.style.borderColor = "";
-        });
-
-        document.getElementById("activeReader").classList.add("hidden");
-        document.getElementById("segnalazioneReader").classList.add("hidden");
-        document.getElementById("emptyReaderState").classList.remove("hidden");
-
-        let targetId = "tabAll";
-        let title = "Tutti i messaggi";
-        if (tipologia === "recupero_password") {
-            targetId = "tabRecupero";
-            title = "Recupero Password";
-        } else if (tipologia === "richiesta_contatto") {
-            targetId = "tabContatti";
-            title = "Richieste Contatto Annunci";
-        } else if (tipologia === "altre") {
-            targetId = "tabAltre";
-            title = "Notifiche di Sistema & Test";
-        } else if (tipologia === "segnalazioni") {
-            targetId = "tabSegnalazioni";
-            title = "Segnalazioni Annunci per Non Conformità / Truffe";
-        }
-
-        const activeEl = document.getElementById(targetId);
-        if (activeEl) {
-            activeEl.className = "folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer border";
-            activeEl.style.backgroundColor = "#68733F";
-            activeEl.style.color = "#FFFFFF";
-            activeEl.style.borderColor = "#4F5A30";
-        }
-        document.getElementById("currentFolderTitle").innerText = title;
-
-        if (tipologia === "segnalazioni") {
-            caricaSegnalazioni();
-        } else {
-            caricaEmail(1);
-        }
-    }
-
-    function cercaDebounced() {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            currentSearch = (document.getElementById("inputSearchEmail").value || "").trim();
+    // Refresh
+    const btnRefresh = document.getElementById("btnRefreshMail");
+    if (btnRefresh) {
+        btnRefresh.addEventListener("click", () => {
             if (currentTipologia === "segnalazioni") {
                 caricaSegnalazioni();
             } else {
-                caricaEmail(1);
+                caricaConversazioni(1);
             }
-        }, 350);
+        });
     }
 
-    function cambiaPagina(delta) {
-        caricaEmail(currentPagina + delta);
+    // Sincronizza con Google Gmail (IMAP)
+    const btnSync = document.getElementById("btnSyncGoogleMail");
+    if (btnSync) {
+        btnSync.addEventListener("click", sincronizzaConGoogle);
     }
 
-    async function eliminaEmailCorrente(targetId = null) {
-        const idToDelete = (typeof targetId === "number" || typeof targetId === "string") ? parseInt(targetId, 10) : emailCorrenteId;
-        if (!idToDelete) {
-            alert("Nessun messaggio selezionato da eliminare.");
-            return;
-        }
-        if (!confirm(`Sei sicuro di voler eliminare definitivamente il messaggio #${idToDelete} dalla casella postale?`)) return;
+    // Azzera tutti gli errori
+    const btnRisolviAll = document.getElementById("btnRisolviTuttiErrori");
+    if (btnRisolviAll) {
+        btnRisolviAll.addEventListener("click", risolviTuttiGliErrori);
+    }
 
-        token = getAuthToken();
-        if (!token) {
-            alert("Sessione scaduta o non valida. Effettua nuovamente l'accesso.");
+    // Chiudi banner sincronizzazione
+    const btnCloseToast = document.getElementById("btnCloseSyncToast");
+    if (btnCloseToast) {
+        btnCloseToast.addEventListener("click", () => {
+            document.getElementById("syncToast").classList.add("hidden");
+        });
+    }
+
+    // Modal Test
+    const btnOpenModal = document.getElementById("btnOpenTestModal");
+    if (btnOpenModal) btnOpenModal.addEventListener("click", apriModalTest);
+    const btnCloseModalX = document.getElementById("btnCloseTestModalX");
+    if (btnCloseModalX) btnCloseModalX.addEventListener("click", chiudiModalTest);
+    const btnCloseModalBtn = document.getElementById("btnCloseTestModalBtn");
+    if (btnCloseModalBtn) btnCloseModalBtn.addEventListener("click", chiudiModalTest);
+    const btnSendTest = document.getElementById("btnInviaTest");
+    if (btnSendTest) btnSendTest.addEventListener("click", eseguiInvioTest);
+
+    // Refresh Thread
+    const btnRefTh = document.getElementById("btnRefreshThread");
+    if (btnRefTh) {
+        btnRefTh.addEventListener("click", () => {
+            if (currentConversazioneUserEmail) {
+                apriDettaglioConversazione(currentConversazioneUserEmail);
+            }
+        });
+    }
+
+    // Invia Risposta Thread
+    const btnSendRep = document.getElementById("btnSendReply");
+    if (btnSendRep) btnSendRep.addEventListener("click", inviaRispostaConversazione);
+
+    // Segnalazioni Azioni
+    const btnArchivia = document.getElementById("btnArchiviaSegnalazione");
+    if (btnArchivia) btnArchivia.addEventListener("click", () => risolviSegnalazioneCorrente("archiviata"));
+    const btnDeleteAnn = document.getElementById("btnDeleteAnnuncioSegnalato");
+    if (btnDeleteAnn) btnDeleteAnn.addEventListener("click", eliminaAnnuncioSegnalatoCorrente);
+
+    // Event Delegation per Lista Conversazioni e Segnalazioni
+    const listContainer = document.getElementById("emailList");
+    if (listContainer) {
+        listContainer.addEventListener("click", (e) => {
+            const convItem = e.target.closest("[data-user-email]");
+            if (convItem) {
+                const uEmail = convItem.getAttribute("data-user-email");
+                if (uEmail) apriDettaglioConversazione(uEmail);
+                return;
+            }
+            const segItem = e.target.closest("[data-segnalazione-id]");
+            if (segItem) {
+                const id = parseInt(segItem.getAttribute("data-segnalazione-id"), 10);
+                if (id) apriDettaglioSegnalazione(id);
+                return;
+            }
+        });
+    }
+
+    // Event Delegation per il Timeline dei Messaggi nel Thread (Retry, Risolvi, Elimina singolo, Toggle HTML/Text)
+    const threadContainer = document.getElementById("threadMessagesContainer");
+    if (threadContainer) {
+        threadContainer.addEventListener("click", (e) => {
+            // Riprova invio email fallita
+            const retryBtn = e.target.closest(".btn-retry-mail");
+            if (retryBtn) {
+                const id = parseInt(retryBtn.getAttribute("data-id"), 10);
+                if (id) riprovaInvioEmail(id, retryBtn);
+                return;
+            }
+            // Risolvi errore email
+            const resolveBtn = e.target.closest(".btn-resolve-mail");
+            if (resolveBtn) {
+                const id = parseInt(resolveBtn.getAttribute("data-id"), 10);
+                if (id) risolviErroreEmail(id, resolveBtn);
+                return;
+            }
+            // Elimina singola email
+            const delBtn = e.target.closest(".btn-del-mail");
+            if (delBtn) {
+                const id = parseInt(delBtn.getAttribute("data-id"), 10);
+                if (id) eliminaSingolaEmail(id);
+                return;
+            }
+            // Toggle corpo HTML / Testo
+            const toggleBtn = e.target.closest(".btn-toggle-body-view");
+            if (toggleBtn) {
+                const id = toggleBtn.getAttribute("data-msg-id");
+                const htmlEl = document.getElementById(`msgHtml_${id}`);
+                const textEl = document.getElementById(`msgText_${id}`);
+                if (htmlEl && textEl) {
+                    if (htmlEl.classList.contains("hidden")) {
+                        htmlEl.classList.remove("hidden");
+                        textEl.classList.add("hidden");
+                        toggleBtn.innerText = "Vedi Testo Diretto";
+                    } else {
+                        htmlEl.classList.add("hidden");
+                        textEl.classList.remove("hidden");
+                        toggleBtn.innerText = "Vedi Formato Grafico";
+                    }
+                }
+                return;
+            }
+        });
+    }
+
+    // Caricamento iniziale conversazioni
+    caricaConversazioni(1);
+});
+
+async function caricaConversazioni(pagina = 1) {
+    currentPagina = pagina;
+    const icon = document.getElementById("refreshIcon");
+    if (icon) icon.classList.add("fa-spin");
+
+    const listDiv = document.getElementById("emailList");
+    let url = `/api/v1/admin/email/conversazioni?pagina=${pagina}&elementi_per_pagina=20`;
+    if (currentTipologia) url += `&tipologia=${encodeURIComponent(currentTipologia)}`;
+    if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
+
+    try {
+        const resp = await fetch(url, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (resp.status === 401 || resp.status === 403) {
             window.location.href = "/login?redirect=/admin/posta";
             return;
         }
 
-        try {
-            const resp = await fetch(`/api/v1/admin/email/${idToDelete}`, {
-                method: "DELETE",
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (resp.ok) {
-                if (emailCorrenteId === idToDelete) {
-                    document.getElementById("activeReader").classList.add("hidden");
-                    document.getElementById("emptyReaderState").classList.remove("hidden");
-                    emailCorrenteId = null;
-                }
-                caricaEmail(currentPagina);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+        const data = await resp.json();
+        renderStatistiche(data);
+        renderElencoConversazioni(data.conversazioni);
+
+        const maxPagine = Math.ceil((data.totale || 0) / (data.elementi_per_pagina || 20)) || 1;
+        const pInd = document.getElementById("pageIndicator");
+        if (pInd) pInd.innerText = `Pag. ${data.pagina || 1} di ${maxPagine}`;
+        const btnP = document.getElementById("btnPrevPage");
+        if (btnP) btnP.disabled = ((data.pagina || 1) <= 1);
+        const btnN = document.getElementById("btnNextPage");
+        if (btnN) btnN.disabled = ((data.pagina || 1) >= maxPagine);
+        const msgCount = document.getElementById("msgCounterText");
+        if (msgCount) msgCount.innerText = `${data.totale || 0} conversazioni`;
+
+        // Mostra o nascondi pulsante "Azzera Tutti gli Errori"
+        const bulkErrors = document.getElementById("bulkErrorActions");
+        if (bulkErrors) {
+            if ((data.conteggio_errori || 0) > 0 && currentTipologia === "errori") {
+                bulkErrors.classList.remove("hidden");
             } else {
-                const err = await resp.json().catch(() => ({}));
-                alert(err.detail || `Impossibile eliminare il messaggio (Codice HTTP ${resp.status}).`);
+                bulkErrors.classList.add("hidden");
             }
-        } catch (e) {
-            console.error("Errore cancellazione:", e);
-            alert("Errore di connessione durante la cancellazione del messaggio.");
+        }
+
+    } catch (err) {
+        console.error("Errore caricamento conversazioni:", err);
+        listDiv.innerHTML = `<div class="p-6 text-center text-rose-600 text-xs">Errore nel caricamento delle conversazioni.</div>`;
+    } finally {
+        if (icon) icon.classList.remove("fa-spin");
+    }
+}
+
+function renderStatistiche(data) {
+    if (!data) return;
+    const bTot = document.getElementById("badgeTotal");
+    if (bTot) bTot.innerText = (data.totale !== undefined) ? data.totale : 0;
+    const bInArr = document.getElementById("badgeInArrivo");
+    if (bInArr) bInArr.innerText = (data.conteggio_in_arrivo !== undefined) ? data.conteggio_in_arrivo : 0;
+    const bCon = document.getElementById("badgeContatti");
+    if (bCon) bCon.innerText = (data.conteggio_contatti !== undefined) ? data.conteggio_contatti : 0;
+    const bRec = document.getElementById("badgeRecupero");
+    if (bRec) bRec.innerText = (data.conteggio_recupero !== undefined) ? data.conteggio_recupero : 0;
+    const bErr = document.getElementById("badgeErrori");
+    if (bErr) {
+        bErr.innerText = (data.conteggio_errori !== undefined) ? data.conteggio_errori : 0;
+        if (data.conteggio_errori > 0) {
+            bErr.className = "text-[10px] bg-rose-600 text-white font-bold px-2 py-0.5 rounded-full font-mono shadow-xs animate-pulse";
+        } else {
+            bErr.className = "text-[10px] bg-rose-100 text-rose-800 border border-rose-300 px-2 py-0.5 rounded-full font-mono font-bold";
         }
     }
+    const bAlt = document.getElementById("badgeAltre");
+    if (bAlt) bAlt.innerText = (data.conteggio_altre !== undefined) ? data.conteggio_altre : 0;
 
-    function copiaLinkAzione() {
-        const link = document.getElementById("linkAzioneHref").href;
-        navigator.clipboard.writeText(link).then(() => {
-            alert("Link di recupero password copiato negli appunti!");
+    // Recupera conteggio segnalazioni non risolte
+    fetch("/api/v1/admin/segnalazioni?solo_aperte=true", {
+        headers: { "Authorization": `Bearer ${token}` }
+    }).then(r => r.json()).then(segList => {
+        const badge = document.getElementById("badgeSegnalazioni");
+        if (badge && Array.isArray(segList)) {
+            badge.innerText = segList.length;
+        }
+    }).catch(() => {});
+}
+
+function renderElencoConversazioni(convs) {
+    const listDiv = document.getElementById("emailList");
+    if (!convs || convs.length === 0) {
+        listDiv.innerHTML = `
+            <div class="p-8 text-center text-slate-500 text-xs space-y-2">
+                <i class="fa-regular fa-folder-open text-2xl text-[#8C734B]"></i>
+                <p>Nessuna conversazione presente in questa cartella.</p>
+            </div>
+        `;
+        return;
+    }
+
+    listDiv.innerHTML = convs.map(c => {
+        const isSelected = (c.user_email === currentConversazioneUserEmail);
+        const activeClass = isSelected
+            ? "bg-[#EBEFE0] border-l-4 border-[#68733F]"
+            : "hover:bg-[#F7F5EF]";
+
+        const d = new Date(c.data_ultimo_messaggio);
+        const timeStr = d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+
+        let badgeTipo = `<span class="text-[9px] bg-[#EFF6FF] text-[#1E3A8A] border border-[#BFDBFE] px-1.5 py-0.5 rounded font-mono font-bold">Email</span>`;
+        if (c.ultima_tipologia === "in_arrivo") {
+            badgeTipo = `<span class="text-[9px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded font-bold">Google In Arrivo</span>`;
+        } else if (c.ultima_tipologia === "richiesta_contatto") {
+            badgeTipo = `<span class="text-[9px] bg-[#EBEFE0] text-[#27471E] border border-[#A4B882] px-1.5 py-0.5 rounded font-bold">Richiesta Contatto</span>`;
+        } else if (c.ultima_tipologia === "recupero_password") {
+            badgeTipo = `<span class="text-[9px] bg-[#F7F3EA] text-[#8C734B] border border-[#D4C29B] px-1.5 py-0.5 rounded font-bold">Recupero Pwd</span>`;
+        }
+
+        const msgCountBadge = c.totale_messaggi > 1
+            ? `<span class="text-[10px] bg-[#27471E] text-white px-1.5 py-0.2 rounded-full font-bold font-mono ml-1.5">${c.totale_messaggi} msg</span>`
+            : `<span class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full font-mono ml-1.5">1</span>`;
+
+        let statusIcon = `<span class="text-[10px] font-bold text-[#27471E] flex items-center gap-1"><i class="fa-solid fa-check"></i> Gmail</span>`;
+        if (c.ha_errori) {
+            statusIcon = `<span class="text-[10px] font-bold text-rose-700 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation text-rose-600"></i> Errore Invio</span>`;
+        }
+
+        return `
+            <div data-user-email="${escapeHtml(c.user_email)}" class="p-3 cursor-pointer transition-all ${activeClass} group relative">
+                <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-1 truncate max-w-[190px]">
+                        <span class="text-xs font-bold text-[#252821] truncate">${escapeHtml(c.user_name || c.user_email)}</span>
+                        ${msgCountBadge}
+                    </div>
+                    <span class="text-[10px] text-[#6B7064] font-mono shrink-0">${timeStr}</span>
+                </div>
+                <div class="text-[11px] font-mono text-[#68733F] truncate mb-1">
+                    ${escapeHtml(c.user_email)}
+                </div>
+                <div class="text-xs text-[#4A4E44] font-medium truncate mb-1.5">
+                    ${escapeHtml(c.ultimo_oggetto || '(Senza oggetto)')}
+                </div>
+                <div class="text-[11px] text-[#6B7064] truncate mb-2">
+                    ${escapeHtml(c.anteprima || '')}
+                </div>
+                <div class="flex items-center justify-between">
+                    ${badgeTipo}
+                    ${statusIcon}
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+async function apriDettaglioConversazione(userEmail) {
+    currentConversazioneUserEmail = userEmail;
+
+    document.getElementById("emptyReaderState").classList.add("hidden");
+    document.getElementById("segnalazioneReader").classList.add("hidden");
+    document.getElementById("activeReader").classList.remove("hidden");
+
+    const container = document.getElementById("threadMessagesContainer");
+    container.innerHTML = `<div class="p-8 text-center text-[#6B7064] text-xs"><i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-[#68733F]"></i><p>Caricamento conversazione in corso...</p></div>`;
+
+    // Evidenzia elemento nella lista a sinistra
+    document.querySelectorAll("#emailList [data-user-email]").forEach(el => {
+        if (el.getAttribute("data-user-email") === userEmail) {
+            el.className = "p-3 cursor-pointer transition-all bg-[#EBEFE0] border-l-4 border-[#68733F] group relative";
+        } else {
+            el.className = "p-3 cursor-pointer transition-all hover:bg-[#F7F5EF] group relative";
+        }
+    });
+
+    try {
+        const resp = await fetch(`/api/v1/admin/email/conversazioni/${encodeURIComponent(userEmail)}`, {
+            headers: { "Authorization": `Bearer ${token}` }
         });
+        if (!resp.ok) throw new Error("Errore recupero conversazione");
+
+        const data = await resp.json();
+        currentConversationData = data;
+
+        // Imposta Header Conversazione
+        const initial = (data.user_name || userEmail).charAt(0).toUpperCase();
+        document.getElementById("readUserInitial").innerText = initial;
+        document.getElementById("readUserName").innerText = data.user_name || userEmail;
+        document.getElementById("readUserEmail").innerText = userEmail;
+        document.getElementById("readThreadBadge").innerText = `${data.totale_messaggi} messaggi`;
+
+        // Pre-compila l'oggetto della risposta
+        const lastMsg = data.messaggi[data.messaggi.length - 1];
+        const defaultSubj = lastMsg ? (lastMsg.oggetto.startsWith("Re:") ? lastMsg.oggetto : `Re: ${lastMsg.oggetto}`) : "Risposta Amministrazione ArmiMarket";
+        document.getElementById("replySubjectText").value = defaultSubj;
+        document.getElementById("replyMessageText").value = "";
+        document.getElementById("replyStatus").innerText = "";
+
+        // Renderizza il flusso cronologico di messaggi
+        renderThreadTimeline(data.messaggi);
+
+        // Scrolla automaticamente al messaggio più recente
+        container.scrollTop = container.scrollHeight;
+
+    } catch (err) {
+        console.error("Errore apertura conversazione:", err);
+        container.innerHTML = `<div class="p-6 text-center text-rose-600 text-xs">Impossibile caricare i messaggi di questa conversazione.</div>`;
+    }
+}
+
+function renderThreadTimeline(messaggi) {
+    const container = document.getElementById("threadMessagesContainer");
+    if (!messaggi || messaggi.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-slate-500 text-xs">Nessun messaggio trovato in questa conversazione.</div>`;
+        return;
     }
 
-    function apriModalTest() {
-        const modal = document.getElementById("modalTestEmail");
-        modal.classList.remove("hidden");
-        modal.classList.add("flex");
-        document.getElementById("testEmailFeedback").classList.add("hidden");
+    container.innerHTML = messaggi.map(m => {
+        const d = new Date(m.data_invio);
+        const timeStr = d.toLocaleString("it-IT");
+
+        // Messaggio inviato dall'Amministratore o dal Sistema
+        if (m.is_from_admin) {
+            let errorBox = "";
+            if (!m.inviata || m.errore) {
+                errorBox = `
+                    <div class="mt-2 p-2.5 bg-rose-50 border border-rose-300 rounded-lg text-xs space-y-1.5">
+                        <div class="text-rose-800 font-bold flex items-center gap-1.5">
+                            <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
+                            <span>Invio fallito: ${escapeHtml(m.errore || 'Errore di connessione SMTP')}</span>
+                        </div>
+                        <div class="flex items-center gap-2 pt-1">
+                            <button type="button" class="btn-retry-mail px-2 py-1 bg-[#68733F] hover:bg-[#4F5A30] text-white font-bold text-[10px] rounded transition-all cursor-pointer" data-id="${m.id}">
+                                <i class="fa-solid fa-arrows-rotate mr-1"></i> Riprova Invio (Gmail)
+                            </button>
+                            <button type="button" class="btn-resolve-mail px-2 py-1 bg-[#F1EFE7] hover:bg-[#E8E5DC] border border-[#DDD9CD] text-[#252821] font-bold text-[10px] rounded transition-all cursor-pointer" data-id="${m.id}">
+                                Segna Risolto
+                            </button>
+                            <button type="button" class="btn-del-mail px-2 py-1 text-rose-700 hover:bg-rose-100 font-bold text-[10px] rounded transition-all cursor-pointer" data-id="${m.id}">
+                                Elimina
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="p-4 rounded-xl border border-[#68733F] bg-[#F1EFE7] shadow-xs space-y-2 ml-4">
+                    <div class="flex items-center justify-between border-b border-[#DDD9CD] pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-[#4F5A30] text-white flex items-center justify-center text-[10px] font-bold">
+                                <i class="fa-solid fa-shield"></i>
+                            </span>
+                            <span class="text-xs font-bold text-[#252821]">Amministrazione ArmiMarket Italia</span>
+                            <span class="text-[10px] bg-[#EBEFE0] text-[#27471E] font-bold px-1.5 py-0.2 rounded border border-[#A4B882]">Admin</span>
+                        </div>
+                        <span class="text-[10px] text-[#6B7064] font-mono">${timeStr}</span>
+                    </div>
+                    <div class="text-xs font-bold text-[#252821]">${escapeHtml(m.oggetto)}</div>
+                    <div class="text-xs text-[#252821] whitespace-pre-wrap leading-relaxed bg-white p-3 rounded-lg border border-[#DDD9CD]">
+                        ${escapeHtml(m.corpo_testo || '')}
+                    </div>
+                    ${errorBox}
+                </div>
+            `;
+        }
+
+        // Messaggio ricevuto dall'Utente (In Arrivo)
+        let linkBox = "";
+        if (m.link_azione) {
+            linkBox = `
+                <div class="p-2 bg-[#F7F3EA] border border-[#D4C29B] rounded-lg text-xs flex items-center justify-between gap-2">
+                    <span class="text-[#8C734B] font-bold truncate">
+                        <i class="fa-solid fa-link text-[10px]"></i> ${escapeHtml(m.link_azione)}
+                    </span>
+                    <a href="${escapeHtml(m.link_azione)}" target="_blank" class="px-2 py-0.5 bg-[#B59A68] hover:bg-[#8C734B] text-white font-bold text-[10px] rounded transition-colors shrink-0">
+                        Apri Link
+                    </a>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="p-4 rounded-xl border border-[#DDD9CD] bg-white shadow-xs space-y-2 mr-4">
+                <div class="flex items-center justify-between border-b border-[#E8E5DB] pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-[#8C734B] text-white flex items-center justify-center text-[10px] font-bold">
+                            <i class="fa-regular fa-user"></i>
+                        </span>
+                        <span class="text-xs font-bold text-[#252821]">${escapeHtml(m.mittente)}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-[#6B7064] font-mono">${timeStr}</span>
+                        <button type="button" class="btn-toggle-body-view text-[10px] text-[#8C734B] hover:underline cursor-pointer" data-msg-id="${m.id}">
+                            Vedi Testo Diretto
+                        </button>
+                    </div>
+                </div>
+                <div class="text-xs font-bold text-[#252821]">${escapeHtml(m.oggetto)}</div>
+
+                <!-- Corpo HTML o Testo -->
+                <div id="msgHtml_${m.id}" class="bg-[#F7F5EF] rounded-lg p-2.5 border border-[#DDD9CD] text-xs">
+                    <div class="w-full overflow-x-auto text-xs text-[#252821] leading-relaxed">
+                        ${m.corpo_html || escapeHtml(m.corpo_testo || '')}
+                    </div>
+                </div>
+                <div id="msgText_${m.id}" class="hidden bg-[#F7F5EF] rounded-lg p-3 border border-[#DDD9CD] text-xs font-mono text-[#252821] whitespace-pre-wrap leading-relaxed">
+                    ${escapeHtml(m.corpo_testo || '')}
+                </div>
+
+                ${linkBox}
+            </div>
+        `;
+    }).join("");
+}
+
+async function inviaRispostaConversazione() {
+    if (!currentConversazioneUserEmail) {
+        alert("Nessuna conversazione selezionata.");
+        return;
     }
 
-    function chiudiModalTest() {
-        const modal = document.getElementById("modalTestEmail");
-        modal.classList.add("hidden");
-        modal.classList.remove("flex");
+    const msgInput = document.getElementById("replyMessageText");
+    const subjInput = document.getElementById("replySubjectText");
+    const statusSpan = document.getElementById("replyStatus");
+    const btn = document.getElementById("btnSendReply");
+    const text = msgInput.value.trim();
+
+    if (!text) {
+        alert("Inserisci il testo del messaggio di risposta.");
+        return;
     }
 
-    async function eseguiInvioTest() {
-        const dest = document.getElementById("testEmailDest").value;
-        const feedback = document.getElementById("testEmailFeedback");
-        const btn = document.getElementById("btnInviaTest");
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Invio in corso...`;
+    statusSpan.innerText = "";
 
-        if (!dest || !dest.includes("@")) {
-            alert("Inserisci un indirizzo email valido.");
+    try {
+        const resp = await fetch(`/api/v1/admin/email/conversazioni/${encodeURIComponent(currentConversazioneUserEmail)}/rispondi`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                messaggio: text,
+                oggetto: subjInput.value.trim() || undefined
+            })
+        });
+
+        const data = await resp.json();
+
+        if (resp.ok) {
+            statusSpan.className = "text-[11px] text-[#27471E] font-bold";
+            statusSpan.innerHTML = `<i class="fa-solid fa-check mr-1"></i> Risposta inviata con successo a ${escapeHtml(currentConversazioneUserEmail)}!`;
+            msgInput.value = "";
+
+            // Ricarica subito il thread per mostrare il nuovo messaggio integrato
+            await apriDettaglioConversazione(currentConversazioneUserEmail);
+            // Aggiorna anche l'elenco conversazioni in background
+            caricaConversazioni(currentPagina);
+
+            setTimeout(() => { statusSpan.innerText = ""; }, 4000);
+        } else {
+            statusSpan.className = "text-[11px] text-rose-700 font-bold";
+            statusSpan.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${escapeHtml(data.detail || "Errore invio risposta.")}`;
+        }
+    } catch (e) {
+        console.error("Errore invio risposta:", e);
+        statusSpan.className = "text-[11px] text-rose-700 font-bold";
+        statusSpan.innerText = "Impossibile contattare il server per l'invio.";
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-regular fa-paper-plane"></i> Invia Risposta`;
+    }
+}
+
+async function sincronizzaConGoogle() {
+    const btn = document.getElementById("btnSyncGoogleMail");
+    const icon = document.getElementById("syncGoogleIcon");
+    const toast = document.getElementById("syncToast");
+    const toastContent = document.getElementById("syncToastContent");
+
+    btn.disabled = true;
+    icon.className = "fa-solid fa-spinner fa-spin";
+
+    try {
+        const resp = await fetch("/api/v1/admin/email/sincronizza", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await resp.json();
+
+        toast.classList.remove("hidden");
+        if (resp.ok && data.success) {
+            toast.className = "mb-4 p-3 rounded-xl border bg-blue-50 border-blue-300 text-blue-900 text-xs font-bold flex items-center justify-between";
+            toastContent.innerHTML = `<i class="fa-brands fa-google text-blue-600 text-sm mr-2"></i> ${escapeHtml(data.message || 'Sincronizzazione completata!')}`;
+            await caricaConversazioni(1);
+        } else {
+            toast.className = "mb-4 p-3 rounded-xl border bg-rose-50 border-rose-300 text-rose-900 text-xs font-bold flex items-center justify-between";
+            toastContent.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-600 text-sm mr-2"></i> ${escapeHtml(data.message || 'Errore sincronizzazione con Google.')}`;
+        }
+    } catch (e) {
+        console.error("Errore sync:", e);
+        toast.classList.remove("hidden");
+        toast.className = "mb-4 p-3 rounded-xl border bg-rose-50 border-rose-300 text-rose-900 text-xs font-bold flex items-center justify-between";
+        toastContent.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-600 text-sm mr-2"></i> Connessione fallita durante la sincronizzazione IMAP.`;
+    } finally {
+        btn.disabled = false;
+        icon.className = "fa-solid fa-cloud-arrow-down";
+    }
+}
+
+async function riprovaInvioEmail(id, btnElement) {
+    if (btnElement) {
+        btnElement.disabled = true;
+        btnElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Invio...`;
+    }
+    try {
+        const resp = await fetch(`/api/v1/admin/email/${id}/riprova`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+            alert(`SUCCESS: ${data.message}`);
+            if (currentConversazioneUserEmail) {
+                await apriDettaglioConversazione(currentConversazioneUserEmail);
+            }
+            caricaConversazioni(currentPagina);
+        } else {
+            alert(`ERRORE: ${data.message || 'Tentativo di invio non riuscito.'}`);
+            if (btnElement) {
+                btnElement.disabled = false;
+                btnElement.innerHTML = `<i class="fa-solid fa-arrows-rotate mr-1"></i> Riprova Invio (Gmail)`;
+            }
+        }
+    } catch (e) {
+        alert("Errore di connessione con il server.");
+        if (btnElement) {
+            btnElement.disabled = false;
+            btnElement.innerHTML = `<i class="fa-solid fa-arrows-rotate mr-1"></i> Riprova Invio (Gmail)`;
+        }
+    }
+}
+
+async function risolviErroreEmail(id, btnElement) {
+    try {
+        const resp = await fetch(`/api/v1/admin/email/${id}/risolvi`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+            if (currentConversazioneUserEmail) {
+                await apriDettaglioConversazione(currentConversazioneUserEmail);
+            }
+            caricaConversazioni(currentPagina);
+        } else {
+            alert(data.detail || "Impossibile risolvere l'errore.");
+        }
+    } catch (e) {
+        alert("Errore di connessione.");
+    }
+}
+
+async function risolviTuttiGliErrori() {
+    if (!confirm("Confermi di voler segnare come risolti e azzerare tutti gli errori storici di invio email?")) return;
+    try {
+        const resp = await fetch("/api/v1/admin/email/errori/risolvi-tutti", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+            alert(data.message || "Tutti gli errori sono stati azzerati con successo!");
+            if (currentConversazioneUserEmail) {
+                await apriDettaglioConversazione(currentConversazioneUserEmail);
+            }
+            caricaConversazioni(1);
+        } else {
+            alert("Impossibile azzerare gli errori.");
+        }
+    } catch (e) {
+        alert("Errore di connessione con il server.");
+    }
+}
+
+async function eliminaSingolaEmail(id) {
+    if (!confirm(`Sei sicuro di voler eliminare definitivamente il messaggio #${id}?`)) return;
+    try {
+        const resp = await fetch(`/api/v1/admin/email/${id}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (resp.ok) {
+            if (currentConversazioneUserEmail) {
+                await apriDettaglioConversazione(currentConversazioneUserEmail);
+            }
+            caricaConversazioni(currentPagina);
+        } else {
+            alert("Impossibile eliminare l'email.");
+        }
+    } catch (e) {
+        alert("Errore di connessione.");
+    }
+}
+
+function selezionaCartella(tipologia) {
+    currentTipologia = tipologia;
+
+    // Reset classi cartelle
+    document.querySelectorAll(".folder-tab").forEach(tab => {
+        tab.className = "folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] transition-all text-left cursor-pointer border border-transparent";
+        tab.style.backgroundColor = "";
+        tab.style.color = "";
+        tab.style.borderColor = "";
+    });
+
+    document.getElementById("activeReader").classList.add("hidden");
+    document.getElementById("segnalazioneReader").classList.add("hidden");
+    document.getElementById("emptyReaderState").classList.remove("hidden");
+
+    let targetId = "tabAll";
+    let title = "Tutte le conversazioni";
+    if (tipologia === "in_arrivo") {
+        targetId = "tabInArrivo";
+        title = "In Arrivo da Google (Gmail)";
+    } else if (tipologia === "richiesta_contatto") {
+        targetId = "tabContatti";
+        title = "Richieste Contatto Annunci";
+    } else if (tipologia === "recupero_password") {
+        targetId = "tabRecupero";
+        title = "Recupero Password";
+    } else if (tipologia === "errori") {
+        targetId = "tabErrori";
+        title = "Errori di Invio Email";
+    } else if (tipologia === "altre") {
+        targetId = "tabAltre";
+        title = "Notifiche di Sistema & Test";
+    } else if (tipologia === "segnalazioni") {
+        targetId = "tabSegnalazioni";
+        title = "Segnalazioni Annunci";
+    }
+
+    const activeEl = document.getElementById(targetId);
+    if (activeEl) {
+        activeEl.className = "folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer border";
+        if (tipologia === "errori") {
+            activeEl.style.backgroundColor = "#DC2626";
+            activeEl.style.color = "#FFFFFF";
+            activeEl.style.borderColor = "#991B1B";
+        } else {
+            activeEl.style.backgroundColor = "#68733F";
+            activeEl.style.color = "#FFFFFF";
+            activeEl.style.borderColor = "#4F5A30";
+        }
+    }
+    document.getElementById("currentFolderTitle").innerText = title;
+
+    if (tipologia === "segnalazioni") {
+        caricaSegnalazioni();
+    } else {
+        caricaConversazioni(1);
+    }
+}
+
+async function caricaSegnalazioni() {
+    const listDiv = document.getElementById("emailList");
+    listDiv.innerHTML = `<div class="p-8 text-center text-[#6B7064] text-xs"><i class="fa-solid fa-spinner fa-spin text-lg mb-2 text-rose-600"></i><p>Caricamento segnalazioni...</p></div>`;
+
+    try {
+        const resp = await fetch("/api/v1/admin/segnalazioni?solo_aperte=false", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!resp.ok) return;
+
+        listaSegnalazioni = await resp.json();
+        const aperte = listaSegnalazioni.filter(s => !s.risolta);
+        document.getElementById("badgeSegnalazioni").innerText = aperte.length;
+        document.getElementById("msgCounterText").innerText = `${listaSegnalazioni.length} segnalazioni`;
+
+        if (listaSegnalazioni.length === 0) {
+            listDiv.innerHTML = `
+                <div class="p-8 text-center text-[#6B7064] text-xs space-y-2">
+                    <i class="fa-regular fa-circle-check text-2xl text-[#68733F]"></i>
+                    <p>Nessun annuncio segnalato dagli utenti.</p>
+                </div>
+            `;
             return;
         }
 
-        btn.disabled = true;
-        btn.innerText = "Invio in corso...";
+        listDiv.innerHTML = listaSegnalazioni.map(s => {
+            const isSelected = (segnalazioneCorrente && segnalazioneCorrente.id === s.id);
+            const activeClass = isSelected ? "bg-rose-50 border-l-4 border-rose-600" : "hover:bg-[#F7F5EF]";
+            const d = new Date(s.data_creazione);
+            const timeStr = d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
 
-        try {
-            const resp = await fetch("/api/v1/admin/email/test", {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ destinatario: dest })
-            });
-            const data = await resp.json();
+            const badgeStato = s.risolta
+                ? `<span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">Risolta (${escapeHtml(s.azione_intrapresa || '')})</span>`
+                : `<span class="text-[9px] bg-rose-100 text-rose-700 border border-rose-300 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Aperta</span>`;
 
-            feedback.classList.remove("hidden");
-            if (resp.ok) {
-                feedback.className = "text-xs p-3 rounded-lg bg-[#EBEFE0] border border-[#A4B882] text-[#27471E]";
-                feedback.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> ${escapeHtml(data.message || "")}`;
-                setTimeout(() => {
-                    chiudiModalTest();
-                    caricaEmail(1);
-                }, 1800);
-            } else {
-                feedback.className = "text-xs p-3 rounded-lg bg-rose-50 border border-rose-300 text-rose-800";
-                feedback.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Errore: ${escapeHtml(data.detail || "Impossibile inviare")}`;
-            }
-        } catch (e) {
-            feedback.classList.remove("hidden");
-            feedback.className = "text-xs p-3 rounded-lg bg-rose-50 border border-rose-300 text-rose-800";
-            feedback.innerText = "Errore durante l'invio della richiesta.";
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "Invia Adesso";
+            return `
+                <div data-segnalazione-id="${s.id}" class="p-3 cursor-pointer transition-all ${activeClass}">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold text-rose-700 truncate max-w-[180px]">⚠️ Annuncio #${s.annuncio_id}</span>
+                        <span class="text-[10px] text-[#6B7064] font-mono">${timeStr}</span>
+                    </div>
+                    <div class="text-xs text-[#252821] font-medium truncate mb-1">
+                        ${escapeHtml(s.annuncio_titolo || 'Annuncio')}
+                    </div>
+                    <div class="text-[11px] text-[#4A4E44] truncate mb-1.5">
+                        Motivo: <strong class="text-[#8C734B]">${escapeHtml(s.motivo)}</strong>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        ${badgeStato}
+                        <span class="text-[10px] text-[#6B7064] truncate max-w-[120px]">${escapeHtml(s.email_segnalatore || 'Anonimo')}</span>
+                    </div>
+                </div>
+            `;
+        }).join("");
+
+    } catch(e) {
+        console.error("Errore segnalazioni:", e);
+        listDiv.innerHTML = `<div class="p-6 text-center text-rose-600 text-xs">Errore nel caricamento delle segnalazioni.</div>`;
+    }
+}
+
+function apriDettaglioSegnalazione(id) {
+    segnalazioneCorrente = listaSegnalazioni.find(s => s.id === id);
+    if (!segnalazioneCorrente) return;
+
+    document.getElementById("emptyReaderState").classList.add("hidden");
+    document.getElementById("activeReader").classList.add("hidden");
+    document.getElementById("segnalazioneReader").classList.remove("hidden");
+
+    const s = segnalazioneCorrente;
+    document.getElementById("segTitolo").innerText = `Annuncio #${s.annuncio_id}: ${s.annuncio_titolo || 'Non disponibile'}`;
+    document.getElementById("segPrezzo").innerText = s.annuncio_prezzo ? `Prezzo: € ${s.annuncio_prezzo.toFixed(2)}` : "";
+    document.getElementById("segMotivo").innerText = s.motivo;
+    document.getElementById("segEmail").innerText = s.email_segnalatore || "Anonimo";
+    document.getElementById("segData").innerText = new Date(s.data_creazione).toLocaleString("it-IT");
+    document.getElementById("segDettagli").innerText = s.dettagli;
+    document.getElementById("segLinkScheda").href = `/scheda/${s.annuncio_id}`;
+
+    const badgeDiv = document.getElementById("segStatusBadge");
+    if (s.risolta) {
+        badgeDiv.innerHTML = `<span class="bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs px-2.5 py-1 rounded-full font-bold">Risolta (${escapeHtml(s.azione_intrapresa || '')})</span>`;
+    } else {
+        badgeDiv.innerHTML = `<span class="bg-rose-50 text-rose-700 border border-rose-300 text-xs px-2.5 py-1 rounded-full font-bold">In attesa di verifica</span>`;
+    }
+
+    document.querySelectorAll("#emailList [data-segnalazione-id]").forEach(el => {
+        const elId = parseInt(el.getAttribute("data-segnalazione-id"), 10);
+        if (elId === id) {
+            el.className = "p-3 cursor-pointer transition-all bg-rose-50 border-l-4 border-rose-600";
+        } else {
+            el.className = "p-3 cursor-pointer transition-all hover:bg-[#F7F5EF]";
         }
+    });
+}
+
+async function eliminaAnnuncioSegnalatoCorrente() {
+    if (!segnalazioneCorrente) return;
+    const confirmMsg = `ATTENZIONE: Confermi di voler rimuovere DEFINITIVAMENTE l'annuncio #${segnalazioneCorrente.annuncio_id} dal portale ArmiMarket Italia?\n\nL'annuncio non sarà più visibile agli utenti e verrà cancellato.`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const resp = await fetch(`/api/v1/admin/segnalazioni/${segnalazioneCorrente.id}/elimina-annuncio`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+            alert(`SUCCESS: ${data.message}`);
+            await caricaSegnalazioni();
+            if (segnalazioneCorrente) apriDettaglioSegnalazione(segnalazioneCorrente.id);
+        } else {
+            alert(`ERRORE: ${data.detail || "Impossibile rimuovere l'annuncio."}`);
+        }
+    } catch(e) {
+        alert("Errore di connessione con il server.");
+    }
+}
+
+async function risolviSegnalazioneCorrente(azione) {
+    if (!segnalazioneCorrente) return;
+    try {
+        const resp = await fetch(`/api/v1/admin/segnalazioni/${segnalazioneCorrente.id}/risolvi`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ azione: azione })
+        });
+        if (resp.ok) {
+            await caricaSegnalazioni();
+            if (segnalazioneCorrente) apriDettaglioSegnalazione(segnalazioneCorrente.id);
+        }
+    } catch(e) {
+        console.error("Errore risoluzione:", e);
+    }
+}
+
+function cercaDebounced() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        currentSearch = (document.getElementById("inputSearchEmail").value || "").trim();
+        if (currentTipologia === "segnalazioni") {
+            caricaSegnalazioni();
+        } else {
+            caricaConversazioni(1);
+        }
+    }, 350);
+}
+
+function cambiaPagina(delta) {
+    caricaConversazioni(currentPagina + delta);
+}
+
+function apriModalTest() {
+    const modal = document.getElementById("modalTestEmail");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    document.getElementById("testEmailFeedback").classList.add("hidden");
+}
+
+function chiudiModalTest() {
+    const modal = document.getElementById("modalTestEmail");
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+}
+
+async function eseguiInvioTest() {
+    const dest = document.getElementById("testEmailDest").value;
+    const feedback = document.getElementById("testEmailFeedback");
+    const btn = document.getElementById("btnInviaTest");
+
+    if (!dest || !dest.includes("@")) {
+        alert("Inserisci un indirizzo email valido.");
+        return;
     }
 
-    function escapeHtml(text) {
-        if (!text) return "";
-        return text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
+    btn.disabled = true;
+    btn.innerText = "Invio in corso...";
 
+    try {
+        const resp = await fetch("/api/v1/admin/email/test", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ destinatario: dest })
+        });
+        const data = await resp.json();
+
+        feedback.classList.remove("hidden");
+        if (resp.ok) {
+            feedback.className = "text-xs p-3 rounded-lg bg-[#EBEFE0] border border-[#A4B882] text-[#27471E]";
+            feedback.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> ${escapeHtml(data.message || "")}`;
+            setTimeout(() => {
+                chiudiModalTest();
+                caricaConversazioni(1);
+            }, 1800);
+        } else {
+            feedback.className = "text-xs p-3 rounded-lg bg-rose-50 border border-rose-300 text-rose-800";
+            feedback.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Errore: ${escapeHtml(data.detail || "Impossibile inviare")}`;
+        }
+    } catch (e) {
+        feedback.classList.remove("hidden");
+        feedback.className = "text-xs p-3 rounded-lg bg-rose-50 border border-rose-300 text-rose-800";
+        feedback.innerText = "Errore durante l'invio della richiesta.";
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Invia Adesso";
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return "";
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 </script>
 {% endblock %}

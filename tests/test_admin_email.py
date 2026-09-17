@@ -104,3 +104,56 @@ async def test_invio_email_test_admin(client: AsyncClient, admin_token_headers: 
     resp_list = await client.get("/api/v1/admin/email?search=verifica@collaudo.it", headers=admin_token_headers)
     assert resp_list.status_code == 200
     assert resp_list.json()["totale"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_conversazioni_email_raggruppamento_e_risposta(client: AsyncClient, admin_token_headers: dict):
+    user_target = "cacciatore.lombardo@test.it"
+
+    # Invia due email di test allo stesso utente
+    await client.post("/api/v1/admin/email/test", json={"destinatario": user_target}, headers=admin_token_headers)
+    await client.post("/api/v1/admin/email/test", json={"destinatario": user_target}, headers=admin_token_headers)
+
+    # 1. Recupera lista conversazioni: deve esserci una singola conversazione per l'utente con 2 messaggi
+    resp_conv = await client.get("/api/v1/admin/email/conversazioni", headers=admin_token_headers)
+    assert resp_conv.status_code == 200
+    data = resp_conv.json()
+    assert data["totale"] >= 1
+
+    user_conv = next((c for c in data["conversazioni"] if c["user_email"] == user_target), None)
+    assert user_conv is not None, "La conversazione per l'utente deve essere presente"
+    assert user_conv["totale_messaggi"] >= 2
+
+    # 2. Recupera il dettaglio cronologico del thread
+    resp_detail = await client.get(f"/api/v1/admin/email/conversazioni/{user_target}", headers=admin_token_headers)
+    assert resp_detail.status_code == 200
+    detail = resp_detail.json()
+    assert detail["user_email"] == user_target
+    assert len(detail["messaggi"]) >= 2
+
+    # 3. Rispondi alla conversazione
+    reply_resp = await client.post(
+        f"/api/v1/admin/email/conversazioni/{user_target}/rispondi",
+        json={"messaggio": "Risposta di chiarimento dall'amministratore."},
+        headers=admin_token_headers
+    )
+    assert reply_resp.status_code == 200
+    assert reply_resp.json()["success"] is True
+
+    # 4. Verifica che il thread ora contenga il nuovo messaggio
+    resp_detail2 = await client.get(f"/api/v1/admin/email/conversazioni/{user_target}", headers=admin_token_headers)
+    assert resp_detail2.status_code == 200
+    assert len(resp_detail2.json()["messaggi"]) >= 3
+
+
+@pytest.mark.asyncio
+async def test_gestione_errori_invio_e_risoluzione(client: AsyncClient, admin_token_headers: dict):
+    # Esegui risoluzione globale degli errori
+    resp_res = await client.post("/api/v1/admin/email/errori/risolvi-tutti", headers=admin_token_headers)
+    assert resp_res.status_code == 200
+    assert resp_res.json()["success"] is True
+
+    # Verifica che le conversazioni non abbiano più errori pendenti
+    resp_conv = await client.get("/api/v1/admin/email/conversazioni", headers=admin_token_headers)
+    assert resp_conv.status_code == 200
+    assert resp_conv.json()["conteggio_errori"] == 0

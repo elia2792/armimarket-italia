@@ -13,6 +13,7 @@ class TipologiaEmail(str, enum.Enum):
     ALERT_RICERCA = "alert_ricerca"
     SISTEMA = "sistema"
     TEST = "test"
+    IN_ARRIVO = "in_arrivo"
 
 
 class EmailLog(Base):
