@@ -251,3 +251,35 @@ async def test_invio_email_smtp2go_http(monkeypatch):
     assert any("api.smtp2go.com" in u for u in called_url)
 
 
+@pytest.mark.asyncio
+async def test_invio_email_google_script_http(monkeypatch):
+    from app.core.config import settings
+    from app.services.email_service import EmailService
+    import httpx
+
+    monkeypatch.setattr(settings, "BREVO_API_KEY", None)
+    monkeypatch.setattr(settings, "RESEND_API_KEY", None)
+    monkeypatch.setattr(settings, "SMTP2GO_API_KEY", None)
+    monkeypatch.setattr(settings, "GOOGLE_SCRIPT_EMAIL_URL", "https://script.google.com/macros/s/test-url/exec")
+    monkeypatch.setattr(settings, "GOOGLE_SCRIPT_TOKEN", "armimarket_secret_2026")
+
+    called_url = []
+
+    async def mock_post(self, url, *args, **kwargs):
+        called_url.append(str(url))
+        return httpx.Response(200, json={"success": True})
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
+
+    success, err = await EmailService._send_http_email(
+        to_email="acquirente@test.it",
+        subject="Richiesta info",
+        html_body="<p>Test</p>",
+        text_body="Test"
+    )
+    assert success is True
+    assert err is None
+    assert any("script.google.com" in u for u in called_url)
+
+
+

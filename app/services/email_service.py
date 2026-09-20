@@ -73,6 +73,38 @@ class EmailService:
         """Invia email tramite REST API HTTPS (porta 443, non bloccata dal piano Free di Render)."""
         import httpx
 
+        # 0. Prova Google Apps Script Relay (porta 443 HTTPS - invia direttamente con Gmail personale)
+        if settings.GOOGLE_SCRIPT_EMAIL_URL:
+            try:
+                payload = {
+                    "token": settings.GOOGLE_SCRIPT_TOKEN or "armimarket_secret_2026",
+                    "to": to_email,
+                    "subject": subject,
+                    "html": html_body,
+                    "text": text_body or ""
+                }
+                async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
+                    resp = await client.post(settings.GOOGLE_SCRIPT_EMAIL_URL.strip(), json=payload)
+                    if resp.status_code == 200:
+                        try:
+                            data = resp.json()
+                            if data.get("success") is True:
+                                logger.info(f"Email inviata con successo via Google Apps Script a {to_email}")
+                                return True, None
+                            else:
+                                err_msg = data.get("error", "Errore Google Apps Script")
+                                logger.error(f"Errore Google Script: {err_msg}")
+                                return False, f"Google Apps Script error: {err_msg}"
+                        except Exception:
+                            return True, None
+                    else:
+                        err_text = resp.text
+                        logger.error(f"Errore Google Script HTTP {resp.status_code}: {err_text}")
+                        return False, f"Google Script error ({resp.status_code}): {err_text}"
+            except Exception as e:
+                logger.error(f"Eccezione chiamata Google Script: {e}")
+                return False, str(e)
+
         # 1. Prova Brevo API se configurata
         if settings.BREVO_API_KEY:
             try:
@@ -187,8 +219,8 @@ class EmailService:
         """Invia l email (via HTTP API o SMTP) e ne registra la copia su database per la casella postale dell amministratore."""
         sender = from_email or f"{settings.EMAILS_FROM_NAME} <{settings.EMAILS_FROM_EMAIL}>"
         
-        # Se presente chiave HTTP (SMTP2GO, Brevo o Resend), invia via HTTPS porta 443
-        if settings.SMTP2GO_API_KEY or settings.BREVO_API_KEY or settings.RESEND_API_KEY:
+        # Se presente relay HTTP (Google Apps Script, SMTP2GO, Brevo o Resend), invia via HTTPS porta 443
+        if settings.GOOGLE_SCRIPT_EMAIL_URL or settings.SMTP2GO_API_KEY or settings.BREVO_API_KEY or settings.RESEND_API_KEY:
             success, error = await cls._send_http_email(to_email, subject, html_body, text_body)
         elif settings.SMTP_HOST:
             loop = asyncio.get_running_loop()
@@ -710,7 +742,7 @@ class EmailService:
         if not email_obj:
             return False, "Email non trovata nel database."
 
-        if settings.SMTP2GO_API_KEY or settings.BREVO_API_KEY or settings.RESEND_API_KEY:
+        if settings.GOOGLE_SCRIPT_EMAIL_URL or settings.SMTP2GO_API_KEY or settings.BREVO_API_KEY or settings.RESEND_API_KEY:
             success, error = await cls._send_http_email(
                 email_obj.destinatario,
                 email_obj.oggetto,

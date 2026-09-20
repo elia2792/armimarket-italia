@@ -80,6 +80,8 @@ class Settings(BaseSettings):
     IMAP_SSL: bool = True
 
     # Provider Email HTTP REST (Porta 443 HTTPS - compatibile con Render Free Tier)
+    GOOGLE_SCRIPT_EMAIL_URL: Optional[str] = None
+    GOOGLE_SCRIPT_TOKEN: str = "armimarket_secret_2026"
     BREVO_API_KEY: Optional[str] = None
     RESEND_API_KEY: Optional[str] = None
     SMTP2GO_API_KEY: Optional[str] = None
