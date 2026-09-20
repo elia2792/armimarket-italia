@@ -25,18 +25,11 @@
                     </h1>
                 </div>
                 <p class="text-xs font-mono text-[#68733F]">
-                    ◆ Conversazioni unificate per utente con storico integrato, sincronizzazione Google Gmail e gestione invii.
+                    ◆ Posta del portale: comunicazioni, richieste acquirenti, reset password e segnalazioni originate dal sito web.
                 </p>
             </div>
 
             <div class="flex items-center flex-wrap gap-2">
-                <button type="button" id="btnSyncGoogleMail"
-                        class="text-xs font-bold px-3.5 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm cursor-pointer"
-                        style="background:#2563EB;border:1px solid #1D4ED8;color:#FFFFFF;"
-                        title="Sincronizza email in arrivo dall'account Google Gmail (armimarkt@gmail.com via IMAP)">
-                    <i class="fa-solid fa-cloud-arrow-down" id="syncGoogleIcon"></i>
-                    <span>Sincronizza Google</span>
-                </button>
                 <button type="button" id="btnRefreshMail"
                         class="text-xs font-bold px-3 py-2 rounded-lg flex items-center gap-1.5 uppercase tracking-wide transition-all shadow-sm cursor-pointer"
                         style="background:#F1EFE7;border:1px solid #68733F;color:#4F5A30;">
@@ -77,14 +70,6 @@
         </div>
     </div>
 
-    <!-- Alert / Banner Notifica Sincronizzazione -->
-    <div id="syncToast" class="hidden mb-4 p-3 rounded-xl border text-xs font-bold flex items-center justify-between transition-all">
-        <div class="flex items-center gap-2" id="syncToastContent"></div>
-        <button type="button" id="btnCloseSyncToast" class="text-xs opacity-70 hover:opacity-100 cursor-pointer">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-
     <!-- Webmail App Grid -->
     <div id="webmailContainer" class="mt-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
@@ -106,16 +91,16 @@
 
                 <div class="pt-2 border-t border-[#E8E5DB] space-y-1.5 text-[11px]">
                     <div class="flex items-center justify-between">
-                        <span class="text-[#6B7064]">Google Gmail:</span>
+                        <span class="text-[#6B7064]">Motore Invio:</span>
                         <span class="font-bold text-[#27471E] flex items-center gap-1">
                             <span class="w-2 h-2 rounded-full inline-block bg-emerald-500 animate-pulse"></span>
-                            SMTP & IMAP Attivo
+                            Google Relay (HTTPS)
                         </span>
                     </div>
                     <div class="flex items-center justify-between">
-                        <span class="text-[#6B7064]">Database Cloud:</span>
+                        <span class="text-[#6B7064]">Filtro Casella:</span>
                         <span class="font-bold text-[#4F5A30] flex items-center gap-1">
-                            <i class="fa-solid fa-cloud text-[10px]"></i> Neon PostgreSQL
+                            <i class="fa-solid fa-globe text-[10px]"></i> Solo dal Sito Web
                         </span>
                     </div>
                 </div>
@@ -128,18 +113,9 @@
                         style="background:#68733F;color:#FFFFFF;border-color:#4F5A30;">
                     <div class="flex items-center space-x-2.5">
                         <i class="fa-solid fa-inbox text-white"></i>
-                        <span>Tutte le Conversazioni</span>
+                        <span>Tutte dal Sito Web</span>
                     </div>
                     <span id="badgeTotal" class="text-[10px] bg-white text-[#252821] px-2 py-0.5 rounded-full font-mono font-bold shadow-xs">0</span>
-                </button>
-
-                <button type="button" data-folder="in_arrivo" id="tabInArrivo"
-                        class="folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] transition-all text-left cursor-pointer border border-transparent">
-                    <div class="flex items-center space-x-2.5">
-                        <i class="fa-brands fa-google text-[#2563EB]"></i>
-                        <span>In Arrivo da Google</span>
-                    </div>
-                    <span id="badgeInArrivo" class="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
                 </button>
 
                 <button type="button" data-folder="richiesta_contatto" id="tabContatti"
@@ -149,6 +125,15 @@
                         <span>Richieste Contatto</span>
                     </div>
                     <span id="badgeContatti" class="text-[10px] bg-[#EBEFE0] text-[#27471E] border border-[#A4B882] px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+                </button>
+
+                <button type="button" data-folder="segnalazione" id="tabSegnalazioni"
+                        class="folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] transition-all text-left cursor-pointer border border-transparent">
+                    <div class="flex items-center space-x-2.5">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                        <span>Segnalazioni Annunci</span>
+                    </div>
+                    <span id="badgeSegnalazioni" class="text-[10px] bg-amber-50 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
                 </button>
 
                 <button type="button" data-folder="recupero_password" id="tabRecupero"
@@ -176,15 +161,6 @@
                         <span>Sistema & Test</span>
                     </div>
                     <span id="badgeAltre" class="text-[10px] bg-[#EFF6FF] text-[#1E3A8A] border border-[#BFDBFE] px-2 py-0.5 rounded-full font-mono font-bold">0</span>
-                </button>
-
-                <button type="button" data-folder="segnalazioni" id="tabSegnalazioni"
-                        class="folder-tab w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-[#4A4E44] hover:bg-[#F1EFE7] hover:text-[#252821] transition-all text-left cursor-pointer border-t border-[#E8E5DB] pt-2">
-                    <div class="flex items-center space-x-2.5">
-                        <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
-                        <span class="text-rose-700 font-semibold">Segnalazioni Annunci</span>
-                    </div>
-                    <span id="badgeSegnalazioni" class="text-[10px] bg-rose-50 text-rose-700 border border-rose-300 px-2 py-0.5 rounded-full font-mono font-bold">0</span>
                 </button>
             </div>
 
@@ -699,20 +675,22 @@ function renderElencoConversazioni(convs) {
         const d = new Date(c.data_ultimo_messaggio);
         const timeStr = d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) + " " + d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
 
-        let badgeTipo = `<span class="text-[9px] bg-[#EFF6FF] text-[#1E3A8A] border border-[#BFDBFE] px-1.5 py-0.5 rounded font-mono font-bold">Email</span>`;
-        if (c.ultima_tipologia === "in_arrivo") {
-            badgeTipo = `<span class="text-[9px] bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded font-bold">Google In Arrivo</span>`;
-        } else if (c.ultima_tipologia === "richiesta_contatto") {
+        let badgeTipo = `<span class="text-[9px] bg-[#EFF6FF] text-[#1E3A8A] border border-[#BFDBFE] px-1.5 py-0.5 rounded font-mono font-bold">Email Sito</span>`;
+        if (c.ultima_tipologia === "richiesta_contatto") {
             badgeTipo = `<span class="text-[9px] bg-[#EBEFE0] text-[#27471E] border border-[#A4B882] px-1.5 py-0.5 rounded font-bold">Richiesta Contatto</span>`;
+        } else if (c.ultima_tipologia === "segnalazione") {
+            badgeTipo = `<span class="text-[9px] bg-amber-50 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded font-bold">Segnalazione</span>`;
         } else if (c.ultima_tipologia === "recupero_password") {
             badgeTipo = `<span class="text-[9px] bg-[#F7F3EA] text-[#8C734B] border border-[#D4C29B] px-1.5 py-0.5 rounded font-bold">Recupero Pwd</span>`;
+        } else if (c.ultima_tipologia === "risposta_admin") {
+            badgeTipo = `<span class="text-[9px] bg-[#68733F] text-white px-1.5 py-0.5 rounded font-bold">Risposta Admin</span>`;
         }
 
         const msgCountBadge = c.totale_messaggi > 1
             ? `<span class="text-[10px] bg-[#27471E] text-white px-1.5 py-0.2 rounded-full font-bold font-mono ml-1.5">${c.totale_messaggi} msg</span>`
             : `<span class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded-full font-mono ml-1.5">1</span>`;
 
-        let statusIcon = `<span class="text-[10px] font-bold text-[#27471E] flex items-center gap-1"><i class="fa-solid fa-check"></i> Gmail</span>`;
+        let statusIcon = `<span class="text-[10px] font-bold text-[#27471E] flex items-center gap-1"><i class="fa-solid fa-check"></i> Inviata</span>`;
         if (c.ha_errori) {
             statusIcon = `<span class="text-[10px] font-bold text-rose-700 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation text-rose-600"></i> Errore Invio</span>`;
         }
@@ -1112,11 +1090,8 @@ function selezionaCartella(tipologia) {
     document.getElementById("emptyReaderState").classList.remove("hidden");
 
     let targetId = "tabAll";
-    let title = "Tutte le conversazioni";
-    if (tipologia === "in_arrivo") {
-        targetId = "tabInArrivo";
-        title = "In Arrivo da Google (Gmail)";
-    } else if (tipologia === "richiesta_contatto") {
+    let title = "Tutte le email dal sito web";
+    if (tipologia === "richiesta_contatto") {
         targetId = "tabContatti";
         title = "Richieste Contatto Annunci";
     } else if (tipologia === "recupero_password") {
@@ -1128,7 +1103,7 @@ function selezionaCartella(tipologia) {
     } else if (tipologia === "altre") {
         targetId = "tabAltre";
         title = "Notifiche di Sistema & Test";
-    } else if (tipologia === "segnalazioni") {
+    } else if (tipologia === "segnalazioni" || tipologia === "segnalazione") {
         targetId = "tabSegnalazioni";
         title = "Segnalazioni Annunci";
     }
@@ -1148,7 +1123,7 @@ function selezionaCartella(tipologia) {
     }
     document.getElementById("currentFolderTitle").innerText = title;
 
-    if (tipologia === "segnalazioni") {
+    if (tipologia === "segnalazioni" || tipologia === "segnalazione") {
         caricaSegnalazioni();
     } else {
         caricaConversazioni(1);

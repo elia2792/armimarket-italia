@@ -165,6 +165,7 @@ async def test_invio_email_brevo_http(monkeypatch):
     from app.services.email_service import EmailService
     import httpx
 
+    monkeypatch.setattr(settings, "GOOGLE_SCRIPT_EMAIL_URL", None)
     monkeypatch.setattr(settings, "BREVO_API_KEY", "xkeysib-test-key-123")
     monkeypatch.setattr(settings, "RESEND_API_KEY", None)
 
@@ -193,6 +194,7 @@ async def test_invio_email_resend_http(monkeypatch):
     from app.services.email_service import EmailService
     import httpx
 
+    monkeypatch.setattr(settings, "GOOGLE_SCRIPT_EMAIL_URL", None)
     monkeypatch.setattr(settings, "BREVO_API_KEY", None)
     monkeypatch.setattr(settings, "RESEND_API_KEY", "re_test_key_123")
 
@@ -221,6 +223,7 @@ async def test_invio_email_smtp2go_http(monkeypatch):
     from app.services.email_service import EmailService
     import httpx
 
+    monkeypatch.setattr(settings, "GOOGLE_SCRIPT_EMAIL_URL", None)
     monkeypatch.setattr(settings, "BREVO_API_KEY", None)
     monkeypatch.setattr(settings, "RESEND_API_KEY", None)
     monkeypatch.setattr(settings, "SMTP2GO_API_KEY", "api-smtp2go-test-key-123")
@@ -280,6 +283,48 @@ async def test_invio_email_google_script_http(monkeypatch):
     assert success is True
     assert err is None
     assert any("script.google.com" in u for u in called_url)
+
+
+@pytest.mark.asyncio
+async def test_filtro_solo_email_sito_e_pulizia_esterne(client: AsyncClient, admin_token_headers: dict, db_session):
+    from app.models.email_log import EmailLog
+    from datetime import datetime
+
+    # 1. Inserisci direttamente un'email esterna (simulata da IMAP Gmail o spam)
+    ext_mail = EmailLog(
+        destinatario="armimarkt@gmail.com",
+        mittente="sconosciuto@esterno.com",
+        oggetto="Newsletter esterna non dal sito",
+        corpo_html="<p>Contenuto esterno Gmail</p>",
+        corpo_testo="Contenuto esterno Gmail",
+        tipologia="in_arrivo",
+        link_azione="msgid:external-12345",
+        inviata=True,
+        data_invio=datetime.now()
+    )
+    db_session.add(ext_mail)
+    await db_session.commit()
+    ext_mail_id = ext_mail.id
+
+    # 2. La casella postale /api/v1/admin/email NON deve mostrare questa email esterna
+    resp_list = await client.get("/api/v1/admin/email", headers=admin_token_headers)
+    assert resp_list.status_code == 200
+    emails = resp_list.json()["emails"]
+    assert not any(e["id"] == ext_mail_id for e in emails), "Le email esterne non devono apparire nei log del sito"
+
+    # 3. Anche le conversazioni non devono includere l'utente esterno
+    resp_conv = await client.get("/api/v1/admin/email/conversazioni", headers=admin_token_headers)
+    assert resp_conv.status_code == 200
+    convs = resp_conv.json()["conversazioni"]
+    assert not any(c["user_email"] == "sconosciuto@esterno.com" for c in convs)
+
+    # 4. Chiama l'endpoint di pulizia email esterne
+    resp_purge = await client.post("/api/v1/admin/email/pulisci-esterne", headers=admin_token_headers)
+    assert resp_purge.status_code == 200
+    purge_data = resp_purge.json()
+    assert purge_data["success"] is True
+    assert purge_data["deleted_count"] >= 1
+
 
 
 

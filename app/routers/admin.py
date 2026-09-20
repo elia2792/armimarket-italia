@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, not_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -79,6 +79,7 @@ class EmailListResponse(BaseModel):
     elementi_per_pagina: int
     conteggio_recupero: int
     conteggio_contatti: int
+    conteggio_segnalazioni: int = 0
     conteggio_altre: int
     conteggio_in_arrivo: int = 0
     conteggio_errori: int = 0
@@ -104,7 +105,8 @@ class ConversazioniResponse(BaseModel):
     conteggio_errori: int
     conteggio_recupero: int
     conteggio_contatti: int
-    conteggio_in_arrivo: int
+    conteggio_segnalazioni: int = 0
+    conteggio_in_arrivo: int = 0
     conteggio_altre: int
     conversazioni: List[ConversazioneItem]
 
@@ -532,20 +534,40 @@ def get_email_counterpart(email_obj: EmailLog) -> Tuple[str, str]:
     return counter_email, counter_name
 
 
+WEB_PAGE_TIPOLOGIE = [
+    TipologiaEmail.RICHIESTA_CONTATTO.value,
+    TipologiaEmail.SEGNALAZIONE.value,
+    TipologiaEmail.RECUPERO_PASSWORD.value,
+    TipologiaEmail.RISPOSTA_ADMIN.value,
+    TipologiaEmail.MODERAZIONE.value,
+    TipologiaEmail.ALERT_RICERCA.value,
+    TipologiaEmail.TEST.value,
+    TipologiaEmail.SISTEMA.value
+]
+
+
+def filter_solo_email_sito(stmt):
+    """Filtra le email per mostrare SOLO quelle generate dalle pagine web del portale."""
+    return stmt.where(
+        EmailLog.tipologia.in_(WEB_PAGE_TIPOLOGIE),
+        or_(EmailLog.link_azione.is_(None), not_(EmailLog.link_azione.like("msgid:%")))
+    )
+
+
 @router.get("/email", response_model=EmailListResponse)
 async def list_admin_emails(
     pagina: int = Query(1, ge=1),
     elementi_per_pagina: int = Query(25, ge=1, le=100),
-    tipologia: Optional[str] = Query(None, description="Filtra per tipologia (es. recupero_password, richiesta_contatto, in_arrivo, errori)"),
+    tipologia: Optional[str] = Query(None, description="Filtra per tipologia"),
     search: Optional[str] = Query(None, description="Cerca per destinatario, mittente o oggetto"),
     admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Restituisce la lista di tutte le email inviate/registrate dal sistema ArmiMarket.
+    Restituisce la lista di tutte le email generate dalle pagine web di ArmiMarket.
     Include contatori statistici per le cartelle della webmail.
     """
-    stmt = select(EmailLog)
+    stmt = filter_solo_email_sito(select(EmailLog))
     if tipologia:
         if tipologia == "errori":
             stmt = stmt.where(or_(EmailLog.inviata == False, EmailLog.errore.isnot(None)))
@@ -553,7 +575,7 @@ async def list_admin_emails(
             stmt = stmt.where(EmailLog.tipologia.notin_([
                 TipologiaEmail.RECUPERO_PASSWORD.value,
                 TipologiaEmail.RICHIESTA_CONTATTO.value,
-                TipologiaEmail.IN_ARRIVO.value
+                TipologiaEmail.SEGNALAZIONE.value
             ]))
         else:
             stmt = stmt.where(EmailLog.tipologia == tipologia)
@@ -577,15 +599,20 @@ async def list_admin_emails(
     result = await db.execute(stmt)
     emails = result.scalars().all()
 
-    # Conteggi cartelle globali
-    c_recupero = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia == TipologiaEmail.RECUPERO_PASSWORD.value))).scalar() or 0
-    c_contatti = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia == TipologiaEmail.RICHIESTA_CONTATTO.value))).scalar() or 0
-    c_in_arrivo = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia == TipologiaEmail.IN_ARRIVO.value))).scalar() or 0
-    c_errori = (await db.execute(select(func.count(EmailLog.id)).where(or_(EmailLog.inviata == False, EmailLog.errore.isnot(None))))).scalar() or 0
-    c_altre = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia.notin_([
+    # Conteggi cartelle globali (esclusivamente dal sito web)
+    base_count = lambda cond: select(func.count(EmailLog.id)).where(
+        EmailLog.tipologia.in_(WEB_PAGE_TIPOLOGIE),
+        or_(EmailLog.link_azione.is_(None), not_(EmailLog.link_azione.like("msgid:%"))),
+        cond
+    )
+    c_recupero = (await db.execute(base_count(EmailLog.tipologia == TipologiaEmail.RECUPERO_PASSWORD.value))).scalar() or 0
+    c_contatti = (await db.execute(base_count(EmailLog.tipologia == TipologiaEmail.RICHIESTA_CONTATTO.value))).scalar() or 0
+    c_segnalazioni = (await db.execute(base_count(EmailLog.tipologia == TipologiaEmail.SEGNALAZIONE.value))).scalar() or 0
+    c_errori = (await db.execute(base_count(or_(EmailLog.inviata == False, EmailLog.errore.isnot(None))))).scalar() or 0
+    c_altre = (await db.execute(base_count(EmailLog.tipologia.notin_([
         TipologiaEmail.RECUPERO_PASSWORD.value,
         TipologiaEmail.RICHIESTA_CONTATTO.value,
-        TipologiaEmail.IN_ARRIVO.value
+        TipologiaEmail.SEGNALAZIONE.value
     ])))).scalar() or 0
 
     return EmailListResponse(
@@ -594,7 +621,8 @@ async def list_admin_emails(
         elementi_per_pagina=elementi_per_pagina,
         conteggio_recupero=c_recupero,
         conteggio_contatti=c_contatti,
-        conteggio_in_arrivo=c_in_arrivo,
+        conteggio_segnalazioni=c_segnalazioni,
+        conteggio_in_arrivo=0,
         conteggio_errori=c_errori,
         conteggio_altre=c_altre,
         emails=[EmailLogOut.model_validate(e) for e in emails]
@@ -612,10 +640,10 @@ async def list_admin_conversazioni(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Raggruppa le email in conversazioni unificate per utente (stile Gmail/Outlook),
-    integrando messaggi ricevuti, inviati e risposte.
+    Raggruppa le email generate dal sito web in conversazioni unificate per utente (stile Gmail/Outlook),
+    integrando messaggi ricevuti, inviati e risposte admin.
     """
-    stmt = select(EmailLog)
+    stmt = filter_solo_email_sito(select(EmailLog))
     if tipologia:
         if tipologia == "errori":
             stmt = stmt.where(or_(EmailLog.inviata == False, EmailLog.errore.isnot(None)))
@@ -623,7 +651,7 @@ async def list_admin_conversazioni(
             stmt = stmt.where(EmailLog.tipologia.notin_([
                 TipologiaEmail.RECUPERO_PASSWORD.value,
                 TipologiaEmail.RICHIESTA_CONTATTO.value,
-                TipologiaEmail.IN_ARRIVO.value
+                TipologiaEmail.SEGNALAZIONE.value
             ]))
         else:
             stmt = stmt.where(EmailLog.tipologia == tipologia)
@@ -675,14 +703,19 @@ async def list_admin_conversazioni(
     paginated_convs = conv_list[offset:offset + elementi_per_pagina]
 
     # Conteggi globali
-    c_recupero = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia == TipologiaEmail.RECUPERO_PASSWORD.value))).scalar() or 0
-    c_contatti = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia == TipologiaEmail.RICHIESTA_CONTATTO.value))).scalar() or 0
-    c_in_arrivo = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia == TipologiaEmail.IN_ARRIVO.value))).scalar() or 0
-    c_errori = (await db.execute(select(func.count(EmailLog.id)).where(or_(EmailLog.inviata == False, EmailLog.errore.isnot(None))))).scalar() or 0
-    c_altre = (await db.execute(select(func.count(EmailLog.id)).where(EmailLog.tipologia.notin_([
+    base_count = lambda cond: select(func.count(EmailLog.id)).where(
+        EmailLog.tipologia.in_(WEB_PAGE_TIPOLOGIE),
+        or_(EmailLog.link_azione.is_(None), not_(EmailLog.link_azione.like("msgid:%"))),
+        cond
+    )
+    c_recupero = (await db.execute(base_count(EmailLog.tipologia == TipologiaEmail.RECUPERO_PASSWORD.value))).scalar() or 0
+    c_contatti = (await db.execute(base_count(EmailLog.tipologia == TipologiaEmail.RICHIESTA_CONTATTO.value))).scalar() or 0
+    c_segnalazioni = (await db.execute(base_count(EmailLog.tipologia == TipologiaEmail.SEGNALAZIONE.value))).scalar() or 0
+    c_errori = (await db.execute(base_count(or_(EmailLog.inviata == False, EmailLog.errore.isnot(None))))).scalar() or 0
+    c_altre = (await db.execute(base_count(EmailLog.tipologia.notin_([
         TipologiaEmail.RECUPERO_PASSWORD.value,
         TipologiaEmail.RICHIESTA_CONTATTO.value,
-        TipologiaEmail.IN_ARRIVO.value
+        TipologiaEmail.SEGNALAZIONE.value
     ])))).scalar() or 0
 
     return ConversazioniResponse(
@@ -692,7 +725,8 @@ async def list_admin_conversazioni(
         conteggio_errori=c_errori,
         conteggio_recupero=c_recupero,
         conteggio_contatti=c_contatti,
-        conteggio_in_arrivo=c_in_arrivo,
+        conteggio_segnalazioni=c_segnalazioni,
+        conteggio_in_arrivo=0,
         conteggio_altre=c_altre,
         conversazioni=[ConversazioneItem(**c) for c in paginated_convs]
     )
@@ -705,12 +739,14 @@ async def get_admin_conversazione_detail(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Restituisce l'intero thread cronologico di messaggi scambiati con uno specifico utente.
+    Restituisce l'intero thread cronologico di messaggi scambiati con uno specifico utente (solo dal sito).
     """
     target = user_email.strip().lower()
-    stmt = select(EmailLog).where(
-        (EmailLog.destinatario.ilike(target)) |
-        (EmailLog.mittente.ilike(f"%{target}%"))
+    stmt = filter_solo_email_sito(
+        select(EmailLog).where(
+            (EmailLog.destinatario.ilike(target)) |
+            (EmailLog.mittente.ilike(f"%{target}%"))
+        )
     ).order_by(EmailLog.data_invio.asc())
 
     result = await db.execute(stmt)
@@ -835,6 +871,23 @@ async def resolve_all_email_errors(
         "risolti": count,
         "message": f"{count} errori di invio sono stati risolti e azzerati con successo."
     }
+
+
+@router.post("/email/pulisci-esterne")
+async def purge_external_emails(
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Rimuove dal database eventuali email importate da caselle esterne IMAP, lasciando esclusivamente i log generati dal sito."""
+    stmt = delete(EmailLog).where(
+        or_(
+            EmailLog.tipologia == TipologiaEmail.IN_ARRIVO.value,
+            EmailLog.link_azione.like("msgid:%")
+        )
+    )
+    result = await db.execute(stmt)
+    await db.commit()
+    return {"success": True, "deleted_count": result.rowcount, "message": f"{result.rowcount} email esterne rimosse con successo."}
 
 
 @router.get("/email/{id}", response_model=EmailLogOut)

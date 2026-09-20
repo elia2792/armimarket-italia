@@ -199,6 +199,14 @@ async def lifespan(app: FastAPI):
                 except Exception:
                     pass
 
+        # Pulizia email esterne (IMAP): visualizza esclusivamente comunicazioni generate dal sito web
+        try:
+            await conn.execute(__import__("sqlalchemy").text(
+                "DELETE FROM email_logs WHERE tipologia = 'in_arrivo' OR link_azione LIKE 'msgid:%';"
+            ))
+        except Exception:
+            pass
+
     # Inizializza o sincronizza superuser amministratore e poligoni
     async with async_session_factory() as session:
         stmt = select(User).where(User.email == settings.FIRST_SUPERUSER_EMAIL.lower())
